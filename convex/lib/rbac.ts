@@ -22,7 +22,11 @@ export async function requireAuth(ctx: QueryCtx | MutationCtx) {
  * Get current user or null (for optional auth)
  */
 export async function getOptionalAuth(ctx: QueryCtx | MutationCtx) {
-  return await authComponent.getAuthUser(ctx).catch(() => null);
+  try {
+    return await authComponent.getAuthUser(ctx);
+  } catch {
+    return null;
+  }
 }
 
 /**

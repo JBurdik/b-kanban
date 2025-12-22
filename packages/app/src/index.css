@@ -1,0 +1,251 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  border-color: #2a2a2a;
+}
+
+html, body, #root {
+  min-height: 100vh;
+  background-color: #0d0d0d;
+  color: #e5e5e5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-dark-bg disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover;
+  }
+
+  .btn-secondary {
+    @apply btn bg-dark-surface border border-dark-border text-dark-text hover:bg-dark-hover;
+  }
+
+  .btn-ghost {
+    @apply btn text-dark-muted hover:text-dark-text hover:bg-dark-surface;
+  }
+
+  .input {
+    @apply w-full px-4 py-2 bg-dark-surface border border-dark-border rounded-lg text-dark-text placeholder:text-dark-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent;
+  }
+
+  .card {
+    @apply bg-dark-surface border border-dark-border rounded-lg p-4;
+  }
+
+  .card-focusable {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-dark-bg;
+  }
+}
+
+@layer utilities {
+  .scroll-shadow {
+    background:
+      linear-gradient(#1a1a1a 30%, transparent),
+      linear-gradient(transparent, #1a1a1a 70%) 0 100%,
+      radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.2), transparent),
+      radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.2), transparent) 0 100%;
+    background-repeat: no-repeat;
+    background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+    background-attachment: local, local, scroll, scroll;
+  }
+}
+
+/* Rich text content rendering */
+.rich-content {
+  @apply text-dark-text leading-relaxed;
+}
+
+.rich-content > *:first-child {
+  margin-top: 0;
+}
+
+.rich-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Headings */
+.rich-content h1 {
+  @apply text-xl font-bold mt-6 mb-3 text-white;
+}
+
+.rich-content h2 {
+  @apply text-lg font-semibold mt-5 mb-2 text-white;
+}
+
+.rich-content h3 {
+  @apply text-base font-semibold mt-4 mb-2 text-white;
+}
+
+/* Paragraphs */
+.rich-content p {
+  @apply my-3;
+}
+
+.rich-content p:empty {
+  @apply hidden;
+}
+
+/* Links */
+.rich-content a {
+  @apply text-accent hover:underline;
+}
+
+/* Bold, italic, strikethrough */
+.rich-content strong {
+  @apply font-semibold text-white;
+}
+
+.rich-content em {
+  @apply italic;
+}
+
+.rich-content s {
+  @apply line-through opacity-60;
+}
+
+/* Lists */
+.rich-content ul {
+  @apply my-3 pl-6 list-disc;
+}
+
+.rich-content ol {
+  @apply my-3 pl-6 list-decimal;
+}
+
+.rich-content li {
+  @apply my-1;
+}
+
+.rich-content li > p {
+  @apply my-0;
+}
+
+/* Nested lists */
+.rich-content ul ul,
+.rich-content ol ul {
+  @apply mt-1 mb-0 list-[circle];
+}
+
+.rich-content ul ol,
+.rich-content ol ol {
+  @apply mt-1 mb-0;
+}
+
+/* Task lists */
+.rich-content ul[data-type="taskList"] {
+  @apply list-none pl-0 my-4 space-y-1;
+}
+
+.rich-content ul[data-type="taskList"] li {
+  @apply flex items-center gap-3 py-2 px-3 rounded-lg bg-dark-bg/50 hover:bg-dark-bg transition-colors;
+}
+
+.rich-content ul[data-type="taskList"] li > label {
+  @apply flex-shrink-0 flex items-center justify-center;
+}
+
+.rich-content ul[data-type="taskList"] li > label input[type="checkbox"] {
+  @apply w-5 h-5 rounded border-2 border-dark-border bg-transparent cursor-pointer appearance-none relative;
+  transition: all 0.15s ease;
+}
+
+.rich-content ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  @apply bg-accent border-accent;
+}
+
+.rich-content ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.rich-content ul[data-type="taskList"] li > div {
+  @apply flex-1 text-sm;
+}
+
+.rich-content ul[data-type="taskList"] li > div p {
+  @apply my-0;
+}
+
+.rich-content ul[data-type="taskList"] li[data-checked="true"] > div {
+  @apply line-through text-dark-muted;
+}
+
+/* Code */
+.rich-content code {
+  @apply bg-dark-bg px-1.5 py-0.5 rounded text-sm font-mono text-accent;
+}
+
+.rich-content pre {
+  @apply my-4 p-4 bg-dark-bg rounded-lg overflow-x-auto;
+}
+
+.rich-content pre code {
+  @apply bg-transparent p-0 text-dark-text;
+}
+
+/* Blockquote */
+.rich-content blockquote {
+  @apply my-4 pl-4 border-l-4 border-accent text-dark-muted italic;
+}
+
+.rich-content blockquote p {
+  @apply my-2;
+}
+
+/* Horizontal rule */
+.rich-content hr {
+  @apply my-6 border-0 border-t border-dark-border;
+}
+
+/* Images */
+.rich-content img {
+  @apply my-4 rounded-lg max-w-full h-auto;
+}
+
+/* Tables (if used) */
+.rich-content table {
+  @apply my-4 w-full border-collapse;
+}
+
+.rich-content th,
+.rich-content td {
+  @apply border border-dark-border px-3 py-2 text-left;
+}
+
+.rich-content th {
+  @apply bg-dark-bg font-semibold;
+}

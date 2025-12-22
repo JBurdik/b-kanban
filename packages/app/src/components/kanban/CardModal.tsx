@@ -31,18 +31,34 @@ interface Column {
   cards: Card[];
 }
 
+type BoardRole = "owner" | "admin" | "member";
+
+interface BoardMember {
+  id: Id<"boardMembers">;
+  role: BoardRole;
+  userId: Id<"users">;
+  user: {
+    id: Id<"users">;
+    name: string;
+    email: string;
+    image?: string;
+  } | null;
+}
+
 interface Props {
   card: Card;
   boardId: Id<"boards">;
   columns: Column[];
+  members?: BoardMember[];
   onClose: () => void;
 }
 
-export function CardModal({ card, boardId, columns, onClose }: Props) {
+export function CardModal({ card, boardId, columns, members = [], onClose }: Props) {
   const [title, setTitle] = useState(card.title);
   const [content, setContent] = useState(card.content || "");
   const [priority, setPriority] = useState(card.priority);
   const [columnId, setColumnId] = useState(card.columnId);
+  const [assigneeId, setAssigneeId] = useState<Id<"users"> | undefined>(card.assignee?.id);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -52,7 +68,13 @@ export function CardModal({ card, boardId, columns, onClose }: Props) {
 
   // Auto-save on change with debounce
   useEffect(() => {
-    if (title === card.title && content === (card.content || "") && priority === card.priority && columnId === card.columnId) {
+    if (
+      title === card.title &&
+      content === (card.content || "") &&
+      priority === card.priority &&
+      columnId === card.columnId &&
+      assigneeId === card.assignee?.id
+    ) {
       return;
     }
 
@@ -69,6 +91,7 @@ export function CardModal({ card, boardId, columns, onClose }: Props) {
           content,
           priority,
           columnId,
+          assigneeId,
         });
       } finally {
         setIsSaving(false);
@@ -80,7 +103,7 @@ export function CardModal({ card, boardId, columns, onClose }: Props) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [title, content, priority, columnId, card._id, card.title, card.content, card.priority, card.columnId, updateCard]);
+  }, [title, content, priority, columnId, assigneeId, card._id, card.title, card.content, card.priority, card.columnId, card.assignee?.id, updateCard]);
 
   // Close on escape
   useEffect(() => {
@@ -175,6 +198,25 @@ export function CardModal({ card, boardId, columns, onClose }: Props) {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Assignee selector */}
+          <div>
+            <label className="block text-sm text-dark-muted mb-2">Assignee</label>
+            <select
+              value={assigneeId || ""}
+              onChange={(e) => setAssigneeId(e.target.value ? e.target.value as Id<"users"> : undefined)}
+              className="input w-full"
+            >
+              <option value="">Unassigned</option>
+              {members.map((member) => (
+                member.user && (
+                  <option key={member.userId} value={member.userId}>
+                    {member.user.name} ({member.user.email})
+                  </option>
+                )
+              ))}
+            </select>
           </div>
 
           {/* Description with rich text editor */}

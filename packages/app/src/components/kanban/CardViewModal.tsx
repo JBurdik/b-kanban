@@ -33,10 +33,23 @@ interface Column {
   cards: Card[];
 }
 
+interface BoardMember {
+  id: Id<"boardMembers">;
+  role: BoardRole;
+  userId: Id<"users">;
+  user: {
+    id: Id<"users">;
+    name: string;
+    email: string;
+    image?: string;
+  } | null;
+}
+
 interface Props {
   card: Card;
   boardId: Id<"boards">;
   columns: Column[];
+  members?: BoardMember[];
   userRole?: BoardRole;
   onClose: () => void;
 }
@@ -47,7 +60,7 @@ const priorityConfig = {
   high: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/20", dot: "bg-rose-400" },
 };
 
-export function CardViewModal({ card, boardId, columns, userRole, onClose }: Props) {
+export function CardViewModal({ card, boardId, columns, members = [], userRole, onClose }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentColumnId, setCurrentColumnId] = useState(card.columnId);
@@ -92,6 +105,7 @@ export function CardViewModal({ card, boardId, columns, userRole, onClose }: Pro
         card={card}
         boardId={boardId}
         columns={columns}
+        members={members}
         onClose={() => setIsEditing(false)}
       />
     );
@@ -210,6 +224,16 @@ export function CardViewModal({ card, boardId, columns, userRole, onClose }: Pro
                 </span>
               </div>
             )}
+
+            {/* Assignee */}
+            <div className="flex items-center gap-2 text-sm">
+              <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-dark-text">
+                {card.assignee ? card.assignee.name : "Unassigned"}
+              </span>
+            </div>
           </div>
 
           {/* Description */}

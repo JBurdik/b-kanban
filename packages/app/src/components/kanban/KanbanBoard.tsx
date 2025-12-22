@@ -52,10 +52,23 @@ interface Column {
   cards: Card[];
 }
 
+interface BoardMember {
+  id: Id<"boardMembers">;
+  role: BoardRole;
+  userId: Id<"users">;
+  user: {
+    id: Id<"users">;
+    name: string;
+    email: string;
+    image?: string;
+  } | null;
+}
+
 interface Board {
   _id: Id<"boards">;
   name: string;
   columns: Column[];
+  members?: BoardMember[];
   userRole?: BoardRole;
 }
 
@@ -249,6 +262,7 @@ export function KanbanBoard({ board }: Props) {
               column={column}
               boardId={board._id}
               allColumns={columns}
+              members={board.members}
               canEdit={canDrag}
               canManageColumns={canAddColumn}
               userRole={userRole}

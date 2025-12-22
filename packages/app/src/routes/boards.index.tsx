@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { useState } from "react";
-import { useSession } from "@/lib/auth-client";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 
@@ -10,18 +10,18 @@ export const Route = createFileRoute("/boards/")({
 });
 
 function BoardsPage() {
-  const { data: session, isPending: sessionLoading } = useSession();
+  const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const [showCreate, setShowCreate] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
 
   // Real-time subscription to boards (skip if not authenticated)
-  const boards = useQuery(api.boards.list, session ? {} : "skip");
+  const boards = useQuery(api.boards.list, userEmail ? { userEmail } : "skip");
 
   // Mutations
   const createBoard = useMutation(api.boards.create);
   const deleteBoard = useMutation(api.boards.remove);
 
-  if (sessionLoading) {
+  if (userLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
@@ -35,8 +35,8 @@ function BoardsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newBoardName.trim()) {
-      await createBoard({ name: newBoardName.trim() });
+    if (newBoardName.trim() && userEmail) {
+      await createBoard({ name: newBoardName.trim(), userEmail });
       setShowCreate(false);
       setNewBoardName("");
     }

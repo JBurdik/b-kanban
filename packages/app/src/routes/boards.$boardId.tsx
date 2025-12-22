@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
-import { useSession } from "@/lib/auth-client";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
@@ -13,12 +13,13 @@ export const Route = createFileRoute("/boards/$boardId")({
 
 function BoardPage() {
   const { boardId } = Route.useParams();
-  const { data: session, isPending: sessionLoading } = useSession();
+  const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const [showMembers, setShowMembers] = useState(false);
 
   // Real-time subscription to board data
   const board = useQuery(api.boards.get, {
     boardId: boardId as Id<"boards">,
+    userEmail,
   });
 
   // Mutation for updating board name
@@ -26,7 +27,7 @@ function BoardPage() {
 
   const isLoading = board === undefined;
 
-  if (sessionLoading || isLoading) {
+  if (userLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />

@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireAuth, requireBoardAccess, getBoardIdFromCard, getBoardIdFromColumn } from "./lib/rbac";
 
 /**
  * Get a single card by ID
@@ -8,15 +7,8 @@ import { requireAuth, requireBoardAccess, getBoardIdFromCard, getBoardIdFromColu
 export const get = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
-
-    const boardId = await getBoardIdFromCard(ctx, args.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    await requireBoardAccess(ctx, user._id, boardId, "member");
 
     // Get assignee info
     let assignee = null;
@@ -63,12 +55,10 @@ export const create = mutation({
     dueDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const column = await ctx.db.get(args.columnId);
+    if (!column) throw new Error("Column not found");
 
-    const boardId = await getBoardIdFromColumn(ctx, args.columnId);
-    if (!boardId) throw new Error("Column not found");
-
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    const boardId = column.boardId;
 
     // Get board and increment counter
     const board = await ctx.db.get(boardId);
@@ -124,12 +114,8 @@ export const update = mutation({
     dueDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
-    const boardId = await getBoardIdFromCard(ctx, args.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.columnId !== undefined) updates.columnId = args.columnId;
@@ -152,12 +138,8 @@ export const update = mutation({
 export const remove = mutation({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
-    const boardId = await getBoardIdFromCard(ctx, args.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
 
     // Delete attachments
     const attachments = await ctx.db
@@ -186,12 +168,8 @@ export const move = mutation({
     position: v.number(),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
-    const boardId = await getBoardIdFromCard(ctx, args.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
 
     await ctx.db.patch(args.cardId, {
       columnId: args.columnId,
@@ -217,15 +195,7 @@ export const reorder = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
     if (args.items.length === 0) return { success: true };
-
-    // Verify access via first card
-    const boardId = await getBoardIdFromCard(ctx, args.items[0].id);
-    if (boardId) {
-      await requireBoardAccess(ctx, user._id, boardId, "member");
-    }
 
     for (const item of args.items) {
       await ctx.db.patch(item.id, {

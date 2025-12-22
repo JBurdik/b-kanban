@@ -117,4 +117,15 @@ export default defineSchema({
     uploadedById: v.optional(v.id("users")),
     createdAt: v.number(),
   }).index("by_card", ["cardId"]),
+
+  // Comments table
+  comments: defineTable({
+    cardId: v.id("cards"),
+    authorId: v.id("users"),
+    content: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_card", ["cardId"])
+    .index("by_author", ["authorId"]),
 });

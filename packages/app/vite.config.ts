@@ -13,6 +13,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    allowedHosts: ["https://kanban.burdych.net", "http://localhost"],
+    allowedHosts: ["kanban.burdych.net", "localhost"],
   },
 });

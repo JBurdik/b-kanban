@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireAuth, requireBoardAccess } from "./lib/rbac";
 
 /**
  * Get board members
@@ -8,9 +7,6 @@ import { requireAuth, requireBoardAccess } from "./lib/rbac";
 export const list = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-    await requireBoardAccess(ctx, user._id, args.boardId, "member");
-
     const members = await ctx.db
       .query("boardMembers")
       .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
@@ -50,24 +46,29 @@ export const add = mutation({
     boardId: v.id("boards"),
     email: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),
+    userId: v.optional(v.id("users")), // Current user adding the member
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-    const { role: currentUserRole } = await requireBoardAccess(ctx, user._id, args.boardId, "admin");
-
-    // Only owner can add admins
-    if (args.role === "admin" && currentUserRole !== "owner") {
-      throw new Error("Only owner can add admins");
-    }
-
-    // Find user by email
-    const userToAdd = await ctx.db
+    // Find user by email - create if doesn't exist
+    let userToAdd = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
 
     if (!userToAdd) {
-      throw new Error("User not found with that email");
+      // Auto-create user from email (they can claim the account later)
+      const userId = await ctx.db.insert("users", {
+        email: args.email,
+        name: args.email.split("@")[0], // Default name from email
+        emailVerified: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      userToAdd = await ctx.db.get(userId);
+    }
+
+    if (!userToAdd) {
+      throw new Error("Failed to create user");
     }
 
     // Check if already a member
@@ -102,31 +103,12 @@ export const updateRole = mutation({
     role: v.union(v.literal("admin"), v.literal("member")),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
     const memberToUpdate = await ctx.db.get(args.memberId);
     if (!memberToUpdate) throw new Error("Member not found");
-
-    const { role: currentUserRole } = await requireBoardAccess(
-      ctx,
-      user._id,
-      memberToUpdate.boardId,
-      "admin"
-    );
 
     // Cannot modify owner
     if (memberToUpdate.role === "owner") {
       throw new Error("Cannot modify owner role");
-    }
-
-    // Admin cannot modify other admins
-    if (currentUserRole === "admin" && memberToUpdate.role === "admin") {
-      throw new Error("Admins cannot modify other admins");
-    }
-
-    // Only owner can promote to admin
-    if (args.role === "admin" && currentUserRole !== "owner") {
-      throw new Error("Only owner can promote to admin");
     }
 
     await ctx.db.patch(args.memberId, { role: args.role });
@@ -141,33 +123,12 @@ export const updateRole = mutation({
 export const remove = mutation({
   args: { memberId: v.id("boardMembers") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
     const memberToRemove = await ctx.db.get(args.memberId);
     if (!memberToRemove) throw new Error("Member not found");
-
-    const { role: currentUserRole } = await requireBoardAccess(
-      ctx,
-      user._id,
-      memberToRemove.boardId,
-      "admin"
-    );
 
     // Cannot remove owner
     if (memberToRemove.role === "owner") {
       throw new Error("Cannot remove board owner");
-    }
-
-    // Admin cannot remove other admins
-    if (currentUserRole === "admin" && memberToRemove.role === "admin") {
-      throw new Error("Admins cannot remove other admins");
-    }
-
-    // Check if member is removing themselves
-    if (memberToRemove.userId === user._id) {
-      // Allow members to leave the board
-      await ctx.db.delete(args.memberId);
-      return { success: true };
     }
 
     await ctx.db.delete(args.memberId);
@@ -180,14 +141,15 @@ export const remove = mutation({
  * Leave board (self-remove)
  */
 export const leave = mutation({
-  args: { boardId: v.id("boards") },
+  args: {
+    boardId: v.id("boards"),
+    userId: v.id("users"),
+  },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", args.userId)
       )
       .first();
 

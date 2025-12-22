@@ -1,14 +1,39 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireAuth } from "./lib/rbac";
 
 /**
- * Get current user
+ * Get user by email (returns userId for frontend to use)
+ */
+export const getByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (!user) return null;
+    return {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+    };
+  },
+});
+
+/**
+ * Get current user by ID
  */
 export const me = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireAuth(ctx);
+  args: { userId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    if (!args.userId) {
+      return null;
+    }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+
     return {
       id: user._id,
       name: user.name,
@@ -26,8 +51,6 @@ export const me = query({
 export const get = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
-
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
 
@@ -46,8 +69,6 @@ export const get = query({
 export const searchByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
-
     // Search for users whose email contains the search term
     const allUsers = await ctx.db.query("users").collect();
 
@@ -66,38 +87,41 @@ export const searchByEmail = query({
 });
 
 /**
- * Update current user profile
+ * Update user profile
  */
 export const updateProfile = mutation({
   args: {
+    userId: v.id("users"),
     name: v.optional(v.string()),
     image: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
     if (args.image !== undefined) updates.image = args.image;
 
-    await ctx.db.patch(user._id, updates);
+    await ctx.db.patch(args.userId, updates);
 
     return { success: true };
   },
 });
 
 /**
- * Delete current user account
+ * Delete user account
  */
 export const deleteAccount = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireAuth(ctx);
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
 
     // Get all board memberships
     const memberships = await ctx.db
       .query("boardMembers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
 
     for (const membership of memberships) {
@@ -158,7 +182,7 @@ export const deleteAccount = mutation({
     // Unassign user from any cards they're assigned to
     const assignedCards = await ctx.db
       .query("cards")
-      .withIndex("by_assignee", (q) => q.eq("assigneeId", user._id))
+      .withIndex("by_assignee", (q) => q.eq("assigneeId", args.userId))
       .collect();
 
     for (const card of assignedCards) {
@@ -166,7 +190,7 @@ export const deleteAccount = mutation({
     }
 
     // Delete the user
-    await ctx.db.delete(user._id);
+    await ctx.db.delete(args.userId);
 
     return { success: true };
   },

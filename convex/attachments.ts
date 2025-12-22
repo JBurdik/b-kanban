@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
 
 /**
  * Get attachments for a card
@@ -8,13 +7,6 @@ import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac"
 export const list = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
-    const boardId = await getBoardIdFromCard(ctx, args.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    await requireBoardAccess(ctx, user._id, boardId, "member");
-
     const attachments = await ctx.db
       .query("attachments")
       .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
@@ -38,7 +30,6 @@ export const list = query({
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -53,14 +44,11 @@ export const saveAttachment = mutation({
     fileName: v.string(),
     fileSize: v.number(),
     mimeType: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
-    const boardId = await getBoardIdFromCard(ctx, args.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
 
     const attachmentId = await ctx.db.insert("attachments", {
       cardId: args.cardId,
@@ -68,7 +56,7 @@ export const saveAttachment = mutation({
       fileName: args.fileName,
       fileSize: args.fileSize,
       mimeType: args.mimeType,
-      uploadedById: user._id,
+      uploadedById: args.userId,
       createdAt: Date.now(),
     });
 
@@ -85,15 +73,8 @@ export const saveAttachment = mutation({
 export const remove = mutation({
   args: { attachmentId: v.id("attachments") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-
     const attachment = await ctx.db.get(args.attachmentId);
     if (!attachment) throw new Error("Attachment not found");
-
-    const boardId = await getBoardIdFromCard(ctx, attachment.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    await requireBoardAccess(ctx, user._id, boardId, "member");
 
     // Delete from storage
     await ctx.storage.delete(attachment.storageId);

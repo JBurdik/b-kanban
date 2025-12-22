@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
-import { useSession, signOut, changePassword } from "@/lib/auth-client";
+import { signOut, changePassword } from "@/lib/auth-client";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { Avatar } from "@/components/Avatar";
 
 export const Route = createFileRoute("/profile")(
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/profile")(
 );
 
 function ProfilePage() {
-  const { data: session, isPending: sessionLoading } = useSession();
+  const { userId, user, isLoading, session } = useConvexUser();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
@@ -24,10 +25,9 @@ function ProfilePage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
-  // Convex queries and mutations
-  const user = useQuery(api.users.me);
+  // Convex mutations
   const updateProfile = useMutation(api.users.updateProfile);
-  const deleteAccount = useMutation(api.users.deleteAccount);
+  const deleteAccountMutation = useMutation(api.users.deleteAccount);
   const [isUpdatingName, setIsUpdatingName] = useState(false);
 
   // Initialize name from user data
@@ -37,7 +37,7 @@ function ProfilePage() {
     }
   }, [user, name]);
 
-  if (sessionLoading || user === undefined) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
@@ -50,10 +50,10 @@ function ProfilePage() {
   }
 
   const handleNameSave = async () => {
-    if (name.trim() && name !== user?.name) {
+    if (name.trim() && name !== user?.name && userId) {
       setIsUpdatingName(true);
       try {
-        await updateProfile({ name: name.trim() });
+        await updateProfile({ userId, name: name.trim() });
       } finally {
         setIsUpdatingName(false);
       }
@@ -94,11 +94,12 @@ function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
+    if (!userId) return;
     if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       if (confirm("This will permanently delete all your data including boards and cards. Proceed?")) {
         setIsDeletingAccount(true);
         try {
-          await deleteAccount();
+          await deleteAccountMutation({ userId });
           await signOut();
           navigate({ to: "/login" });
         } catch (err) {
@@ -116,7 +117,7 @@ function ProfilePage() {
       {/* Profile Info */}
       <div className="card mb-6">
         <div className="flex items-start gap-6">
-          <Avatar name={user?.name || ""} id={user?.id} size="lg" />
+          <Avatar name={user?.name || ""} id={userId} size="lg" />
           <div className="flex-1">
             <h2 className="font-semibold mb-4">Account Information</h2>
 
@@ -156,7 +157,7 @@ function ProfilePage() {
             <div>
               <label className="block text-sm text-dark-muted mb-1">Member since</label>
               <p className="text-sm">
-                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Unknown"}
+                {session?.user?.createdAt ? new Date(session.user.createdAt).toLocaleDateString() : "Unknown"}
               </p>
             </div>
           </div>

@@ -34,10 +34,23 @@ interface Column {
   cards: Card[];
 }
 
+interface BoardMember {
+  id: Id<"boardMembers">;
+  role: BoardRole;
+  userId: Id<"users">;
+  user: {
+    id: Id<"users">;
+    name: string;
+    email: string;
+    image?: string;
+  } | null;
+}
+
 interface Props {
   card: Card;
   boardId?: Id<"boards">;
   columns?: Column[];
+  members?: BoardMember[];
   userRole?: BoardRole;
   isOverlay?: boolean;
 }
@@ -52,6 +65,7 @@ export function KanbanCard({
   card,
   boardId,
   columns = [],
+  members = [],
   userRole,
   isOverlay,
 }: Props) {
@@ -137,19 +151,29 @@ export function KanbanCard({
           </p>
         )}
 
-        <div className="flex items-center gap-2 mt-3">
-          <span
-            className={clsx(
-              "text-xs px-2 py-0.5 rounded",
-              priorityColors[card.priority]
-            )}
-          >
-            {card.priority}
-          </span>
-          {card.dueDate && (
-            <span className="text-xs text-dark-muted">
-              {new Date(card.dueDate).toLocaleDateString()}
+        <div className="flex items-center justify-between gap-2 mt-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={clsx(
+                "text-xs px-2 py-0.5 rounded",
+                priorityColors[card.priority]
+              )}
+            >
+              {card.priority}
             </span>
+            {card.dueDate && (
+              <span className="text-xs text-dark-muted">
+                {new Date(card.dueDate).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          {card.assignee && (
+            <div
+              className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-xs font-medium text-accent"
+              title={card.assignee.name}
+            >
+              {card.assignee.name.charAt(0).toUpperCase()}
+            </div>
           )}
         </div>
       </div>
@@ -159,6 +183,7 @@ export function KanbanCard({
           card={card}
           boardId={boardId}
           columns={columns}
+          members={members}
           userRole={userRole}
           onClose={() => setShowModal(false)}
         />

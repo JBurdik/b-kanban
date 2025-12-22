@@ -3,6 +3,7 @@ import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { DataModel } from "./_generated/dataModel";
 import { components } from "./_generated/api";
+import authConfig from "./auth.config";
 
 const siteUrl = process.env.SITE_URL || "http://localhost:5173";
 const authSecret = process.env.BETTER_AUTH_SECRET!;
@@ -22,6 +23,6 @@ export const createAuth = (
       requireEmailVerification: false,
     },
     trustedOrigins: [siteUrl],
-    plugins: [convex()],
+    plugins: [convex({ authConfig })],
     logger: { disabled: optionsOnly },
   });

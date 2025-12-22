@@ -14,8 +14,8 @@ function BoardsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
 
-  // Real-time subscription to boards
-  const boards = useQuery(api.boards.list);
+  // Real-time subscription to boards (skip if not authenticated)
+  const boards = useQuery(api.boards.list, session ? {} : "skip");
 
   // Mutations
   const createBoard = useMutation(api.boards.create);

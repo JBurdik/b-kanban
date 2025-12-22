@@ -13,28 +13,5 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: {
-      "/api/auth": {
-        target: "http://localhost:3211",
-        changeOrigin: true,
-        cookieDomainRewrite: {
-          "localhost:3211": "localhost",
-          "*": "",
-        },
-        configure: (proxy) => {
-          proxy.on("proxyRes", (proxyRes) => {
-            // Ensure cookies are set correctly for localhost
-            const cookies = proxyRes.headers["set-cookie"];
-            if (cookies) {
-              proxyRes.headers["set-cookie"] = cookies.map((cookie: string) =>
-                cookie
-                  .replace(/;\s*secure/gi, "")
-                  .replace(/;\s*samesite=none/gi, "; SameSite=Lax")
-              );
-            }
-          });
-        },
-      },
-    },
   },
 });

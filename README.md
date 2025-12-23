@@ -1,17 +1,17 @@
-# B-Kanban
+# bProductive
 
-A self-hostable Kanban board application built with React 19, Convex, and Better Auth.
+A modern, self-hostable Kanban board application built with React 19, Convex, and Better Auth.
 
 ## Self-Hosting (Docker)
 
-The simplest way to run B-Kanban on your own server.
+The simplest way to run bProductive on your own server.
 
 ### Quick Start
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/b-kanban.git
-cd b-kanban
+git clone https://github.com/YOUR_USERNAME/bproductive.git
+cd bproductive
 
 # 2. Create your environment file
 cp .env.example .env
@@ -125,7 +125,7 @@ pnpm dev
 ## Architecture
 
 ```
-b-kanban/
+bproductive/
 ├── packages/app/     # React 19 frontend (TanStack Router, Tailwind)
 ├── convex/           # Convex backend (serverless functions, database)
 ├── Dockerfile        # Frontend container

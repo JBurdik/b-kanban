@@ -3,6 +3,7 @@ import { useSession, signOut } from "@/lib/auth-client";
 import { Avatar } from "@/components/Avatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotificationToast } from "@/components/NotificationToast";
+import { Logo } from "@/components/ui/Logo";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -15,8 +16,8 @@ function RootLayout() {
     <div className="min-h-screen bg-dark-bg">
       <header className="border-b border-dark-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/" className="text-lg font-semibold text-dark-text hover:text-accent">
-            B-Kanban
+          <Link to="/" className="hover:opacity-80 transition-opacity">
+            <Logo size="sm" />
           </Link>
 
           <nav className="flex items-center gap-4">

@@ -14,9 +14,26 @@ export default {
           text: "#e5e5e5",
           muted: "#888888",
         },
+        // Orange/Amber accent - bProductive branding
         accent: {
-          DEFAULT: "#3b82f6",
-          hover: "#2563eb",
+          DEFAULT: "#f59e0b", // amber-500
+          hover: "#d97706",   // amber-600
+          light: "#fbbf24",   // amber-400
+          dark: "#b45309",    // amber-700
+        },
+      },
+      animation: {
+        "slide-in-right": "slide-in-right 0.3s ease-out",
+        "fade-in": "fade-in 0.2s ease-out",
+      },
+      keyframes: {
+        "slide-in-right": {
+          from: { transform: "translateX(100%)", opacity: "0" },
+          to: { transform: "translateX(0)", opacity: "1" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
         },
       },
     },

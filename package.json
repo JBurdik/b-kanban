@@ -1,11 +1,11 @@
 {
-  "name": "b-kanban",
+  "name": "bproductive",
   "private": true,
   "scripts": {
     "dev": "concurrently \"pnpm dev:convex\" \"pnpm dev:app\"",
     "dev:convex": "convex dev --env-file .env.local",
-    "dev:app": "pnpm --filter @b-kanban/app dev",
-    "build": "pnpm --filter @b-kanban/app build",
+    "dev:app": "pnpm --filter @bproductive/app dev",
+    "build": "pnpm --filter @bproductive/app build",
     "convex:deploy": "convex deploy"
   },
   "devDependencies": {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -25,6 +26,7 @@ interface Card {
     image?: string;
   } | null;
   dueDate?: number;
+  effort?: number;
 }
 
 interface Column {
@@ -78,7 +80,7 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
     setCurrentColumnId(newColumnId);
     setIsUpdating(true);
     try {
-      await updateCard({ cardId: card._id, columnId: newColumnId });
+      await updateCard({ cardId: card._id, columnId: newColumnId, currentUserEmail: userEmail });
     } finally {
       setIsUpdating(false);
     }
@@ -109,6 +111,7 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
         boardId={boardId}
         columns={columns}
         members={members}
+        userEmail={userEmail}
         onClose={() => setIsEditing(false)}
       />
     );
@@ -150,6 +153,16 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
             <h2 className="text-xl font-semibold text-white leading-tight">{card.title}</h2>
           </div>
           <div className="flex items-center gap-1 ml-4 flex-shrink-0">
+            <Link
+              to="/boards/$boardId/cards/$cardSlug"
+              params={{ boardId, cardSlug: card.slug }}
+              className="p-2 text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
+              title="Open in full page"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </Link>
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="p-2 text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
@@ -248,6 +261,16 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
                 </>
               )}
             </div>
+
+            {/* Time Effort */}
+            {card.effort !== undefined && card.effort > 0 && (
+              <div className="flex items-center gap-2 text-sm">
+                <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-dark-text">{card.effort}h</span>
+              </div>
+            )}
           </div>
 
           {/* Description */}
@@ -281,7 +304,7 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
               </svg>
               <span className="text-sm font-medium text-dark-muted uppercase tracking-wide">Comments</span>
             </div>
-            <CommentList cardId={card._id} userEmail={userEmail} readOnly={!canEdit} />
+            <CommentList cardId={card._id} boardId={boardId} userEmail={userEmail} readOnly={!canEdit} />
           </div>
         </div>
       </div>

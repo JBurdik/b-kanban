@@ -16,6 +16,8 @@ import { Route as BoardsRouteImport } from './routes/boards'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BoardsIndexRouteImport } from './routes/boards.index'
 import { Route as BoardsBoardIdRouteImport } from './routes/boards.$boardId'
+import { Route as BoardsBoardIdIndexRouteImport } from './routes/boards.$boardId.index'
+import { Route as BoardsBoardIdCardsCardSlugRouteImport } from './routes/boards.$boardId.cards.$cardSlug'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -52,6 +54,17 @@ const BoardsBoardIdRoute = BoardsBoardIdRouteImport.update({
   path: '/$boardId',
   getParentRoute: () => BoardsRoute,
 } as any)
+const BoardsBoardIdIndexRoute = BoardsBoardIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BoardsBoardIdRoute,
+} as any)
+const BoardsBoardIdCardsCardSlugRoute =
+  BoardsBoardIdCardsCardSlugRouteImport.update({
+    id: '/cards/$cardSlug',
+    path: '/cards/$cardSlug',
+    getParentRoute: () => BoardsBoardIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,16 +72,19 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/boards/$boardId': typeof BoardsBoardIdRoute
+  '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
+  '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
+  '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/boards/$boardId': typeof BoardsBoardIdRoute
   '/boards': typeof BoardsIndexRoute
+  '/boards/$boardId': typeof BoardsBoardIdIndexRoute
+  '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,8 +93,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/boards/$boardId': typeof BoardsBoardIdRoute
+  '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
+  '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
+  '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,8 +108,17 @@ export interface FileRouteTypes {
     | '/register'
     | '/boards/$boardId'
     | '/boards/'
+    | '/boards/$boardId/'
+    | '/boards/$boardId/cards/$cardSlug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/profile' | '/register' | '/boards/$boardId' | '/boards'
+  to:
+    | '/'
+    | '/login'
+    | '/profile'
+    | '/register'
+    | '/boards'
+    | '/boards/$boardId'
+    | '/boards/$boardId/cards/$cardSlug'
   id:
     | '__root__'
     | '/'
@@ -101,6 +128,8 @@ export interface FileRouteTypes {
     | '/register'
     | '/boards/$boardId'
     | '/boards/'
+    | '/boards/$boardId/'
+    | '/boards/$boardId/cards/$cardSlug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -162,16 +191,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdRouteImport
       parentRoute: typeof BoardsRoute
     }
+    '/boards/$boardId/': {
+      id: '/boards/$boardId/'
+      path: '/'
+      fullPath: '/boards/$boardId/'
+      preLoaderRoute: typeof BoardsBoardIdIndexRouteImport
+      parentRoute: typeof BoardsBoardIdRoute
+    }
+    '/boards/$boardId/cards/$cardSlug': {
+      id: '/boards/$boardId/cards/$cardSlug'
+      path: '/cards/$cardSlug'
+      fullPath: '/boards/$boardId/cards/$cardSlug'
+      preLoaderRoute: typeof BoardsBoardIdCardsCardSlugRouteImport
+      parentRoute: typeof BoardsBoardIdRoute
+    }
   }
 }
 
+interface BoardsBoardIdRouteChildren {
+  BoardsBoardIdIndexRoute: typeof BoardsBoardIdIndexRoute
+  BoardsBoardIdCardsCardSlugRoute: typeof BoardsBoardIdCardsCardSlugRoute
+}
+
+const BoardsBoardIdRouteChildren: BoardsBoardIdRouteChildren = {
+  BoardsBoardIdIndexRoute: BoardsBoardIdIndexRoute,
+  BoardsBoardIdCardsCardSlugRoute: BoardsBoardIdCardsCardSlugRoute,
+}
+
+const BoardsBoardIdRouteWithChildren = BoardsBoardIdRoute._addFileChildren(
+  BoardsBoardIdRouteChildren,
+)
+
 interface BoardsRouteChildren {
-  BoardsBoardIdRoute: typeof BoardsBoardIdRoute
+  BoardsBoardIdRoute: typeof BoardsBoardIdRouteWithChildren
   BoardsIndexRoute: typeof BoardsIndexRoute
 }
 
 const BoardsRouteChildren: BoardsRouteChildren = {
-  BoardsBoardIdRoute: BoardsBoardIdRoute,
+  BoardsBoardIdRoute: BoardsBoardIdRouteWithChildren,
   BoardsIndexRoute: BoardsIndexRoute,
 }
 

@@ -17,6 +17,7 @@ import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as lib_rbac from "../lib/rbac.js";
 import type * as members from "../members.js";
+import type * as notifications from "../notifications.js";
 import type * as users from "../users.js";
 
 import type {
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/rbac": typeof lib_rbac;
   members: typeof members;
+  notifications: typeof notifications;
   users: typeof users;
 }>;
 

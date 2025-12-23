@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 /**
  * Get a single card by ID
@@ -42,6 +43,69 @@ export const get = query({
 });
 
 /**
+ * Get a card by its slug and board ID
+ */
+export const getBySlug = query({
+  args: {
+    slug: v.string(),
+    boardId: v.id("boards"),
+  },
+  handler: async (ctx, args) => {
+    // Find card by slug
+    const card = await ctx.db
+      .query("cards")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+
+    if (!card) return null;
+
+    // Verify the card belongs to a column in this board
+    const column = await ctx.db.get(card.columnId);
+    if (!column || column.boardId !== args.boardId) return null;
+
+    // Get assignee info
+    let assignee = null;
+    if (card.assigneeId) {
+      const assigneeUser = await ctx.db.get(card.assigneeId);
+      if (assigneeUser) {
+        assignee = {
+          id: assigneeUser._id,
+          name: assigneeUser.name,
+          email: assigneeUser.email,
+          image: assigneeUser.image,
+        };
+      }
+    }
+
+    // Get attachments
+    const attachments = await ctx.db
+      .query("attachments")
+      .withIndex("by_card", (q) => q.eq("cardId", card._id))
+      .collect();
+
+    const attachmentsWithUrls = await Promise.all(
+      attachments.map(async (att) => ({
+        ...att,
+        url: await ctx.storage.getUrl(att.storageId),
+      }))
+    );
+
+    // Get column info for status
+    const columnInfo = {
+      id: column._id,
+      name: column.name,
+    };
+
+    return {
+      ...card,
+      assignee,
+      attachments: attachmentsWithUrls,
+      column: columnInfo,
+    };
+  },
+});
+
+/**
  * Create a new card
  */
 export const create = mutation({
@@ -53,6 +117,7 @@ export const create = mutation({
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
+    effort: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const column = await ctx.db.get(args.columnId);
@@ -91,6 +156,7 @@ export const create = mutation({
       priority: args.priority ?? "medium",
       assigneeId: args.assigneeId,
       dueDate: args.dueDate,
+      effort: args.effort,
       createdAt: now,
       updatedAt: now,
     });
@@ -112,10 +178,14 @@ export const update = mutation({
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
+    effort: v.optional(v.number()),
+    currentUserEmail: v.optional(v.string()), // For notification triggers
   },
   handler: async (ctx, args) => {
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
+
+    const oldAssigneeId = card.assigneeId;
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.columnId !== undefined) updates.columnId = args.columnId;
@@ -125,8 +195,51 @@ export const update = mutation({
     if (args.priority !== undefined) updates.priority = args.priority;
     if (args.assigneeId !== undefined) updates.assigneeId = args.assigneeId;
     if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
+    if (args.effort !== undefined) updates.effort = args.effort;
 
     await ctx.db.patch(args.cardId, updates);
+
+    // Trigger notifications
+    if (args.currentUserEmail) {
+      const currentUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.currentUserEmail!))
+        .first();
+
+      if (currentUser) {
+        // Notification for new assignment
+        if (args.assigneeId && args.assigneeId !== oldAssigneeId) {
+          await ctx.scheduler.runAfter(0, internal.notifications.create, {
+            userId: args.assigneeId,
+            type: "assigned",
+            cardId: args.cardId,
+            fromUserId: currentUser._id,
+            message: `You were assigned to "${card.title}"`,
+          });
+        }
+
+        // Notification for card update to assignee (if different from updater)
+        if (card.assigneeId && card.assigneeId !== currentUser._id) {
+          // Only notify if something meaningful changed
+          const hasChanges =
+            args.title !== undefined ||
+            args.content !== undefined ||
+            args.priority !== undefined ||
+            args.columnId !== undefined ||
+            args.dueDate !== undefined;
+
+          if (hasChanges) {
+            await ctx.scheduler.runAfter(0, internal.notifications.create, {
+              userId: card.assigneeId,
+              type: "card_updated",
+              cardId: args.cardId,
+              fromUserId: currentUser._id,
+              message: `"${card.title}" was updated`,
+            });
+          }
+        }
+      }
+    }
 
     return args.cardId;
   },

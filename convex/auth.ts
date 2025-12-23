@@ -8,12 +8,14 @@ import authConfig from "./auth.config";
 // Use SITE_URL env var for production, fallback to localhost for development
 const siteUrl = process.env.SITE_URL || "http://localhost:5173";
 // For self-hosted dev, use env var or fallback to development secret
-const authSecret = process.env.BETTER_AUTH_SECRET || "FZl8e1OSHCumadMLQZH7JitCmh/RSnlk3jXaN7aSIJY=";
+const authSecret =
+  process.env.BETTER_AUTH_SECRET ||
+  "FZl8e1OSHCumadMLQZH7JitCmh/RSnlk3jXaN7aSIJY=";
 
 // All trusted origins for CORS
 const trustedOrigins = [
   "http://localhost:5173",
-  "https://kanban.burdych.net",
+  "https://kanban.burdych.net/",
   "https://kanban-api.burdych.net",
 ];
 
@@ -21,7 +23,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth);
 
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
-  { optionsOnly } = { optionsOnly: false }
+  { optionsOnly } = { optionsOnly: false },
 ) =>
   betterAuth({
     secret: authSecret,

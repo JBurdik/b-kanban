@@ -4,30 +4,54 @@ import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { SlashCommands } from "./editor/SlashCommands";
+import { createMentionExtension } from "./editor/MentionExtension";
+import { useMemo } from "react";
 import clsx from "clsx";
+import type { Id } from "convex/_generated/dataModel";
+
+interface MentionUser {
+  id: Id<"users">;
+  name: string;
+  email: string;
+  image?: string;
+}
 
 interface Props {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
   readOnly?: boolean;
+  onMentionSearch?: (query: string) => Promise<MentionUser[]>;
 }
 
-export function RichTextEditor({ content, onChange, placeholder, readOnly = false }: Props) {
-  const editor = useEditor({
-    extensions: [
+export function RichTextEditor({ content, onChange, placeholder, readOnly = false, onMentionSearch }: Props) {
+  const mentionExtension = useMemo(() => {
+    if (!onMentionSearch) return null;
+    return createMentionExtension({ onSearch: onMentionSearch });
+  }, [onMentionSearch]);
+
+  const extensions = useMemo(() => {
+    const exts = [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
       Placeholder.configure({
-        placeholder: placeholder || "Type '/' for commands...",
+        placeholder: placeholder || "Type '/' for commands, '@' for mentions...",
       }),
       TaskList,
       TaskItem.configure({
         nested: true,
       }),
       SlashCommands,
-    ],
+    ];
+    if (mentionExtension) {
+      exts.push(mentionExtension);
+    }
+    return exts;
+  }, [placeholder, mentionExtension]);
+
+  const editor = useEditor({
+    extensions,
     content,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
@@ -211,6 +235,15 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
         .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
           text-decoration: line-through;
           opacity: 0.6;
+        }
+
+        /* Mention styles */
+        .ProseMirror .mention {
+          color: #3b82f6;
+          background: rgba(59, 130, 246, 0.1);
+          padding: 0.1em 0.3em;
+          border-radius: 0.25em;
+          font-weight: 500;
         }
       `}</style>
     </div>

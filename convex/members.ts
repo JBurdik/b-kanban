@@ -138,6 +138,46 @@ export const remove = mutation({
 });
 
 /**
+ * Search board members by name/email (for @mentions)
+ */
+export const search = query({
+  args: {
+    boardId: v.id("boards"),
+    query: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const members = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    // Get user details and filter by query
+    const searchQuery = args.query.toLowerCase();
+    const results = await Promise.all(
+      members.map(async (m) => {
+        const user = await ctx.db.get(m.userId);
+        if (!user) return null;
+
+        // Match by name or email
+        const matchesName = user.name.toLowerCase().includes(searchQuery);
+        const matchesEmail = user.email.toLowerCase().includes(searchQuery);
+
+        if (!matchesName && !matchesEmail) return null;
+
+        return {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        };
+      })
+    );
+
+    return results.filter((r): r is NonNullable<typeof r> => r !== null);
+  },
+});
+
+/**
  * Leave board (self-remove)
  */
 export const leave = mutation({

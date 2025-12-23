@@ -1,6 +1,8 @@
 import { createRootRoute, Outlet, Link } from "@tanstack/react-router";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Avatar } from "@/components/Avatar";
+import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationToast } from "@/components/NotificationToast";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -28,6 +30,7 @@ function RootLayout() {
                 >
                   Boards
                 </Link>
+                <NotificationBell userEmail={session.user.email} />
                 <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   <Avatar name={session.user.name} id={session.user.id} size="sm" />
                   <span className="text-dark-muted text-sm">{session.user.name}</span>
@@ -56,6 +59,8 @@ function RootLayout() {
       <main>
         <Outlet />
       </main>
+
+      {session && <NotificationToast userEmail={session.user.email} />}
     </div>
   );
 }

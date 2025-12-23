@@ -21,6 +21,7 @@ interface Card {
     image?: string;
   } | null;
   dueDate?: number;
+  effort?: number;
 }
 
 interface Column {
@@ -50,15 +51,17 @@ interface Props {
   boardId: Id<"boards">;
   columns: Column[];
   members?: BoardMember[];
+  userEmail?: string;
   onClose: () => void;
 }
 
-export function CardModal({ card, boardId, columns, members = [], onClose }: Props) {
+export function CardModal({ card, boardId, columns, members = [], userEmail, onClose }: Props) {
   const [title, setTitle] = useState(card.title);
   const [content, setContent] = useState(card.content || "");
   const [priority, setPriority] = useState(card.priority);
   const [columnId, setColumnId] = useState(card.columnId);
   const [assigneeId, setAssigneeId] = useState<Id<"users"> | undefined>(card.assignee?.id);
+  const [effort, setEffort] = useState<number | undefined>(card.effort);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -73,7 +76,8 @@ export function CardModal({ card, boardId, columns, members = [], onClose }: Pro
       content === (card.content || "") &&
       priority === card.priority &&
       columnId === card.columnId &&
-      assigneeId === card.assignee?.id
+      assigneeId === card.assignee?.id &&
+      effort === card.effort
     ) {
       return;
     }
@@ -92,6 +96,8 @@ export function CardModal({ card, boardId, columns, members = [], onClose }: Pro
           priority,
           columnId,
           assigneeId,
+          effort,
+          currentUserEmail: userEmail,
         });
       } finally {
         setIsSaving(false);
@@ -103,7 +109,7 @@ export function CardModal({ card, boardId, columns, members = [], onClose }: Pro
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [title, content, priority, columnId, assigneeId, card._id, card.title, card.content, card.priority, card.columnId, card.assignee?.id, updateCard]);
+  }, [title, content, priority, columnId, assigneeId, effort, card._id, card.title, card.content, card.priority, card.columnId, card.assignee?.id, card.effort, updateCard]);
 
   // Close on escape
   useEffect(() => {
@@ -217,6 +223,20 @@ export function CardModal({ card, boardId, columns, members = [], onClose }: Pro
                 )
               ))}
             </select>
+          </div>
+
+          {/* Time effort */}
+          <div>
+            <label className="block text-sm text-dark-muted mb-2">Time Effort (hours)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={effort ?? ""}
+              onChange={(e) => setEffort(e.target.value ? parseFloat(e.target.value) : undefined)}
+              className="input w-full"
+              placeholder="e.g., 2, 4, 8"
+            />
           </div>
 
           {/* Description with rich text editor */}

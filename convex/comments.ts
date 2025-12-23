@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 /**
  * List comments for a card
@@ -45,6 +46,7 @@ export const create = mutation({
     cardId: v.id("cards"),
     content: v.string(),
     authorEmail: v.string(),
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
   },
   handler: async (ctx, args) => {
     // Look up author by email
@@ -63,9 +65,41 @@ export const create = mutation({
       cardId: args.cardId,
       authorId: author._id,
       content: args.content,
+      mentionedUserIds: args.mentionedUserIds,
       createdAt: now,
       updatedAt: now,
     });
+
+    // Get card for notification message
+    const card = await ctx.db.get(args.cardId);
+    if (!card) return commentId;
+
+    // Notify mentioned users
+    const mentionedUserIds = args.mentionedUserIds || [];
+    for (const userId of mentionedUserIds) {
+      await ctx.scheduler.runAfter(0, internal.notifications.create, {
+        userId,
+        type: "mentioned",
+        cardId: args.cardId,
+        fromUserId: author._id,
+        message: `${author.name} mentioned you in "${card.title}"`,
+      });
+    }
+
+    // Notify card assignee (if not author and not already mentioned)
+    if (
+      card.assigneeId &&
+      card.assigneeId !== author._id &&
+      !mentionedUserIds.includes(card.assigneeId)
+    ) {
+      await ctx.scheduler.runAfter(0, internal.notifications.create, {
+        userId: card.assigneeId,
+        type: "commented",
+        cardId: args.cardId,
+        fromUserId: author._id,
+        message: `${author.name} commented on "${card.title}"`,
+      });
+    }
 
     return commentId;
   },

@@ -13,15 +13,17 @@ export function FileUpload({ cardId }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { userId } = useConvexUser();
+  const { userEmail } = useConvexUser();
 
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
   const saveAttachment = useMutation(api.attachments.saveAttachment);
 
   const uploadFile = async (file: File) => {
     try {
+      if (!userEmail) throw new Error("Not authenticated");
+
       // Get upload URL from Convex
-      const uploadUrl = await generateUploadUrl();
+      const uploadUrl = await generateUploadUrl({ userEmail });
 
       // Upload file to Convex storage
       const result = await fetch(uploadUrl, {
@@ -37,14 +39,13 @@ export function FileUpload({ cardId }: Props) {
       const { storageId } = await result.json();
 
       // Save attachment metadata
-      if (!userId) throw new Error("Not authenticated");
       await saveAttachment({
         cardId,
         storageId,
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",
-        userId,
+        userEmail,
       });
     } catch (err) {
       throw err instanceof Error ? err : new Error("Upload failed");

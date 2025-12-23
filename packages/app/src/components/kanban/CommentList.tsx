@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { Avatar } from "@/components/Avatar";
+import { CommentEditor } from "./CommentEditor";
+import { extractMentionedUserIds } from "@/utils/mentions";
 
 interface Props {
   cardId: Id<"cards">;
+  boardId: Id<"boards">;
   userEmail?: string;
   readOnly?: boolean;
 }
@@ -24,7 +27,12 @@ function formatTimeAgo(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString();
 }
 
-export function CommentList({ cardId, userEmail, readOnly = false }: Props) {
+// Check if content is HTML (rich text) or plain text
+function isHtmlContent(content: string): boolean {
+  return content.startsWith("<") && content.includes(">");
+}
+
+export function CommentList({ cardId, boardId, userEmail, readOnly = false }: Props) {
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<Id<"comments"> | null>(null);
@@ -34,17 +42,38 @@ export function CommentList({ cardId, userEmail, readOnly = false }: Props) {
   const createComment = useMutation(api.comments.create);
   const updateComment = useMutation(api.comments.update);
   const deleteComment = useMutation(api.comments.remove);
+  const searchMembers = useQuery(api.members.search, { boardId, query: "" });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim() || !userEmail) return;
+  // Mention search callback
+  const handleMentionSearch = useCallback(async (query: string) => {
+    // Search board members by query
+    const members = searchMembers || [];
+    const queryLower = query.toLowerCase();
+    return members.filter(m =>
+      m.name.toLowerCase().includes(queryLower) ||
+      m.email.toLowerCase().includes(queryLower)
+    ).slice(0, 5);
+  }, [searchMembers]);
+
+  // Check if content has actual text (not just empty HTML tags)
+  const hasContent = (html: string): boolean => {
+    const text = html.replace(/<[^>]*>/g, "").trim();
+    return text.length > 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!hasContent(newComment) || !userEmail) return;
 
     setIsSubmitting(true);
     try {
+      // Extract mentioned user IDs from the HTML content
+      const mentionedUserIds = extractMentionedUserIds(newComment) as Id<"users">[];
+
       await createComment({
         cardId,
-        content: newComment.trim(),
+        content: newComment,
         authorEmail: userEmail,
+        mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
       });
       setNewComment("");
     } catch (err) {
@@ -55,12 +84,12 @@ export function CommentList({ cardId, userEmail, readOnly = false }: Props) {
   };
 
   const handleUpdate = async (commentId: Id<"comments">) => {
-    if (!editContent.trim()) return;
+    if (!hasContent(editContent)) return;
 
     try {
       await updateComment({
         commentId,
-        content: editContent.trim(),
+        content: editContent,
       });
       setEditingId(null);
       setEditContent("");
@@ -148,11 +177,11 @@ export function CommentList({ cardId, userEmail, readOnly = false }: Props) {
 
               {editingId === comment._id ? (
                 <div className="mt-2 space-y-2">
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="input w-full text-sm resize-none"
-                    rows={2}
+                  <CommentEditor
+                    content={editContent}
+                    onChange={setEditContent}
+                    onSubmit={() => handleUpdate(comment._id)}
+                    onMentionSearch={handleMentionSearch}
                     autoFocus
                   />
                   <div className="flex gap-2">
@@ -174,9 +203,18 @@ export function CommentList({ cardId, userEmail, readOnly = false }: Props) {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-dark-text mt-2 whitespace-pre-wrap">
-                  {comment.content}
-                </p>
+                <div className="mt-2">
+                  {isHtmlContent(comment.content) ? (
+                    <div
+                      className="comment-content text-sm text-dark-text"
+                      dangerouslySetInnerHTML={{ __html: comment.content }}
+                    />
+                  ) : (
+                    <p className="text-sm text-dark-text whitespace-pre-wrap">
+                      {comment.content}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           ))}
@@ -185,25 +223,46 @@ export function CommentList({ cardId, userEmail, readOnly = false }: Props) {
 
       {/* Add comment form */}
       {!readOnly && userEmail && (
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Write a comment..."
-            className="input w-full text-sm resize-none"
-            rows={2}
+        <div className="space-y-2">
+          <CommentEditor
+            content={newComment}
+            onChange={setNewComment}
+            onSubmit={handleSubmit}
+            onMentionSearch={handleMentionSearch}
+            placeholder="Write a comment... (use '/' for formatting, '@' for mentions)"
           />
           <div className="flex justify-end">
             <button
-              type="submit"
-              disabled={isSubmitting || !newComment.trim()}
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || !hasContent(newComment)}
               className="btn-primary text-sm py-1.5 px-3"
             >
               {isSubmitting ? "Posting..." : "Post Comment"}
             </button>
           </div>
-        </form>
+        </div>
       )}
+
+      {/* Comment content styles */}
+      <style>{`
+        .comment-content p { margin: 0.25em 0; }
+        .comment-content p:first-child { margin-top: 0; }
+        .comment-content p:last-child { margin-bottom: 0; }
+        .comment-content ul, .comment-content ol { padding-left: 1.5em; margin: 0.25em 0; }
+        .comment-content li { margin: 0.15em 0; }
+        .comment-content code { background: #2a2a2a; padding: 0.1em 0.3em; border-radius: 0.2em; font-size: 0.85em; }
+        .comment-content pre { background: #2a2a2a; padding: 0.5em 0.75em; border-radius: 0.4em; margin: 0.25em 0; overflow-x: auto; font-size: 0.85em; }
+        .comment-content pre code { background: none; padding: 0; }
+        .comment-content blockquote { border-left: 2px solid #3b82f6; padding-left: 0.75em; margin: 0.25em 0; color: #888; }
+        .comment-content .mention {
+          color: #3b82f6;
+          background: rgba(59, 130, 246, 0.1);
+          padding: 0.1em 0.3em;
+          border-radius: 0.25em;
+          font-weight: 500;
+        }
+      `}</style>
     </div>
   );
 }

@@ -99,6 +99,7 @@ export default defineSchema({
     priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
+    effort: v.optional(v.number()), // Time effort in hours
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -123,9 +124,30 @@ export default defineSchema({
     cardId: v.id("cards"),
     authorId: v.id("users"),
     content: v.string(),
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_card", ["cardId"])
     .index("by_author", ["authorId"]),
+
+  // Notifications table
+  notifications: defineTable({
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("assigned"),
+      v.literal("mentioned"),
+      v.literal("commented"),
+      v.literal("card_updated")
+    ),
+    cardId: v.id("cards"),
+    boardId: v.id("boards"),
+    fromUserId: v.id("users"),
+    read: v.boolean(),
+    message: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_read", ["userId", "read"])
+    .index("by_card", ["cardId"]),
 });

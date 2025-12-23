@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Modal, ModalFooter } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   onSubmit: (name: string) => void;
@@ -9,15 +12,6 @@ interface Props {
 export function AddColumnModal({ onSubmit, onClose, isPending }: Props) {
   const [name, setName] = useState("");
 
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
@@ -26,38 +20,24 @@ export function AddColumnModal({ onSubmit, onClose, isPending }: Props) {
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-dark-surface border border-dark-border rounded-lg w-full max-w-sm p-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-semibold mb-4">Add Column</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Column name"
-            className="input"
-            autoFocus
-          />
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="btn-secondary">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!name.trim() || isPending}
-              className="btn-primary"
-            >
-              {isPending ? "Creating..." : "Create"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal open={true} onClose={onClose} title="Add Column" size="sm">
+      <form onSubmit={handleSubmit}>
+        <Input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Column name"
+          autoFocus
+        />
+        <ModalFooter>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!name.trim()} loading={isPending}>
+            Create
+          </Button>
+        </ModalFooter>
+      </form>
+    </Modal>
   );
 }

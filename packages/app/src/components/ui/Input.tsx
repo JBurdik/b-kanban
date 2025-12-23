@@ -1,5 +1,4 @@
 import { forwardRef, type InputHTMLAttributes } from "react";
-import * as Field from "@base-ui-components/react/field";
 import clsx from "clsx";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -13,7 +12,6 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 /**
  * Input component with optional label and error state.
- * Built on base-ui Field component.
  *
  * @example
  * ```tsx
@@ -30,16 +28,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || `input-${Math.random().toString(36).slice(2, 9)}`;
 
     return (
-      <Field.Root className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         {label && (
-          <Field.Label
-            htmlFor={inputId}
-            className="text-sm font-medium text-dark-text"
-          >
+          <label htmlFor={inputId} className="text-sm font-medium text-dark-text">
             {label}
-          </Field.Label>
+          </label>
         )}
-        <Field.Control
+        <input
           ref={ref}
           id={inputId}
           className={clsx(
@@ -51,18 +46,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             error ? "border-rose-500" : "border-dark-border",
             className
           )}
-          render={<input />}
           {...props}
         />
-        {error && (
-          <Field.Error className="text-xs text-rose-400">{error}</Field.Error>
-        )}
+        {error && <p className="text-xs text-rose-400">{error}</p>}
         {helperText && !error && (
-          <Field.Description className="text-xs text-dark-muted">
-            {helperText}
-          </Field.Description>
+          <p className="text-xs text-dark-muted">{helperText}</p>
         )}
-      </Field.Root>
+      </div>
     );
   }
 );
@@ -71,15 +61,6 @@ Input.displayName = "Input";
 
 /**
  * Textarea component with optional label and error state.
- *
- * @example
- * ```tsx
- * <Textarea
- *   label="Description"
- *   placeholder="Enter description..."
- *   rows={4}
- * />
- * ```
  */
 export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -93,14 +74,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const textareaId = id || `textarea-${Math.random().toString(36).slice(2, 9)}`;
 
     return (
-      <Field.Root className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         {label && (
-          <Field.Label
-            htmlFor={textareaId}
-            className="text-sm font-medium text-dark-text"
-          >
+          <label htmlFor={textareaId} className="text-sm font-medium text-dark-text">
             {label}
-          </Field.Label>
+          </label>
         )}
         <textarea
           ref={ref}
@@ -120,7 +98,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {helperText && !error && (
           <p className="text-xs text-dark-muted">{helperText}</p>
         )}
-      </Field.Root>
+      </div>
     );
   }
 );

@@ -1,5 +1,4 @@
-import { type ReactNode } from "react";
-import * as Dialog from "@base-ui-components/react/dialog";
+import { type ReactNode, useEffect } from "react";
 import clsx from "clsx";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 
@@ -31,7 +30,7 @@ const sizeStyles = {
 };
 
 /**
- * Modal dialog component built on base-ui Dialog.
+ * Modal dialog component.
  *
  * @example
  * ```tsx
@@ -42,10 +41,10 @@ const sizeStyles = {
  *   size="sm"
  * >
  *   <p>Are you sure you want to proceed?</p>
- *   <div className="flex gap-2 mt-4">
- *     <Button onClick={() => setIsOpen(false)}>Cancel</Button>
- *     <Button variant="primary" onClick={handleConfirm}>Confirm</Button>
- *   </div>
+ *   <ModalFooter>
+ *     <Button variant="secondary" onClick={() => setIsOpen(false)}>Cancel</Button>
+ *     <Button onClick={handleConfirm}>Confirm</Button>
+ *   </ModalFooter>
  * </Modal>
  * ```
  */
@@ -59,93 +58,96 @@ export function Modal({
   showCloseButton = true,
   closeOnBackdropClick = true,
 }: ModalProps) {
-  // Use escape key hook for consistent behavior
+  // Handle escape key
   useEscapeKey(onClose, open);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [open]);
+
+  if (!open) return null;
+
   return (
-    <Dialog.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Backdrop
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        onClick={closeOnBackdropClick ? onClose : undefined}
+      />
+
+      {/* Modal container */}
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <div
           className={clsx(
-            "fixed inset-0 bg-black/60 backdrop-blur-sm z-50",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+            "relative w-full bg-dark-surface border border-dark-border rounded-xl shadow-xl",
+            "animate-fade-in",
+            sizeStyles[size],
+            size === "full" ? "h-full" : ""
           )}
-          onClick={closeOnBackdropClick ? onClose : undefined}
-        />
-        <Dialog.Popup
-          className={clsx(
-            "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-            "w-full p-4",
-            sizeStyles[size]
-          )}
+          onClick={(e) => e.stopPropagation()}
         >
-          <div
-            className={clsx(
-              "bg-dark-surface border border-dark-border rounded-xl shadow-xl",
-              "data-[state=open]:animate-in data-[state=closed]:animate-out",
-              "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-              "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-              size === "full" ? "h-full" : ""
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            {(title || showCloseButton) && (
-              <div className="flex items-start justify-between p-4 border-b border-dark-border">
-                <div className="flex-1">
-                  {title && (
-                    <Dialog.Title className="text-lg font-semibold text-dark-text">
-                      {title}
-                    </Dialog.Title>
-                  )}
-                  {description && (
-                    <Dialog.Description className="text-sm text-dark-muted mt-1">
-                      {description}
-                    </Dialog.Description>
-                  )}
-                </div>
-                {showCloseButton && (
-                  <Dialog.Close
-                    onClick={onClose}
-                    className={clsx(
-                      "p-1 rounded-lg text-dark-muted",
-                      "hover:text-dark-text hover:bg-dark-hover",
-                      "focus:outline-none focus:ring-2 focus:ring-accent",
-                      "transition-colors"
-                    )}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </Dialog.Close>
+          {/* Header */}
+          {(title || showCloseButton) && (
+            <div className="flex items-start justify-between p-4 border-b border-dark-border">
+              <div className="flex-1">
+                {title && (
+                  <h2 className="text-lg font-semibold text-dark-text">{title}</h2>
+                )}
+                {description && (
+                  <p className="text-sm text-dark-muted mt-1">{description}</p>
                 )}
               </div>
-            )}
-
-            {/* Content */}
-            <div className={clsx("p-4", size === "full" && "h-[calc(100%-4rem)] overflow-y-auto")}>
-              {children}
+              {showCloseButton && (
+                <button
+                  onClick={onClose}
+                  className={clsx(
+                    "p-1 rounded-lg text-dark-muted",
+                    "hover:text-dark-text hover:bg-dark-hover",
+                    "focus:outline-none focus:ring-2 focus:ring-accent",
+                    "transition-colors"
+                  )}
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
+          )}
+
+          {/* Content */}
+          <div
+            className={clsx(
+              "p-4",
+              size === "full" && "h-[calc(100%-4rem)] overflow-y-auto"
+            )}
+          >
+            {children}
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </div>
+      </div>
+    </div>
   );
 }
 
 /**
- * Simple modal footer with action buttons
+ * Footer for modal with action buttons
  */
 export function ModalFooter({
   children,

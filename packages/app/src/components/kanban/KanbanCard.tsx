@@ -6,62 +6,24 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { CardViewModal } from "./CardViewModal";
 import { Avatar } from "@/components/Avatar";
+import { PriorityBadge } from "@/components/ui/PriorityBadge";
+import { stripHtml, formatDate } from "@/utils/formatting";
+import type { Card, Column, BoardMember, BoardRole } from "@/lib/types";
 import clsx from "clsx";
 
-type BoardRole = "owner" | "admin" | "member";
-
-interface Card {
-  _id: Id<"cards">;
-  columnId: Id<"columns">;
-  slug: string;
-  title: string;
-  content?: string;
-  position: number;
-  priority: "low" | "medium" | "high";
-  assignee?: {
-    id: Id<"users">;
-    name: string;
-    email: string;
-    image?: string;
-  } | null;
-  dueDate?: number;
-}
-
-interface Column {
-  _id: Id<"columns">;
-  boardId: Id<"boards">;
-  name: string;
-  position: number;
+interface KanbanColumnWithCards extends Column {
   cards: Card[];
-}
-
-interface BoardMember {
-  id: Id<"boardMembers">;
-  role: BoardRole;
-  userId: Id<"users">;
-  user: {
-    id: Id<"users">;
-    name: string;
-    email: string;
-    image?: string;
-  } | null;
 }
 
 interface Props {
   card: Card;
   boardId?: Id<"boards">;
-  columns?: Column[];
+  columns?: KanbanColumnWithCards[];
   members?: BoardMember[];
   userEmail?: string;
   userRole?: BoardRole;
   isOverlay?: boolean;
 }
-
-const priorityColors = {
-  low: "bg-green-500/20 text-green-300 border border-green-500/30",
-  medium: "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30",
-  high: "bg-red-500/20 text-red-300 border border-red-500/30",
-};
 
 export function KanbanCard({
   card,
@@ -88,7 +50,6 @@ export function KanbanCard({
     transition,
   };
 
-  // Convex mutation
   const deleteCard = useMutation(api.cards.remove);
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -150,23 +111,16 @@ export function KanbanCard({
 
         {card.content && (
           <p className="text-xs text-dark-muted mt-2 line-clamp-2">
-            {card.content.replace(/<[^>]*>/g, "").slice(0, 100)}
+            {stripHtml(card.content).slice(0, 100)}
           </p>
         )}
 
         <div className="flex items-center justify-between gap-2 mt-3">
           <div className="flex items-center gap-2">
-            <span
-              className={clsx(
-                "text-xs px-2 py-0.5 rounded",
-                priorityColors[card.priority]
-              )}
-            >
-              {card.priority}
-            </span>
+            <PriorityBadge priority={card.priority} size="sm" />
             {card.dueDate && (
               <span className="text-xs text-dark-muted">
-                {new Date(card.dueDate).toLocaleDateString()}
+                {formatDate(card.dueDate)}
               </span>
             )}
           </div>

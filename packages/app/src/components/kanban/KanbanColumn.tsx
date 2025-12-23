@@ -5,50 +5,17 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { KanbanCard } from "./KanbanCard";
+import { Button } from "@/components/ui/Button";
+import type { Card, Column, BoardMember, BoardRole } from "@/lib/types";
 
-type BoardRole = "owner" | "admin" | "member";
-
-interface Card {
-  _id: Id<"cards">;
-  columnId: Id<"columns">;
-  slug: string;
-  title: string;
-  content?: string;
-  position: number;
-  priority: "low" | "medium" | "high";
-  assignee?: {
-    id: Id<"users">;
-    name: string;
-    email: string;
-    image?: string;
-  } | null;
-  dueDate?: number;
-}
-
-interface Column {
-  _id: Id<"columns">;
-  boardId: Id<"boards">;
-  name: string;
-  position: number;
+interface KanbanColumnWithCards extends Column {
   cards: Card[];
 }
 
-interface BoardMember {
-  id: Id<"boardMembers">;
-  role: BoardRole;
-  userId: Id<"users">;
-  user: {
-    id: Id<"users">;
-    name: string;
-    email: string;
-    image?: string;
-  } | null;
-}
-
 interface Props {
-  column: Column;
+  column: KanbanColumnWithCards;
   boardId: Id<"boards">;
-  allColumns?: Column[];
+  allColumns?: KanbanColumnWithCards[];
   members?: BoardMember[];
   userEmail?: string;
   canEdit?: boolean;
@@ -74,7 +41,6 @@ export function KanbanColumn({
 
   const { setNodeRef, isOver } = useDroppable({ id: column._id });
 
-  // Convex mutations
   const updateColumn = useMutation(api.columns.update);
   const deleteColumn = useMutation(api.columns.remove);
   const createCard = useMutation(api.cards.create);
@@ -136,7 +102,7 @@ export function KanbanColumn({
                 setIsEditing(false);
               }
             }}
-            className="input text-sm py-1"
+            className="w-full px-2 py-1 bg-dark-bg border border-dark-border rounded text-sm text-dark-text focus:outline-none focus:ring-2 focus:ring-accent"
             autoFocus
           />
         ) : (
@@ -191,7 +157,7 @@ export function KanbanColumn({
           ))}
         </SortableContext>
 
-        {/* Add card form (editor+ only) */}
+        {/* Add card form */}
         {canEdit &&
           (showAddCard ? (
             <form onSubmit={handleCreateCard} className="space-y-2">
@@ -200,27 +166,24 @@ export function KanbanColumn({
                 value={newCardTitle}
                 onChange={(e) => setNewCardTitle(e.target.value)}
                 placeholder="Card title"
-                className="input text-sm"
+                className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm text-dark-text placeholder:text-dark-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 autoFocus
               />
               <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={isCreatingCard}
-                  className="btn-primary text-sm py-1"
-                >
+                <Button type="submit" size="sm" loading={isCreatingCard}>
                   Add
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => {
                     setShowAddCard(false);
                     setNewCardTitle("");
                   }}
-                  className="btn-secondary text-sm py-1"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           ) : (

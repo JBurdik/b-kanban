@@ -74,6 +74,7 @@ interface Board {
 
 interface Props {
   board: Board;
+  userEmail?: string;
 }
 
 // Permission helpers
@@ -94,7 +95,7 @@ const customCollisionDetection: CollisionDetection = (args) => {
   return rectIntersection(args);
 };
 
-export function KanbanBoard({ board }: Props) {
+export function KanbanBoard({ board, userEmail }: Props) {
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [columns, setColumns] = useState(board.columns || []);
   const columnsRef = useRef(columns);
@@ -263,6 +264,7 @@ export function KanbanBoard({ board }: Props) {
               boardId={board._id}
               allColumns={columns}
               members={board.members}
+              userEmail={userEmail}
               canEdit={canDrag}
               canManageColumns={canAddColumn}
               userRole={userRole}

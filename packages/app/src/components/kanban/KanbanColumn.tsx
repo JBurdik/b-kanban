@@ -50,6 +50,7 @@ interface Props {
   boardId: Id<"boards">;
   allColumns?: Column[];
   members?: BoardMember[];
+  userEmail?: string;
   canEdit?: boolean;
   canManageColumns?: boolean;
   userRole?: BoardRole;
@@ -60,6 +61,7 @@ export function KanbanColumn({
   boardId,
   allColumns = [],
   members = [],
+  userEmail,
   canEdit = true,
   canManageColumns = false,
   userRole,
@@ -183,6 +185,7 @@ export function KanbanColumn({
               boardId={boardId}
               columns={allColumns}
               members={members}
+              userEmail={userEmail}
               userRole={userRole}
             />
           ))}

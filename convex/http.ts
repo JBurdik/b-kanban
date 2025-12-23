@@ -3,6 +3,15 @@ import { authComponent, createAuth } from "./auth";
 
 const http = httpRouter();
 
-authComponent.registerRoutes(http, createAuth, { cors: true });
+// Configure CORS with explicit allowed origins
+authComponent.registerRoutes(http, createAuth, {
+  cors: {
+    allowedOrigins: [
+      "http://localhost:5173",
+      "https://kanban.burdych.net",
+    ],
+    allowCredentials: true,
+  },
+});
 
 export default http;

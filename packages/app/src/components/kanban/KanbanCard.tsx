@@ -5,6 +5,7 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { CardViewModal } from "./CardViewModal";
+import { Avatar } from "@/components/Avatar";
 import clsx from "clsx";
 
 type BoardRole = "owner" | "admin" | "member";
@@ -51,6 +52,7 @@ interface Props {
   boardId?: Id<"boards">;
   columns?: Column[];
   members?: BoardMember[];
+  userEmail?: string;
   userRole?: BoardRole;
   isOverlay?: boolean;
 }
@@ -66,6 +68,7 @@ export function KanbanCard({
   boardId,
   columns = [],
   members = [],
+  userEmail,
   userRole,
   isOverlay,
 }: Props) {
@@ -168,12 +171,11 @@ export function KanbanCard({
             )}
           </div>
           {card.assignee && (
-            <div
-              className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-xs font-medium text-accent"
-              title={card.assignee.name}
-            >
-              {card.assignee.name.charAt(0).toUpperCase()}
-            </div>
+            <Avatar
+              name={card.assignee.name}
+              id={card.assignee.id}
+              size="sm"
+            />
           )}
         </div>
       </div>
@@ -184,6 +186,7 @@ export function KanbanCard({
           boardId={boardId}
           columns={columns}
           members={members}
+          userEmail={userEmail}
           userRole={userRole}
           onClose={() => setShowModal(false)}
         />

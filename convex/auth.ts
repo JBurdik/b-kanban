@@ -5,9 +5,17 @@ import { DataModel } from "./_generated/dataModel";
 import { components } from "./_generated/api";
 import authConfig from "./auth.config";
 
-const siteUrl = "http://localhost:5173";
+// Use SITE_URL env var for production, fallback to localhost for development
+const siteUrl = process.env.SITE_URL || "http://localhost:5173";
 // For self-hosted dev, use env var or fallback to development secret
 const authSecret = process.env.BETTER_AUTH_SECRET || "FZl8e1OSHCumadMLQZH7JitCmh/RSnlk3jXaN7aSIJY=";
+
+// All trusted origins for CORS
+const trustedOrigins = [
+  "http://localhost:5173",
+  "https://kanban.burdych.net",
+  "https://kanban-api.burdych.net",
+];
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
@@ -23,7 +31,7 @@ export const createAuth = (
       enabled: true,
       requireEmailVerification: false,
     },
-    trustedOrigins: [siteUrl],
+    trustedOrigins,
     plugins: [convex({ authConfig })],
     logger: { disabled: optionsOnly },
   });

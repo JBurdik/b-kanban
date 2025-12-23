@@ -4,6 +4,8 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { CardModal } from "./CardModal";
 import { AttachmentList } from "./AttachmentList";
+import { CommentList } from "./CommentList";
+import { Avatar } from "@/components/Avatar";
 import clsx from "clsx";
 
 type BoardRole = "owner" | "admin" | "member";
@@ -50,6 +52,7 @@ interface Props {
   boardId: Id<"boards">;
   columns: Column[];
   members?: BoardMember[];
+  userEmail?: string;
   userRole?: BoardRole;
   onClose: () => void;
 }
@@ -60,7 +63,7 @@ const priorityConfig = {
   high: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/20", dot: "bg-rose-400" },
 };
 
-export function CardViewModal({ card, boardId, columns, members = [], userRole, onClose }: Props) {
+export function CardViewModal({ card, boardId, columns, members = [], userEmail, userRole, onClose }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentColumnId, setCurrentColumnId] = useState(card.columnId);
@@ -227,12 +230,23 @@ export function CardViewModal({ card, boardId, columns, members = [], userRole, 
 
             {/* Assignee */}
             <div className="flex items-center gap-2 text-sm">
-              <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="text-dark-text">
-                {card.assignee ? card.assignee.name : "Unassigned"}
-              </span>
+              {card.assignee ? (
+                <>
+                  <Avatar
+                    name={card.assignee.name}
+                    id={card.assignee.id}
+                    size="sm"
+                  />
+                  <span className="text-dark-text">{card.assignee.name}</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="text-dark-muted">Unassigned</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -257,6 +271,17 @@ export function CardViewModal({ card, boardId, columns, members = [], userRole, 
               <span className="text-sm font-medium text-dark-muted uppercase tracking-wide">Attachments</span>
             </div>
             <AttachmentList cardId={card._id} readOnly={!canEdit} />
+          </div>
+
+          {/* Comments */}
+          <div className="px-5 pb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="text-sm font-medium text-dark-muted uppercase tracking-wide">Comments</span>
+            </div>
+            <CommentList cardId={card._id} userEmail={userEmail} readOnly={!canEdit} />
           </div>
         </div>
       </div>

@@ -134,7 +134,7 @@ function BoardPage() {
 
       {/* Kanban board */}
       <div className="flex-1 overflow-hidden">
-        <KanbanBoard board={board} />
+        <KanbanBoard board={board} userEmail={userEmail} />
       </div>
 
       {/* Members modal */}

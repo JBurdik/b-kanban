@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  # Self-hosted Convex backend
+  convex-backend:
+    image: ghcr.io/get-convex/convex-backend:latest
+    ports:
+      - "3210:3210"
+      - "3211:3211"
+    environment:
+      - CONVEX_SITE_URL=https://kanban.burdych.net
+      - CONVEX_BACKEND_URL=http://localhost:3210
+      - CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - SITE_URL=https://kanban.burdych.net
+    volumes:
+      - convex-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3210/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Convex Dashboard (optional, for development)
+  convex-dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:latest
+    ports:
+      - "6791:6791"
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=http://convex-backend:3210
+    depends_on:
+      - convex-backend
+    restart: unless-stopped
+
+  # React frontend
+  app:
+    build:
+      context: .
+      dockerfile: packages/app/Dockerfile
+      args:
+        - VITE_CONVEX_URL=http://localhost:3210
+        - VITE_CONVEX_SITE_URL=https://kanban.burdych.net
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_CONVEX_URL=http://localhost:3210
+      - VITE_CONVEX_SITE_URL=https://kanban.burdych.net
+    depends_on:
+      - convex-backend
+    restart: unless-stopped
+
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      - app
+
+volumes:
+  convex-data:

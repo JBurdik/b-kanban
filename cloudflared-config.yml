@@ -1,20 +1,17 @@
 # Cloudflared tunnel configuration for b-kanban
 #
-# Option 1: Add to existing tunnel (recommended)
-# Add these ingress rules to your ~/.cloudflared/config.yml
-#
-# Option 2: Create a new tunnel:
-# cloudflared tunnel create kanban
-# cloudflared tunnel route dns kanban kanban.burdych.net
-# Then copy the credentials file to ~/.cloudflared/
+# Usage: cloudflared tunnel --config cloudflared-config.yml run dev-api
 
-tunnel: home macbook  # Change to your tunnel name
-credentials-file: /Users/jirkab/.cloudflared/fe23c750-6554-467f-a7c9-4a01e22196ec.json
+tunnel: dev-api
+credentials-file: /Users/jirkab/.cloudflared/f988e45e-778d-4186-9f37-1d03e7da798d.json
 
 ingress:
-  # Kanban app frontend
   - hostname: kanban.burdych.net
     service: http://localhost:5173
-
-  # Catch-all for 404
+  - hostname: kanban-api.burdych.net
+    service: http://localhost:3211
+  - hostname: kanban-convex.burdych.net
+    service: http://localhost:3210
+  - hostname: kanban-dashboard.burdych.net
+    service: http://localhost:6791
   - service: http_status:404

@@ -63,10 +63,14 @@ CONVEX_URL=https://api.kanban.example.com
 To access the Convex admin dashboard:
 
 ```bash
+# Start the dashboard
 docker compose -f docker-compose.selfhost.yml --profile admin up -d
+
+# Generate admin password
+docker compose -f docker-compose.selfhost.yml exec convex ./generate_admin_key.sh
 ```
 
-Dashboard available at `http://localhost:6791`
+Dashboard available at `http://localhost:6791` - use the generated key to log in.
 
 ### Updating
 

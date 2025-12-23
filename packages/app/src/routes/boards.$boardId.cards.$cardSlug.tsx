@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";

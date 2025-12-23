@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
+import type { Id } from "convex/_generated/dataModel";
 import { signOut, changePassword } from "@/lib/auth-client";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { Avatar } from "@/components/Avatar";
@@ -13,7 +14,8 @@ export const Route = createFileRoute("/profile")(
 );
 
 function ProfilePage() {
-  const { userId, user, isLoading, session } = useConvexUser();
+  const { user, isLoading, session } = useConvexUser();
+  const userId = user?.id as Id<"users"> | undefined;
   const navigate = useNavigate();
 
   const [name, setName] = useState("");

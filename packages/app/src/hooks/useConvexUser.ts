@@ -1,4 +1,3 @@
-import type { Id } from "convex/_generated/dataModel";
 import { useSession } from "@/lib/auth-client";
 import { useConvexAuth } from "convex/react";
 

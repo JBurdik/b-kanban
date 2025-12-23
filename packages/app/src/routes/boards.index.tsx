@@ -104,7 +104,7 @@ function BoardsPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {boards.map((board) => (
+          {boards.filter((b): b is NonNullable<typeof b> => b !== null).map((board) => (
             <Link
               key={board._id}
               to="/boards/$boardId"

@@ -1,62 +1,142 @@
 # B-Kanban
 
-A Kanban board application built with React, Convex, and Better Auth.
+A self-hostable Kanban board application built with React 19, Convex, and Better Auth.
 
-## Prerequisites
+## Self-Hosting (Docker)
+
+The simplest way to run B-Kanban on your own server.
+
+### Quick Start
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/YOUR_USERNAME/b-kanban.git
+cd b-kanban
+
+# 2. Create your environment file
+cp .env.example .env
+
+# 3. Generate secure keys and update .env
+openssl rand -base64 32  # Use this for BETTER_AUTH_SECRET
+openssl rand -hex 32     # Use this for CONVEX_DEPLOY_KEY
+
+# 4. Start everything (first run takes ~2 min to build)
+docker compose -f docker-compose.selfhost.yml up -d --build
+```
+
+Your kanban board is now running at `http://localhost`!
+
+### Environment Variables
+
+Edit `.env` before starting:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SITE_URL` | Where users access the app | `http://localhost` or `https://kanban.example.com` |
+| `CONVEX_URL` | Convex backend URL | `http://localhost:3210` |
+| `BETTER_AUTH_SECRET` | Auth encryption key | Generate with `openssl rand -base64 32` |
+| `CONVEX_DEPLOY_KEY` | Deployment key | Generate with `openssl rand -hex 32` |
+
+### Production with HTTPS (Nginx/Caddy)
+
+For production, put a reverse proxy in front:
+
+**Example Caddyfile:**
+```
+kanban.example.com {
+    reverse_proxy localhost:80
+}
+
+api.kanban.example.com {
+    reverse_proxy localhost:3210
+}
+```
+
+**Then update your `.env`:**
+```bash
+SITE_URL=https://kanban.example.com
+CONVEX_URL=https://api.kanban.example.com
+```
+
+### Admin Dashboard
+
+To access the Convex admin dashboard:
+
+```bash
+docker compose -f docker-compose.selfhost.yml --profile admin up -d
+```
+
+Dashboard available at `http://localhost:6791`
+
+### Updating
+
+```bash
+git pull
+docker compose -f docker-compose.selfhost.yml up -d --build
+```
+
+### Backup
+
+```bash
+# Backup database
+docker compose -f docker-compose.selfhost.yml exec convex convex export > backup.json
+
+# Restore
+docker compose -f docker-compose.selfhost.yml exec convex convex import < backup.json
+```
+
+---
+
+## Development Setup
+
+For local development with hot reloading.
+
+### Prerequisites
 
 - Node.js 22+
 - pnpm
 - Docker & Docker Compose
-- cloudflared (for external access)
 
-## Quick Start
-
-### 1. Start Docker containers (Convex backend + Dashboard)
+### Start Development
 
 ```bash
-docker-compose up -d
+# 1. Start Convex backend
+docker compose up -d
+
+# 2. Install dependencies
+pnpm install
+
+# 3. Start dev servers (frontend + convex sync)
+pnpm dev
 ```
 
-### 2. Start Convex dev (sync functions)
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
+| Convex API | http://localhost:3210 |
+| Dashboard | http://localhost:6791 |
 
-```bash
-pnpm dev:convex
+---
+
+## Architecture
+
+```
+b-kanban/
+├── packages/app/     # React 19 frontend (TanStack Router, Tailwind)
+├── convex/           # Convex backend (serverless functions, database)
+├── Dockerfile        # Frontend container
+└── docker-compose.selfhost.yml
 ```
 
-### 3. Start Vite dev server
+### Tech Stack
 
-```bash
-cd packages/app && pnpm dev
-```
+- **Frontend:** React 19, Vite, TanStack Router, Tailwind CSS, TipTap
+- **Backend:** Convex (serverless functions + realtime database)
+- **Auth:** Better Auth with email/password
+- **Drag & Drop:** dnd-kit
 
-### 4. Start Cloudflare tunnel (for external access)
+---
 
-```bash
-cloudflared tunnel --config cloudflared-config.yml run dev-api
-```
+## License
 
-Or add DNS routes first (one-time setup):
-```bash
-cloudflared tunnel route dns dev-api kanban.burdych.net
-cloudflared tunnel route dns dev-api kanban-api.burdych.net
-cloudflared tunnel route dns dev-api kanban-convex.burdych.net
-cloudflared tunnel route dns dev-api kanban-dashboard.burdych.net
-```
-
-## URLs
-
-| Service | Local | External |
-|---------|-------|----------|
-| Frontend | http://localhost:5173 | https://kanban.burdych.net |
-| Convex API | http://localhost:3210 | https://kanban-convex.burdych.net |
-| Auth/HTTP | http://localhost:3211 | https://kanban-api.burdych.net |
-| Dashboard | http://localhost:6791 | https://kanban-dashboard.burdych.net |
-
-## Stop All Services
-
-```bash
-docker-compose stop
-pkill -f "cloudflared tunnel"
-pkill -f "vite"
-pkill -f "convex dev"
-```
+MIT

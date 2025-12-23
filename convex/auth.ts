@@ -12,12 +12,15 @@ const authSecret =
   process.env.BETTER_AUTH_SECRET ||
   "FZl8e1OSHCumadMLQZH7JitCmh/RSnlk3jXaN7aSIJY=";
 
-// All trusted origins for CORS
+// Build trusted origins from environment + defaults
 const trustedOrigins = [
   "http://localhost:5173",
-  "https://kanban.burdych.net/",
-  "https://kanban-api.burdych.net",
-];
+  "http://localhost:80",
+  "http://localhost",
+  siteUrl,
+  // Add any additional origins from TRUSTED_ORIGINS env var (comma-separated)
+  ...(process.env.TRUSTED_ORIGINS?.split(",").map((o) => o.trim()) || []),
+].filter((origin) => origin && origin.length > 0);
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 

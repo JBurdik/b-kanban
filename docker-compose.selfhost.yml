@@ -36,7 +36,7 @@ services:
       - convex
     restart: unless-stopped
 
-  # Admin Dashboard (optional)
+  # Admin Dashboard
   dashboard:
     image: ghcr.io/get-convex/convex-dashboard:latest
     ports:
@@ -46,8 +46,6 @@ services:
     depends_on:
       - convex
     restart: unless-stopped
-    profiles:
-      - admin
 
 volumes:
   convex-data:

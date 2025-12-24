@@ -1,4 +1,4 @@
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type AnyExtension } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { SlashCommands } from "../editor/SlashCommands";
@@ -23,20 +23,29 @@ interface Props {
   onMentionSearch?: (query: string) => Promise<MentionUser[]>;
 }
 
-export function CommentEditor({ content, onChange, placeholder, onSubmit, autoFocus = false, onMentionSearch }: Props) {
+export function CommentEditor({
+  content,
+  onChange,
+  placeholder,
+  onSubmit,
+  autoFocus = false,
+  onMentionSearch,
+}: Props) {
   const mentionExtension = useMemo(() => {
     if (!onMentionSearch) return null;
     return createMentionExtension({ onSearch: onMentionSearch });
   }, [onMentionSearch]);
 
   const extensions = useMemo(() => {
-    const exts = [
+    const exts: AnyExtension[] = [
       StarterKit.configure({
         heading: false, // No headings in comments
         horizontalRule: false,
       }),
       Placeholder.configure({
-        placeholder: placeholder || "Write a comment... (use '/' for formatting, '@' for mentions)",
+        placeholder:
+          placeholder ||
+          "Write a comment... (use '/' for formatting, '@' for mentions)",
       }),
       SlashCommands,
     ];
@@ -55,9 +64,10 @@ export function CommentEditor({ content, onChange, placeholder, onSubmit, autoFo
     },
     editorProps: {
       attributes: {
-        class: "prose prose-invert prose-sm max-w-none min-h-[60px] p-3 focus:outline-none",
+        class:
+          "prose prose-invert prose-sm max-w-none min-h-[60px] p-3 focus:outline-none",
       },
-      handleKeyDown: (view, event) => {
+      handleKeyDown: (_view, event) => {
         // Submit on Cmd/Ctrl+Enter
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
@@ -104,7 +114,11 @@ export function CommentEditor({ content, onChange, placeholder, onSubmit, autoFo
           title="Bullet List"
         >
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 4a1 1 0 100 2 1 1 0 000-2zm4 1a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm-4-5a1 1 0 100 2 1 1 0 000-2zm0 5a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M3 4a1 1 0 100 2 1 1 0 000-2zm4 1a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm-4-5a1 1 0 100 2 1 1 0 000-2zm0 5a1 1 0 100 2 1 1 0 000-2z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
 
@@ -114,7 +128,11 @@ export function CommentEditor({ content, onChange, placeholder, onSubmit, autoFo
           title="Code"
         >
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
 
@@ -124,7 +142,11 @@ export function CommentEditor({ content, onChange, placeholder, onSubmit, autoFo
           title="Quote"
         >
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4.5 4a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H2.707a.5.5 0 00-.354.146L1 9.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5H4.5V4.5a.5.5 0 01.5-.5h1a.5.5 0 010 1H5V4.5A.5.5 0 014.5 4zm9 0a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-1.793a.5.5 0 00-.354.146L10 9.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5h-1.5V4.5a.5.5 0 01.5-.5h1a.5.5 0 010 1h-.5V4.5a.5.5 0 01-.5-.5z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M4.5 4a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H2.707a.5.5 0 00-.354.146L1 9.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5H4.5V4.5a.5.5 0 01.5-.5h1a.5.5 0 010 1H5V4.5A.5.5 0 014.5 4zm9 0a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-1.793a.5.5 0 00-.354.146L10 9.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5h-1.5V4.5a.5.5 0 01.5-.5h1a.5.5 0 010 1h-.5V4.5a.5.5 0 01-.5-.5z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
 
@@ -189,7 +211,7 @@ function ToolbarButton({
         "p-1 rounded transition-colors text-xs",
         active
           ? "bg-accent text-white"
-          : "text-dark-muted hover:text-dark-text hover:bg-dark-hover"
+          : "text-dark-muted hover:text-dark-text hover:bg-dark-hover",
       )}
     >
       {children}

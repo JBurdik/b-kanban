@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { internal } from "./_generated/api";
 
 /**
  * List notifications for a user
@@ -59,7 +58,7 @@ export const list = query({
               }
             : null,
         };
-      })
+      }),
     );
 
     return enriched;
@@ -81,7 +80,9 @@ export const unreadCount = query({
 
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_user_read", (q) => q.eq("userId", user._id).eq("read", false))
+      .withIndex("by_user_read", (q) =>
+        q.eq("userId", user._id).eq("read", false),
+      )
       .collect();
 
     return unread.length;
@@ -118,7 +119,9 @@ export const markAllAsRead = mutation({
 
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_user_read", (q) => q.eq("userId", user._id).eq("read", false))
+      .withIndex("by_user_read", (q) =>
+        q.eq("userId", user._id).eq("read", false),
+      )
       .collect();
 
     for (const notification of unread) {
@@ -140,7 +143,7 @@ export const create = internalMutation({
       v.literal("assigned"),
       v.literal("mentioned"),
       v.literal("commented"),
-      v.literal("card_updated")
+      v.literal("card_updated"),
     ),
     cardId: v.id("cards"),
     fromUserId: v.id("users"),
@@ -171,7 +174,7 @@ export const create = internalMutation({
         n.type === args.type &&
         n.cardId === args.cardId &&
         n.fromUserId === args.fromUserId &&
-        Date.now() - n.createdAt < 60000 // Within last minute
+        Date.now() - n.createdAt < 60000, // Within last minute
     );
 
     if (duplicate) return null;

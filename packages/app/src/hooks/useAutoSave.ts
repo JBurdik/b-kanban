@@ -61,7 +61,7 @@ export function useAutoSave<T>({
   enabled = true,
 }: UseAutoSaveOptions<T>): UseAutoSaveReturn {
   const [isSaving, setIsSaving] = useState(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestDataRef = useRef(data);
 
   // Keep track of the latest data for manual save

@@ -6,11 +6,7 @@ const http = httpRouter();
 // Configure CORS with explicit allowed origins
 authComponent.registerRoutes(http, createAuth, {
   cors: {
-    allowedOrigins: [
-      "http://localhost:5173",
-      "https://kanban.burdych.net",
-    ],
-    allowCredentials: true,
+    allowedOrigins: ["http://localhost:5173", "https://kanban.burdych.net"],
   },
 });
 

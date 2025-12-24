@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { authComponent } from "./auth";
+import type { Id } from "./_generated/dataModel";
 
 /**
  * Generate slug prefix from board name
@@ -61,7 +61,7 @@ export const list = query({
           columnCount: columns.length,
           userRole: membership?.role,
         };
-      })
+      }),
     );
 
     return boards.filter(Boolean);
@@ -118,11 +118,11 @@ export const get = query({
               }
             }
             return { ...card, assignee };
-          })
+          }),
         );
 
         return { ...column, cards: cardsWithAssignee };
-      })
+      }),
     );
 
     const memberships = await ctx.db
@@ -146,7 +146,7 @@ export const get = query({
               }
             : null,
         };
-      })
+      }),
     );
 
     const userRole = currentUserId
@@ -183,7 +183,10 @@ export const create = mutation({
     if (!user) {
       // User doesn't exist in our users table yet - create from session info
       // This syncs the user from better-auth to our users table
-      console.log("[boards:create] User not in DB, creating from email:", args.userEmail);
+      console.log(
+        "[boards:create] User not in DB, creating from email:",
+        args.userEmail,
+      );
       const userId = await ctx.db.insert("users", {
         email: args.userEmail,
         name: args.userEmail.split("@")[0], // Default name from email

@@ -19,7 +19,7 @@ async function getUserByEmail(ctx: Ctx, email: string) {
  */
 async function getBoardIdFromCard(
   ctx: Ctx,
-  cardId: Id<"cards">
+  cardId: Id<"cards">,
 ): Promise<Id<"boards"> | null> {
   const card = await ctx.db.get(cardId);
   if (!card) return null;
@@ -33,12 +33,12 @@ async function getBoardIdFromCard(
 async function checkBoardAccess(
   ctx: Ctx,
   userId: Id<"users">,
-  boardId: Id<"boards">
+  boardId: Id<"boards">,
 ): Promise<boolean> {
   const member = await ctx.db
     .query("boardMembers")
     .withIndex("by_board_and_user", (q) =>
-      q.eq("boardId", boardId).eq("userId", userId)
+      q.eq("boardId", boardId).eq("userId", userId),
     )
     .first();
   return !!member;
@@ -60,7 +60,7 @@ export const list = query({
       attachments.map(async (att) => ({
         ...att,
         url: await ctx.storage.getUrl(att.storageId),
-      }))
+      })),
     );
 
     return withUrls;
@@ -122,19 +122,10 @@ export const saveAttachment = mutation({
  * Delete an attachment
  */
 export const remove = mutation({
-  args: { attachmentId: v.id("attachments"), userEmail: v.string() },
+  args: { attachmentId: v.id("attachments") },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("Unauthorized");
-
     const attachment = await ctx.db.get(args.attachmentId);
     if (!attachment) throw new Error("Attachment not found");
-
-    const boardId = await getBoardIdFromCard(ctx, attachment.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    const hasAccess = await checkBoardAccess(ctx, user._id, boardId);
-    if (!hasAccess) throw new Error("Access denied");
 
     // Delete from storage
     await ctx.storage.delete(attachment.storageId);

@@ -1,4 +1,4 @@
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type AnyExtension } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
@@ -24,19 +24,26 @@ interface Props {
   onMentionSearch?: (query: string) => Promise<MentionUser[]>;
 }
 
-export function RichTextEditor({ content, onChange, placeholder, readOnly = false, onMentionSearch }: Props) {
+export function RichTextEditor({
+  content,
+  onChange,
+  placeholder,
+  readOnly = false,
+  onMentionSearch,
+}: Props) {
   const mentionExtension = useMemo(() => {
     if (!onMentionSearch) return null;
     return createMentionExtension({ onSearch: onMentionSearch });
   }, [onMentionSearch]);
 
   const extensions = useMemo(() => {
-    const exts = [
+    const exts: AnyExtension[] = [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
       Placeholder.configure({
-        placeholder: placeholder || "Type '/' for commands, '@' for mentions...",
+        placeholder:
+          placeholder || "Type '/' for commands, '@' for mentions...",
       }),
       TaskList,
       TaskItem.configure({
@@ -105,7 +112,9 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
         <div className="w-px h-4 bg-dark-border mx-1" />
 
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
           active={editor.isActive("heading", { level: 1 })}
           title="Heading 1"
         >
@@ -113,7 +122,9 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
         </ToolbarButton>
 
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
           active={editor.isActive("heading", { level: 2 })}
           title="Heading 2"
         >
@@ -128,7 +139,11 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
           title="Bullet List"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 4a1 1 0 100 2 1 1 0 000-2zm4 1a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm-4-5a1 1 0 100 2 1 1 0 000-2zm0 5a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M3 4a1 1 0 100 2 1 1 0 000-2zm4 1a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm-4-5a1 1 0 100 2 1 1 0 000-2zm0 5a1 1 0 100 2 1 1 0 000-2z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
 
@@ -138,7 +153,11 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
           title="Numbered List"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h.5a.5.5 0 01.5.5v2a.5.5 0 01-.5.5H4a1 1 0 01-1-1V4zm4 1a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zM3.5 9a.5.5 0 00-.5.5v1a.5.5 0 00.5.5H4a.5.5 0 00.5-.5v-1A.5.5 0 004 9h-.5zm0 5a.5.5 0 00-.5.5v1a.5.5 0 00.5.5H4a.5.5 0 00.5-.5v-1a.5.5 0 00-.5-.5h-.5z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M3 4a1 1 0 011-1h.5a.5.5 0 01.5.5v2a.5.5 0 01-.5.5H4a1 1 0 01-1-1V4zm4 1a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zm0 5a1 1 0 011-1h9a1 1 0 110 2H8a1 1 0 01-1-1zM3.5 9a.5.5 0 00-.5.5v1a.5.5 0 00.5.5H4a.5.5 0 00.5-.5v-1A.5.5 0 004 9h-.5zm0 5a.5.5 0 00-.5.5v1a.5.5 0 00.5.5H4a.5.5 0 00.5-.5v-1a.5.5 0 00-.5-.5h-.5z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
 
@@ -148,7 +167,11 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
           title="Code Block"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
 
@@ -158,7 +181,11 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
           title="Quote"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4.5 4a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H2.707a.5.5 0 00-.354.146L1 9.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5H4.5V4.5a.5.5 0 01.5-.5h1a.5.5 0 010 1H5V4.5A.5.5 0 014.5 4zm9 0a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-1.793a.5.5 0 00-.354.146L10 9.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5h-1.5V4.5a.5.5 0 01.5-.5h1a.5.5 0 010 1h-.5V4.5a.5.5 0 01-.5-.5z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M4.5 4a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H2.707a.5.5 0 00-.354.146L1 9.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5H4.5V4.5a.5.5 0 01.5-.5h1a.5.5 0 010 1H5V4.5A.5.5 0 014.5 4zm9 0a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-1.793a.5.5 0 00-.354.146L10 9.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5h-1.5V4.5a.5.5 0 01.5-.5h1a.5.5 0 010 1h-.5V4.5a.5.5 0 01-.5-.5z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
 
@@ -170,7 +197,11 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
           title="Task List"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M6 4.5a2 2 0 11-4 0 2 2 0 014 0zm8 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1zm-8 5a2 2 0 11-4 0 2 2 0 014 0zm8 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1zm-8 5a2 2 0 11-4 0 2 2 0 014 0zm8 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M6 4.5a2 2 0 11-4 0 2 2 0 014 0zm8 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1zm-8 5a2 2 0 11-4 0 2 2 0 014 0zm8 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1zm-8 5a2 2 0 11-4 0 2 2 0 014 0zm8 0a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
 
@@ -180,7 +211,11 @@ export function RichTextEditor({ content, onChange, placeholder, readOnly = fals
           title="Divider"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+              clipRule="evenodd"
+            />
           </svg>
         </ToolbarButton>
       </div>
@@ -269,7 +304,7 @@ function ToolbarButton({
         "p-1.5 rounded transition-colors text-sm",
         active
           ? "bg-accent text-white"
-          : "text-dark-muted hover:text-dark-text hover:bg-dark-hover"
+          : "text-dark-muted hover:text-dark-text hover:bg-dark-hover",
       )}
     >
       {children}

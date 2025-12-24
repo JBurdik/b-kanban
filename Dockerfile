@@ -32,9 +32,9 @@ RUN pnpm build
 # Production stage
 FROM node:22-alpine
 
-# Install pnpm and nginx
+# Install pnpm and serve
 RUN corepack enable && corepack prepare pnpm@10.20.0 --activate \
-    && apk add --no-cache nginx
+    && npm install -g serve
 
 WORKDIR /app
 
@@ -48,31 +48,9 @@ COPY convex/ ./convex/
 COPY tsconfig.json ./
 
 # Copy built frontend
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist ./dist
 
-# Nginx config for SPA routing
-RUN cat > /etc/nginx/http.d/default.conf << 'EOF'
-server {
-    listen 80;
-    server_name _;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-EOF
-
-# Startup script: deploy convex functions then start nginx
+# Startup script: deploy convex functions then serve the app
 RUN cat > /app/start.sh << 'EOF'
 #!/bin/sh
 set -e
@@ -81,14 +59,14 @@ echo "Deploying Convex functions..."
 if pnpm convex deploy --yes; then
     echo "Convex functions deployed successfully!"
 else
-    echo "Warning: Convex deploy failed, but starting nginx anyway..."
+    echo "Warning: Convex deploy failed, but starting server anyway..."
 fi
 
-echo "Starting nginx..."
-exec nginx -g "daemon off;"
+echo "Starting server on port 3666..."
+exec serve -s dist -l 3666
 EOF
 RUN chmod +x /app/start.sh
 
-EXPOSE 80
+EXPOSE 3666
 
 CMD ["/app/start.sh"]

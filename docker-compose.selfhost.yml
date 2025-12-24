@@ -26,7 +26,7 @@ services:
         - VITE_CONVEX_URL=${CONVEX_URL:-http://localhost:3210}
         - VITE_CONVEX_SITE_URL=${SITE_URL}
     ports:
-      - "80:80"
+      - "3666:3666"
     environment:
       - CONVEX_SELF_HOSTED_URL=http://convex:3210
       - CONVEX_SELF_HOSTED_ADMIN_KEY=${ADMIN_KEY}

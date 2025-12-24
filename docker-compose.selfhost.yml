@@ -6,9 +6,13 @@ services:
       - "3210:3210"
       - "3211:3211"
     environment:
+      # Instance configuration - INSTANCE_SECRET must be generated with: openssl rand -hex 32
+      - INSTANCE_NAME=${INSTANCE_NAME:-convex-self-hosted}
+      - INSTANCE_SECRET=${INSTANCE_SECRET}
+      # URLs for client access
       - CONVEX_CLOUD_ORIGIN=${SITE_URL}
       - CONVEX_SITE_ORIGIN=${SITE_URL}
-      - CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY}
+      # Auth configuration
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - SITE_URL=${SITE_URL}
       - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
@@ -22,8 +26,11 @@ services:
       context: .
       dockerfile: Dockerfile.setup
     environment:
+      # Self-hosted deployment configuration
+      # ADMIN_KEY must be generated with: docker compose exec convex ./generate_admin_key.sh
       - CONVEX_SELF_HOSTED_URL=http://convex:3210
-      - CONVEX_SELF_HOSTED_ADMIN_KEY=${CONVEX_DEPLOY_KEY}
+      - CONVEX_SELF_HOSTED_ADMIN_KEY=${ADMIN_KEY}
+      # App environment variables for Convex functions
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - SITE_URL=${SITE_URL}
     depends_on:

@@ -39,6 +39,15 @@ export const createAuth = (
       requireEmailVerification: false,
     },
     trustedOrigins,
+    advanced: {
+      crossSubDomainCookies: {
+        enabled: true,
+      },
+      defaultCookieAttributes: {
+        sameSite: "none",
+        secure: true,
+      },
+    },
     plugins: [convex({ authConfig })],
     logger: { disabled: optionsOnly },
   });

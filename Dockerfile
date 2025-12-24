@@ -56,8 +56,10 @@ RUN cat > /app/start.sh << 'EOF'
 set -e
 
 echo "Setting Convex environment variables..."
-pnpm convex env set SITE_URL "$SITE_URL" --yes 2>/dev/null || true
-pnpm convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" --yes 2>/dev/null || true
+echo "SITE_URL: $SITE_URL"
+echo "BETTER_AUTH_SECRET length: ${#BETTER_AUTH_SECRET}"
+pnpm convex env set SITE_URL "$SITE_URL" 2>&1 || echo "env set SITE_URL failed"
+pnpm convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" 2>&1 || echo "env set BETTER_AUTH_SECRET failed"
 
 echo "Deploying Convex functions..."
 if pnpm convex deploy --yes; then

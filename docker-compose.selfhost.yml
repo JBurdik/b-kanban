@@ -6,13 +6,10 @@ services:
       - "3210:3210"
       - "3211:3211"
     environment:
-      # Instance configuration - INSTANCE_SECRET must be generated with: openssl rand -hex 32
       - INSTANCE_NAME=${INSTANCE_NAME:-convex-self-hosted}
       - INSTANCE_SECRET=${INSTANCE_SECRET}
-      # URLs for client access
       - CONVEX_CLOUD_ORIGIN=${SITE_URL}
       - CONVEX_SITE_ORIGIN=${SITE_URL}
-      # Auth configuration
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - SITE_URL=${SITE_URL}
       - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
@@ -20,24 +17,7 @@ services:
       - convex-data:/data
     restart: unless-stopped
 
-  # Deploy Convex functions (runs once on startup)
-  convex-setup:
-    build:
-      context: .
-      dockerfile: Dockerfile.setup
-    environment:
-      # Self-hosted deployment configuration
-      # ADMIN_KEY must be generated with: docker compose exec convex ./generate_admin_key.sh
-      - CONVEX_SELF_HOSTED_URL=http://convex:3210
-      - CONVEX_SELF_HOSTED_ADMIN_KEY=${ADMIN_KEY}
-      # App environment variables for Convex functions
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - SITE_URL=${SITE_URL}
-    depends_on:
-      - convex
-    restart: on-failure
-
-  # Frontend (React app served by Nginx)
+  # Frontend (React app served by Nginx) - also deploys Convex functions on startup
   app:
     build:
       context: .
@@ -47,9 +27,13 @@ services:
         - VITE_CONVEX_SITE_URL=${SITE_URL}
     ports:
       - "80:80"
+    environment:
+      - CONVEX_SELF_HOSTED_URL=http://convex:3210
+      - CONVEX_SELF_HOSTED_ADMIN_KEY=${ADMIN_KEY}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - SITE_URL=${SITE_URL}
     depends_on:
-      convex-setup:
-        condition: service_completed_successfully
+      - convex
     restart: unless-stopped
 
   # Admin Dashboard (optional)

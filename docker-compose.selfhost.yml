@@ -15,12 +15,6 @@ services:
     volumes:
       - convex-data:/data
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "cat < /dev/tcp/localhost/3210 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
   # Deploy Convex functions (runs once on startup)
   convex-setup:
@@ -33,8 +27,8 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - SITE_URL=${SITE_URL}
     depends_on:
-      convex:
-        condition: service_healthy
+      - convex
+    restart: on-failure
 
   # Frontend (React app served by Nginx)
   app:

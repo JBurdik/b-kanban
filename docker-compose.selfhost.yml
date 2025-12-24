@@ -32,6 +32,8 @@ services:
       - CONVEX_SELF_HOSTED_ADMIN_KEY=${ADMIN_KEY}
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - SITE_URL=${SITE_URL}
+      - CONVEX_URL=${CONVEX_URL}
+      - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
     depends_on:
       - convex
     restart: unless-stopped

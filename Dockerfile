@@ -27,7 +27,7 @@ ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
 ENV VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL
 
 # Build the app
-RUN pnpm --filter @b-kanban/app build
+RUN pnpm --filter @bproductive/app build
 
 # Production stage - serve with nginx
 FROM nginx:alpine

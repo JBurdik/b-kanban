@@ -17,6 +17,8 @@ const trustedOrigins = [
   "http://localhost:5173",
   "http://localhost:80",
   "http://localhost",
+  "https://bproductive.burdych.net",
+  "https://api-kanban.burdych.net",
   siteUrl,
   // Add any additional origins from TRUSTED_ORIGINS env var (comma-separated)
   ...(process.env.TRUSTED_ORIGINS?.split(",").map((o) => o.trim()) || []),

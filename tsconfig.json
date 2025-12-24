@@ -15,10 +15,11 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "@/*": ["./src/*"],
       "convex/*": ["./convex/*"],
     },
   },
-  "include": ["src"],
+  "include": ["src", "convex"],
 }

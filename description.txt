@@ -1,0 +1,7 @@
+bProductive je moderni webova aplikace pro spravu projektu a uloh ve stylu Kanban tabule. Aplikace umoznuje vytvaret nastenkove tabule s pohyblivymi sloupci a kartami, ktere lze jednoduse pretahovat mezi stavy pomoci drag-and-drop rozhrani.
+
+Mezi hlavni funkce patri sprava vice projektu s vlastnimi tabulemi, prirazovani uloh clenum tymu, prioritizace karet, sledovani stavu uloh a prikladani souboru ke kartam. Aplikace podporuje bohaty textovy editor s moznosti formatovani, vkladani seznamu uloh a zminovani ostatnich uzivatelu. System notifikaci informuje uzivatele o zmenach na kartach, ke kterym jsou prirazeni nebo kde byli zmineni.
+
+Projekt je postaven na modernich technologiich. Frontend vyuziva React 19 s TanStack Routerem pro smerovani a Tailwind CSS pro stylizaci. Backend bezi na platforme Convex, ktera poskytuje serverless funkce a realtime databazi. Autentizace je resena pomoci knihovny Better Auth s podporou registrace a prihlaseni pres email a heslo.
+
+Aplikace je pripravena pro self-hosting pomoci Docker kontejneru a podporuje nasazeni na vlastni server vcetne self-hosted Convex backendu.

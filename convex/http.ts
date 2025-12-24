@@ -8,6 +8,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
   "http://localhost:3666",
+  "https://bproductive.burdych.net",
+  "https://api-kanban.burdych.net",
   process.env.SITE_URL,
   process.env.CONVEX_URL,
   ...(process.env.TRUSTED_ORIGINS?.split(",").map((o) => o.trim()) || []),

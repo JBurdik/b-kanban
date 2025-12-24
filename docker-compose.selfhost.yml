@@ -16,10 +16,11 @@ services:
       - convex-data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3210/health"]
-      interval: 30s
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3210/health"]
+      interval: 10s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 30s
 
   # Deploy Convex functions (runs once on startup)
   convex-setup:

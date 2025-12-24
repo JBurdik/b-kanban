@@ -7,17 +7,17 @@ RUN corepack enable && corepack prepare pnpm@10.20.0 --activate
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY patches/ ./patches/
-COPY packages/app/package.json ./packages/app/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy source files
-COPY packages/app/ ./packages/app/
+COPY src/ ./src/
+COPY public/ ./public/
 COPY convex/ ./convex/
-COPY tsconfig.json ./
+COPY index.html tsconfig.json vite.config.ts tailwind.config.js postcss.config.js ./
 
 # Build args for Vite
 ARG VITE_CONVEX_URL
@@ -27,13 +27,13 @@ ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
 ENV VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL
 
 # Build the app
-RUN pnpm --filter @bproductive/app build
+RUN pnpm build
 
 # Production stage - serve with nginx
 FROM nginx:alpine
 
 # Copy built assets
-COPY --from=builder /app/packages/app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Nginx config for SPA routing
 RUN cat > /etc/nginx/conf.d/default.conf << 'EOF'

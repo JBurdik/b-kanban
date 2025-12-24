@@ -37,7 +37,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: packages/app/Dockerfile
+      dockerfile: Dockerfile
       args:
         - VITE_CONVEX_URL=http://localhost:3210
         - VITE_CONVEX_SITE_URL=https://kanban.burdych.net

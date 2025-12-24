@@ -1,5 +1,0 @@
-packages:
-  - packages/*
-
-patchedDependencies:
-  '@convex-dev/better-auth@0.10.6': patches/@convex-dev__better-auth@0.10.6.patch

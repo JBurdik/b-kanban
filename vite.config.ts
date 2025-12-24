@@ -8,11 +8,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "convex/_generated": path.resolve(__dirname, "../../convex/_generated"),
+      "convex/_generated": path.resolve(__dirname, "./convex/_generated"),
     },
   },
   server: {
     port: 5173,
-    allowedHosts: true, // Allow all hosts for self-hosting
+    allowedHosts: true,
   },
 });

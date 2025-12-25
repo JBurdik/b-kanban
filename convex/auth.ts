@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
-import { convex } from "@convex-dev/better-auth/plugins";
+import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { DataModel } from "./_generated/dataModel";
 import { components } from "./_generated/api";
 import authConfig from "./auth.config";
@@ -39,16 +39,13 @@ export const createAuth = (
       requireEmailVerification: false,
     },
     trustedOrigins,
-    advanced: {
-      crossSubDomainCookies: {
-        enabled: true,
-        domain: ".burdych.net",
-      },
-      defaultCookieAttributes: {
-        sameSite: "none",
-        secure: true,
-      },
-    },
-    plugins: [convex({ authConfig })],
+    // advanced: {
+    //   crossSubDomainCookies: {
+    //     enabled: true,
+    //     domain: ".burdych.net",
+    //   },
+    //   useSecureCookies: false,
+    // },
+    plugins: [convex({ authConfig }), crossDomain({ siteUrl })],
     logger: { disabled: optionsOnly },
   });

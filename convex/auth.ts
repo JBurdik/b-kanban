@@ -41,12 +41,6 @@ export const createAuth = (
       requireEmailVerification: false,
     },
     trustedOrigins,
-    advanced: {
-      crossSubDomainCookies: {
-        enabled: true,
-        domain: ".burdych.net",
-      },
-    },
     plugins: [convex({ authConfig }), crossDomain({ siteUrl })],
     logger: { disabled: optionsOnly },
   });

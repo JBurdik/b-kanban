@@ -42,6 +42,7 @@ export const createAuth = (
     advanced: {
       crossSubDomainCookies: {
         enabled: true,
+        domain: ".burdych.net",
       },
       defaultCookieAttributes: {
         sameSite: "none",

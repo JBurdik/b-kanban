@@ -5,8 +5,10 @@ import { DataModel } from "./_generated/dataModel";
 import { components } from "./_generated/api";
 import authConfig from "./auth.config";
 
-// Use SITE_URL env var for production, fallback to localhost for development
+// SITE_URL is where the frontend is hosted (for crossDomain plugin)
 const siteUrl = process.env.SITE_URL || "http://localhost:5173";
+// CONVEX_URL is where the Convex HTTP routes are hosted (for baseURL)
+const convexUrl = process.env.CONVEX_URL || "http://localhost:3210";
 // For self-hosted dev, use env var or fallback to development secret
 const authSecret =
   process.env.BETTER_AUTH_SECRET ||
@@ -32,7 +34,7 @@ export const createAuth = (
 ) =>
   betterAuth({
     secret: authSecret,
-    baseURL: siteUrl,
+    baseURL: convexUrl,
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,

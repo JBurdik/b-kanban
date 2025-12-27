@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { KanbanCard } from "./KanbanCard";
 import { Button } from "@/components/ui/Button";
-import type { Card, Column, BoardMember, BoardRole } from "@/lib/types";
+import type { Card, Column } from "@/lib/types";
 
 interface KanbanColumnWithCards extends Column {
   cards: Card[];
@@ -15,23 +18,15 @@ interface KanbanColumnWithCards extends Column {
 interface Props {
   column: KanbanColumnWithCards;
   boardId: Id<"boards">;
-  allColumns?: KanbanColumnWithCards[];
-  members?: BoardMember[];
-  userEmail?: string;
   canEdit?: boolean;
   canManageColumns?: boolean;
-  userRole?: BoardRole;
 }
 
 export function KanbanColumn({
   column,
   boardId,
-  allColumns = [],
-  members = [],
-  userEmail,
   canEdit = true,
   canManageColumns = false,
-  userRole,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(column.name);
@@ -145,15 +140,7 @@ export function KanbanColumn({
           strategy={verticalListSortingStrategy}
         >
           {cards.map((card) => (
-            <KanbanCard
-              key={card._id}
-              card={card}
-              boardId={boardId}
-              columns={allColumns}
-              members={members}
-              userEmail={userEmail}
-              userRole={userRole}
-            />
+            <KanbanCard key={card._id} card={card} boardId={boardId} />
           ))}
         </SortableContext>
 

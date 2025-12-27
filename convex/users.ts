@@ -110,6 +110,98 @@ export const updateProfile = mutation({
 });
 
 /**
+ * Generate upload URL for avatar image
+ */
+export const generateAvatarUploadUrl = mutation({
+  args: { userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Save avatar after upload
+ */
+export const saveAvatar = mutation({
+  args: {
+    userEmail: v.string(),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    // Delete old avatar if exists
+    if (user.image) {
+      try {
+        // Try to parse as storage ID and delete
+        const oldStorageId = user.image as unknown;
+        if (typeof oldStorageId === "string" && oldStorageId.startsWith("kg")) {
+          await ctx.storage.delete(oldStorageId as typeof args.storageId);
+        }
+      } catch {
+        // Ignore errors - old image might be external URL
+      }
+    }
+
+    // Get the URL for the uploaded file
+    const url = await ctx.storage.getUrl(args.storageId);
+    if (!url) throw new Error("Failed to get avatar URL");
+
+    await ctx.db.patch(user._id, {
+      image: url,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true, url };
+  },
+});
+
+/**
+ * Remove custom avatar (revert to generated)
+ */
+export const removeAvatar = mutation({
+  args: { userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    // Delete from storage if exists
+    if (user.image) {
+      try {
+        const storageId = user.image as unknown;
+        if (typeof storageId === "string" && storageId.startsWith("kg")) {
+          await ctx.storage.delete(
+            storageId as Parameters<typeof ctx.storage.delete>[0],
+          );
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+
+    await ctx.db.patch(user._id, {
+      image: undefined,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
  * Delete user account
  */
 export const deleteAccount = mutation({

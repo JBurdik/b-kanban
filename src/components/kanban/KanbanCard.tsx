@@ -1,40 +1,23 @@
-import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "convex/react";
+import { useNavigate } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { CardViewModal } from "./CardViewModal";
 import { Avatar } from "@/components/Avatar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { stripHtml, formatDate } from "@/utils/formatting";
-import type { Card, Column, BoardMember, BoardRole } from "@/lib/types";
+import type { Card } from "@/lib/types";
 import clsx from "clsx";
-
-interface KanbanColumnWithCards extends Column {
-  cards: Card[];
-}
 
 interface Props {
   card: Card;
   boardId?: Id<"boards">;
-  columns?: KanbanColumnWithCards[];
-  members?: BoardMember[];
-  userEmail?: string;
-  userRole?: BoardRole;
   isOverlay?: boolean;
 }
 
-export function KanbanCard({
-  card,
-  boardId,
-  columns = [],
-  members = [],
-  userEmail,
-  userRole,
-  isOverlay,
-}: Props) {
-  const [showModal, setShowModal] = useState(false);
+export function KanbanCard({ card, boardId, isOverlay }: Props) {
+  const navigate = useNavigate();
 
   const {
     attributes,
@@ -67,17 +50,27 @@ export function KanbanCard({
         {...attributes}
         {...listeners}
         tabIndex={0}
-        onClick={() => !isDragging && setShowModal(true)}
+        onClick={() => {
+          if (!isDragging && boardId) {
+            navigate({
+              to: "/boards/$boardId/cards/$cardSlug",
+              params: { boardId, cardSlug: card.slug },
+            });
+          }
+        }}
         onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && !isDragging) {
+          if ((e.key === "Enter" || e.key === " ") && !isDragging && boardId) {
             e.preventDefault();
-            setShowModal(true);
+            navigate({
+              to: "/boards/$boardId/cards/$cardSlug",
+              params: { boardId, cardSlug: card.slug },
+            });
           }
         }}
         className={clsx(
           "group bg-dark-bg border border-dark-border rounded-lg p-3 cursor-pointer hover:border-dark-hover transition-colors card-focusable",
           isDragging && "opacity-50",
-          isOverlay && "shadow-xl ring-2 ring-accent"
+          isOverlay && "shadow-xl ring-2 ring-accent",
         )}
       >
         <div className="flex items-start justify-between gap-2">
@@ -128,23 +121,12 @@ export function KanbanCard({
             <Avatar
               name={card.assignee.name}
               id={card.assignee.id}
+              imageUrl={card.assignee.image}
               size="sm"
             />
           )}
         </div>
       </div>
-
-      {showModal && boardId && (
-        <CardViewModal
-          card={card}
-          boardId={boardId}
-          columns={columns}
-          members={members}
-          userEmail={userEmail}
-          userRole={userRole}
-          onClose={() => setShowModal(false)}
-        />
-      )}
     </>
   );
 }

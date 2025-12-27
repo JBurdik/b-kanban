@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -26,10 +29,9 @@ interface Board {
 
 interface Props {
   board: Board;
-  userEmail?: string;
 }
 
-export function KanbanBoard({ board, userEmail }: Props) {
+export function KanbanBoard({ board }: Props) {
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
 
@@ -84,17 +86,15 @@ export function KanbanBoard({ board, userEmail }: Props) {
               key={column._id}
               column={column}
               boardId={board._id}
-              allColumns={columns}
-              members={board.members}
-              userEmail={userEmail}
               canEdit={canDrag}
               canManageColumns={canAddColumn}
-              userRole={userRole}
             />
           ))}
         </SortableContext>
 
-        {canAddColumn && <AddColumnButton onClick={() => setShowAddColumn(true)} />}
+        {canAddColumn && (
+          <AddColumnButton onClick={() => setShowAddColumn(true)} />
+        )}
       </div>
 
       {showAddColumn && (

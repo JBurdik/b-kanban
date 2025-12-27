@@ -3,6 +3,7 @@ import clsx from "clsx";
 interface Props {
   name: string;
   id?: string;
+  imageUrl?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -13,19 +14,20 @@ const sizes = {
   lg: "w-10 h-10",
 };
 
-export function Avatar({ name, id, size = "md", className }: Props) {
-  // Use DiceBear API for avatars
+export function Avatar({ name, id, imageUrl, size = "md", className }: Props) {
+  // Use custom image if provided, otherwise fall back to DiceBear
   const seed = id || name;
-  const avatarUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed)}&backgroundColor=1a1a1a`;
+  const dicebearUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed)}&backgroundColor=1a1a1a`;
+  const avatarUrl = imageUrl ?? dicebearUrl;
 
   return (
     <img
       src={avatarUrl}
       alt={name}
       className={clsx(
-        "rounded-full bg-dark-surface",
+        "rounded-full bg-dark-surface object-cover",
         sizes[size],
-        className
+        className,
       )}
     />
   );

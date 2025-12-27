@@ -4,10 +4,17 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { canEdit as checkCanEdit } from "@/lib/permissions";
-import type { Card, Column, BoardMember, BoardRole, Priority } from "@/lib/types";
+import type {
+  Card,
+  Column,
+  BoardMember,
+  BoardRole,
+  Priority,
+} from "@/lib/types";
 import { CardHeader } from "./CardHeader";
 import { CardContent } from "./CardContent";
 import { CardSidebar } from "./CardSidebar";
+import { CardMobileDetails } from "./CardMobileDetails";
 
 interface CardWithColumn extends Card {
   column: {
@@ -44,11 +51,16 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
   const [content, setContent] = useState(card.content || "");
   const [priority, setPriority] = useState(card.priority);
   const [columnId, setColumnId] = useState(card.columnId);
-  const [assigneeId, setAssigneeId] = useState<Id<"users"> | undefined>(card.assignee?.id);
+  const [assigneeId, setAssigneeId] = useState<Id<"users"> | undefined>(
+    card.assignee?.id,
+  );
   const [effort, setEffort] = useState<number | undefined>(card.effort);
 
   const updateCard = useMutation(api.cards.update);
-  const searchMembers = useQuery(api.members.search, { boardId: board._id, query: "" });
+  const searchMembers = useQuery(api.members.search, {
+    boardId: board._id,
+    query: "",
+  });
 
   const canEdit = checkCanEdit(board.userRole);
   const columns = board.columns || [];
@@ -68,7 +80,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
         currentUserEmail: userEmail,
       });
     },
-    [card._id, updateCard, userEmail]
+    [card._id, updateCard, userEmail],
   );
 
   const { isSaving } = useAutoSave({
@@ -93,11 +105,11 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
         .filter(
           (m) =>
             m.name.toLowerCase().includes(queryLower) ||
-            m.email.toLowerCase().includes(queryLower)
+            m.email.toLowerCase().includes(queryLower),
         )
         .slice(0, 5);
     },
-    [searchMembers]
+    [searchMembers],
   );
 
   return (
@@ -108,6 +120,23 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
         cardSlug={card.slug}
         priority={card.priority}
         isSaving={isSaving}
+      />
+
+      {/* Mobile details section */}
+      <CardMobileDetails
+        columnId={columnId}
+        priority={priority}
+        assigneeId={assigneeId}
+        effort={effort}
+        currentColumn={card.column}
+        currentAssignee={card.assignee}
+        columns={columns}
+        members={members}
+        canEdit={canEdit}
+        onColumnChange={setColumnId}
+        onPriorityChange={setPriority}
+        onAssigneeChange={setAssigneeId}
+        onEffortChange={setEffort}
       />
 
       <div className="flex-1 flex overflow-hidden">

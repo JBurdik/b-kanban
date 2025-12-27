@@ -2,6 +2,8 @@ import clsx from "clsx";
 import type { Id } from "convex/_generated/dataModel";
 import { Avatar } from "@/components/Avatar";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
+import { StatusSelect } from "@/components/ui/StatusSelect";
+import { AssigneeSelect } from "@/components/ui/AssigneeSelect";
 import { PRIORITY_CONFIG } from "@/lib/constants";
 import type { Priority, Column, BoardMember } from "@/lib/types";
 import { formatDateLong } from "@/utils/formatting";
@@ -13,7 +15,7 @@ interface Props {
   effort?: number;
   dueDate?: number;
   currentColumn: { name: string };
-  currentAssignee?: { id: Id<"users">; name: string } | null;
+  currentAssignee?: { id: Id<"users">; name: string; image?: string } | null;
   columns: Column[];
   members: BoardMember[];
   canEdit: boolean;
@@ -41,23 +43,19 @@ export function CardSidebar({
 }: Props) {
   return (
     <aside className="hidden lg:block w-80 border-l border-dark-border bg-dark-surface p-6 overflow-y-auto">
-      <h2 className="text-sm font-medium text-dark-muted uppercase tracking-wide mb-4">Details</h2>
+      <h2 className="text-sm font-medium text-dark-muted uppercase tracking-wide mb-4">
+        Details
+      </h2>
 
       {/* Status */}
       <div className="mb-4">
         <label className="block text-xs text-dark-muted mb-1">Status</label>
         {canEdit ? (
-          <select
+          <StatusSelect
             value={columnId}
-            onChange={(e) => onColumnChange(e.target.value as Id<"columns">)}
-            className="input w-full text-sm"
-          >
-            {columns.map((col) => (
-              <option key={col._id} value={col._id}>
-                {col.name}
-              </option>
-            ))}
-          </select>
+            onChange={onColumnChange}
+            columns={columns}
+          />
         ) : (
           <p className="text-sm font-medium">{currentColumn.name}</p>
         )}
@@ -74,7 +72,7 @@ export function CardSidebar({
               "inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded border capitalize",
               PRIORITY_CONFIG[priority].bg,
               PRIORITY_CONFIG[priority].text,
-              PRIORITY_CONFIG[priority].border
+              PRIORITY_CONFIG[priority].border,
             )}
           >
             {priority}
@@ -86,26 +84,21 @@ export function CardSidebar({
       <div className="mb-4">
         <label className="block text-xs text-dark-muted mb-1">Assignee</label>
         {canEdit ? (
-          <select
-            value={assigneeId || ""}
-            onChange={(e) => onAssigneeChange(e.target.value ? (e.target.value as Id<"users">) : undefined)}
-            className="input w-full text-sm"
-          >
-            <option value="">Unassigned</option>
-            {members.map(
-              (member) =>
-                member.user && (
-                  <option key={member.userId} value={member.userId}>
-                    {member.user.name}
-                  </option>
-                )
-            )}
-          </select>
+          <AssigneeSelect
+            value={assigneeId}
+            onChange={onAssigneeChange}
+            members={members}
+          />
         ) : (
           <div className="flex items-center gap-2">
             {currentAssignee ? (
               <>
-                <Avatar name={currentAssignee.name} id={currentAssignee.id} size="sm" />
+                <Avatar
+                  name={currentAssignee.name}
+                  id={currentAssignee.id}
+                  imageUrl={currentAssignee.image}
+                  size="sm"
+                />
                 <span className="text-sm">{currentAssignee.name}</span>
               </>
             ) : (
@@ -120,7 +113,12 @@ export function CardSidebar({
         <div className="mb-4">
           <label className="block text-xs text-dark-muted mb-1">Due Date</label>
           <div className="flex items-center gap-2 text-sm">
-            <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-4 h-4 text-dark-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -135,7 +133,9 @@ export function CardSidebar({
 
       {/* Time Effort */}
       <div className="mb-4">
-        <label className="block text-xs text-dark-muted mb-1">Time Effort</label>
+        <label className="block text-xs text-dark-muted mb-1">
+          Time Effort
+        </label>
         {canEdit ? (
           <div className="flex items-center gap-2">
             <input
@@ -143,7 +143,11 @@ export function CardSidebar({
               min="0"
               step="0.5"
               value={effort ?? ""}
-              onChange={(e) => onEffortChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+              onChange={(e) =>
+                onEffortChange(
+                  e.target.value ? parseFloat(e.target.value) : undefined,
+                )
+              }
               className="input w-20 text-sm"
               placeholder="0"
             />
@@ -151,7 +155,12 @@ export function CardSidebar({
           </div>
         ) : (
           <div className="flex items-center gap-2 text-sm">
-            <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-4 h-4 text-dark-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

@@ -7,6 +7,8 @@ import { AssigneeSelect } from "@/components/ui/AssigneeSelect";
 import { PRIORITY_CONFIG } from "@/lib/constants";
 import type { Priority, Column, BoardMember } from "@/lib/types";
 import { formatDateLong } from "@/utils/formatting";
+import { useActiveTimer } from "@/hooks/useActiveTimer";
+import { formatTimerDisplay } from "@/lib/timeUtils";
 
 interface Props {
   columnId: Id<"columns">;
@@ -23,6 +25,10 @@ interface Props {
   onPriorityChange: (priority: Priority) => void;
   onAssigneeChange: (assigneeId: Id<"users"> | undefined) => void;
   onEffortChange: (effort: number | undefined) => void;
+  // Time tracking props
+  cardId?: Id<"cards">;
+  cardTitle?: string;
+  userEmail?: string;
 }
 
 export function CardSidebar({
@@ -40,7 +46,27 @@ export function CardSidebar({
   onPriorityChange,
   onAssigneeChange,
   onEffortChange,
+  cardId,
+  cardTitle,
+  userEmail,
 }: Props) {
+  const {
+    activeTimer,
+    elapsedMs,
+    isRunning,
+    start,
+    stop,
+  } = useActiveTimer(userEmail || "");
+
+  // Check if timer is running for THIS card
+  const isTimerForThisCard = isRunning && activeTimer?.cardId === cardId;
+  const isTimerForOtherCard = isRunning && activeTimer?.cardId !== cardId;
+
+  const handleStartTimer = () => {
+    if (cardId && cardTitle) {
+      start(cardTitle, cardId);
+    }
+  };
   return (
     <aside className="hidden lg:block w-80 border-l border-dark-border bg-dark-surface p-6 overflow-y-auto">
       <h2 className="text-sm font-medium text-dark-muted uppercase tracking-wide mb-4">
@@ -172,6 +198,48 @@ export function CardSidebar({
           </div>
         )}
       </div>
+
+      {/* Time Tracking */}
+      {userEmail && cardId && (
+        <div className="mb-4 pt-4 border-t border-dark-border">
+          <label className="block text-xs text-dark-muted mb-2">
+            Time Tracking
+          </label>
+          {isTimerForThisCard ? (
+            <div className="space-y-2">
+              <div className="text-2xl font-mono font-bold text-accent text-center">
+                {formatTimerDisplay(elapsedMs)}
+              </div>
+              <button
+                onClick={stop}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-accent hover:bg-accent/80 text-white rounded-lg text-sm transition-colors"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="6" width="12" height="12" rx="1" />
+                </svg>
+                Stop Timer
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleStartTimer}
+              disabled={isTimerForOtherCard}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-dark-hover hover:bg-dark-border disabled:opacity-50 disabled:cursor-not-allowed text-dark-text rounded-lg text-sm transition-colors"
+              title={isTimerForOtherCard ? "Stop the current timer first" : "Start tracking time"}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              {isTimerForOtherCard ? "Timer Running" : "Start Timer"}
+            </button>
+          )}
+          {isTimerForOtherCard && (
+            <p className="text-xs text-dark-muted mt-1 text-center">
+              Timer running on another task
+            </p>
+          )}
+        </div>
+      )}
     </aside>
   );
 }

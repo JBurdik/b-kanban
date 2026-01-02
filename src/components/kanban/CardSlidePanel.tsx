@@ -268,6 +268,9 @@ export function CardSlidePanel({
                 onPriorityChange={setPriority}
                 onAssigneeChange={setAssigneeId}
                 onEffortChange={setEffort}
+                cardId={card._id}
+                cardTitle={title}
+                userEmail={userEmail}
               />
             </>
           ) : (

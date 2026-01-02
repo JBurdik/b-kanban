@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
-import { Logo, LogoIcon } from "@/components/ui/Logo";
+import { Logo } from "@/components/ui/Logo";
 import clsx from "clsx";
 
 const APP_VERSION = "1.0.0";
@@ -117,23 +117,23 @@ export function Sidebar({
         {/* Divider */}
         <div className="h-px bg-dark-border mx-3 my-2" />
 
-        {/* Settings Section */}
-        <div className="px-3">
+        {/* Tools Section */}
+        <div className="px-3 mb-4">
           {!isCollapsed && (
             <h3 className="text-xs font-semibold text-dark-muted uppercase tracking-wider mb-2 px-2">
-              Settings
+              Tools
             </h3>
           )}
           <div className="space-y-1">
             <Link
-              to="/profile"
+              to="/time"
               className={clsx(
                 "flex items-center gap-3 px-2 py-2 rounded-lg transition-colors",
-                isActive("/profile")
+                isActive("/time")
                   ? "bg-accent/20 text-accent"
                   : "text-dark-muted hover:bg-dark-hover hover:text-dark-text"
               )}
-              title={isCollapsed ? "Profile Settings" : undefined}
+              title={isCollapsed ? "Time Tracking" : undefined}
             >
               <span className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                 <svg
@@ -146,20 +146,15 @@ export function Sidebar({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </span>
-              {!isCollapsed && <span className="text-sm">Settings</span>}
+              {!isCollapsed && <span className="text-sm">Time Tracking</span>}
             </Link>
           </div>
         </div>
+
       </nav>
 
       {/* App Info Footer */}

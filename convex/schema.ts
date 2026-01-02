@@ -150,4 +150,35 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_read", ["userId", "read"])
     .index("by_card", ["cardId"]),
+
+  // ============================================
+  // Time Tracking Tables
+  // ============================================
+
+  // Time entries - logged time records
+  timeEntries: defineTable({
+    userId: v.id("users"),
+    cardId: v.optional(v.id("cards")),      // Optional link to card
+    boardId: v.optional(v.id("boards")),    // Denormalized for filtering
+    description: v.string(),
+    durationMs: v.number(),                  // Duration in milliseconds
+    date: v.number(),                        // Start of day timestamp
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_date", ["userId", "date"])
+    .index("by_card", ["cardId"])
+    .index("by_user_board", ["userId", "boardId"]),
+
+  // Active timers - persisted timer state (one per user)
+  activeTimers: defineTable({
+    userId: v.id("users"),
+    cardId: v.optional(v.id("cards")),
+    boardId: v.optional(v.id("boards")),
+    description: v.string(),
+    startedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
 });

@@ -18,6 +18,7 @@ import type * as http from "../http.js";
 import type * as lib_rbac from "../lib/rbac.js";
 import type * as members from "../members.js";
 import type * as notifications from "../notifications.js";
+import type * as timeTracking from "../timeTracking.js";
 import type * as users from "../users.js";
 
 import type {
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rbac": typeof lib_rbac;
   members: typeof members;
   notifications: typeof notifications;
+  timeTracking: typeof timeTracking;
   users: typeof users;
 }>;
 

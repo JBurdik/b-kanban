@@ -321,3 +321,88 @@ export const reorder = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Get user's tasks across all boards
+ */
+export const getMyTasks = query({
+  args: {
+    userEmail: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Get user
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) return { tasks: [], stats: { total: 0, myTasks: 0, unassigned: 0, highPriority: 0 } };
+
+    // Get user's board memberships
+    const memberships = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const boardIds = memberships.map((m) => m.boardId);
+
+    // Get all columns from user's boards
+    const allColumns = [];
+    for (const boardId of boardIds) {
+      const columns = await ctx.db
+        .query("columns")
+        .withIndex("by_board", (q) => q.eq("boardId", boardId))
+        .collect();
+      allColumns.push(...columns);
+    }
+
+    // Get all cards from those columns
+    const allCards = [];
+    for (const column of allColumns) {
+      const cards = await ctx.db
+        .query("cards")
+        .withIndex("by_column", (q) => q.eq("columnId", column._id))
+        .collect();
+      allCards.push(...cards.map((c) => ({ ...c, column })));
+    }
+
+    // Calculate stats
+    const myTasks = allCards.filter((c) => c.assigneeId === user._id);
+    const unassigned = allCards.filter((c) => !c.assigneeId);
+    const highPriority = allCards.filter((c) => c.priority === "high");
+
+    // Get recent tasks assigned to user (sorted by updated)
+    const recentTasks = myTasks
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      .slice(0, args.limit || 5);
+
+    // Enhance with board info
+    const tasksWithInfo = await Promise.all(
+      recentTasks.map(async (card) => {
+        const board = await ctx.db.get(card.column.boardId);
+        return {
+          _id: card._id,
+          slug: card.slug,
+          title: card.title,
+          priority: card.priority,
+          dueDate: card.dueDate,
+          updatedAt: card.updatedAt,
+          columnName: card.column.name,
+          boardId: card.column.boardId,
+          boardName: board?.name || "Unknown",
+        };
+      })
+    );
+
+    return {
+      tasks: tasksWithInfo,
+      stats: {
+        total: allCards.length,
+        myTasks: myTasks.length,
+        unassigned: unassigned.length,
+        highPriority: highPriority.length,
+      },
+    };
+  },
+});

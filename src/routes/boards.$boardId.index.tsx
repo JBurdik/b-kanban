@@ -6,9 +6,12 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import type { Card } from "@/lib/types";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { TableView } from "@/components/kanban/TableView";
 import { BoardMembers } from "@/components/BoardMembers";
 import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
 import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
+
+type ViewMode = "board" | "table";
 
 export const Route = createFileRoute("/boards/$boardId/")({
   component: BoardPage,
@@ -19,6 +22,7 @@ function BoardPage() {
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const [showMembers, setShowMembers] = useState(false);
   const [filter, setFilter] = useState<FilterOption>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editMode, setEditMode] = useState(false);
 
@@ -181,6 +185,56 @@ function BoardPage() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* View toggle */}
+          <div className="flex items-center bg-dark-bg rounded-lg p-0.5 border border-dark-border">
+            <button
+              onClick={() => setViewMode("board")}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                viewMode === "board"
+                  ? "bg-dark-surface text-dark-text"
+                  : "text-dark-muted hover:text-dark-text"
+              }`}
+              title="Board view"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                viewMode === "table"
+                  ? "bg-dark-surface text-dark-text"
+                  : "text-dark-muted hover:text-dark-text"
+              }`}
+              title="Table view"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+            </button>
+          </div>
+
           {/* Filter bar */}
           <FilterBar
             currentFilter={filter}
@@ -211,15 +265,25 @@ function BoardPage() {
         </div>
       </div>
 
-      {/* Kanban board */}
+      {/* Board content */}
       <div className="flex-1 overflow-hidden">
-        <KanbanBoard
-          board={board}
-          filter={filter}
-          currentUserId={currentUser?.id}
-          onCardClick={handleCardClick}
-          onCardDoubleClick={handleCardDoubleClick}
-        />
+        {viewMode === "board" ? (
+          <KanbanBoard
+            board={board}
+            filter={filter}
+            currentUserId={currentUser?.id}
+            onCardClick={handleCardClick}
+            onCardDoubleClick={handleCardDoubleClick}
+          />
+        ) : (
+          <TableView
+            board={board}
+            filter={filter}
+            currentUserId={currentUser?.id}
+            onCardClick={handleCardClick}
+            onCardDoubleClick={handleCardDoubleClick}
+          />
+        )}
       </div>
 
       {/* Members modal */}

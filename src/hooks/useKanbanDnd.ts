@@ -33,14 +33,17 @@ interface KanbanColumn extends Column {
 interface UseKanbanDndOptions {
   initialColumns: KanbanColumn[];
   canDrag: boolean;
+  canReorderColumns?: boolean;
 }
 
-export function useKanbanDnd({ initialColumns, canDrag }: UseKanbanDndOptions) {
+export function useKanbanDnd({ initialColumns, canDrag, canReorderColumns = false }: UseKanbanDndOptions) {
   const [activeCard, setActiveCard] = useState<Card | null>(null);
+  const [activeColumn, setActiveColumn] = useState<KanbanColumn | null>(null);
   const [columns, setColumns] = useState(initialColumns);
   const columnsRef = useRef(columns);
 
   const reorderCards = useMutation(api.cards.reorder);
+  const reorderColumns = useMutation(api.columns.reorder);
 
   // Sync columns when data changes
   useEffect(() => {
@@ -63,13 +66,22 @@ export function useKanbanDnd({ initialColumns, canDrag }: UseKanbanDndOptions) {
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       const { active } = event;
-      const activeColumn = columns.find((col) =>
+
+      // Check if dragging a column
+      const draggedColumn = columns.find((col) => col._id === active.id);
+      if (draggedColumn && canReorderColumns) {
+        setActiveColumn(draggedColumn);
+        return;
+      }
+
+      // Otherwise, check if dragging a card
+      const activeCol = columns.find((col) =>
         col.cards?.some((card) => card._id === active.id)
       );
-      const card = activeColumn?.cards?.find((c) => c._id === active.id);
+      const card = activeCol?.cards?.find((c) => c._id === active.id);
       if (card) setActiveCard(card);
     },
-    [columns]
+    [columns, canReorderColumns]
   );
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
@@ -79,8 +91,24 @@ export function useKanbanDnd({ initialColumns, canDrag }: UseKanbanDndOptions) {
     const activeId = active.id as string;
     const overId = over.id as string;
 
+    // If dragging a column, handle column reordering
+    if (activeColumn) {
+      setColumns((cols) => {
+        const oldIndex = cols.findIndex((col) => col._id === activeId);
+        const newIndex = cols.findIndex((col) => col._id === overId);
+
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+          return cols;
+        }
+
+        return arrayMove(cols, oldIndex, newIndex);
+      });
+      return;
+    }
+
+    // Otherwise handle card movement between columns
     setColumns((cols) => {
-      const activeColumn = cols.find((col) =>
+      const activeColumnData = cols.find((col) =>
         col.cards?.some((card) => card._id === activeId)
       );
       const overColumn = cols.find(
@@ -88,19 +116,19 @@ export function useKanbanDnd({ initialColumns, canDrag }: UseKanbanDndOptions) {
           col._id === overId || col.cards?.some((card) => card._id === overId)
       );
 
-      if (!activeColumn || !overColumn || activeColumn._id === overColumn._id) {
+      if (!activeColumnData || !overColumn || activeColumnData._id === overColumn._id) {
         return cols;
       }
 
       return cols.map((col) => {
-        if (col._id === activeColumn._id) {
+        if (col._id === activeColumnData._id) {
           return {
             ...col,
             cards: col.cards?.filter((c) => c._id !== activeId),
           };
         }
         if (col._id === overColumn._id) {
-          const activeCard = activeColumn.cards?.find((c) => c._id === activeId);
+          const activeCard = activeColumnData.cards?.find((c) => c._id === activeId);
           if (!activeCard) return col;
 
           const overIndex = col.cards?.findIndex((c) => c._id === overId) ?? -1;
@@ -120,42 +148,55 @@ export function useKanbanDnd({ initialColumns, canDrag }: UseKanbanDndOptions) {
         return col;
       });
     });
-  }, []);
+  }, [activeColumn]);
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
+      const wasDraggingColumn = !!activeColumn;
       setActiveCard(null);
+      setActiveColumn(null);
 
       if (!over) return;
 
       const activeId = active.id as string;
       const overId = over.id as string;
 
-      const activeColumn = columns.find((col) =>
+      // If we were dragging a column, persist column positions
+      if (wasDraggingColumn) {
+        const columnItems = columnsRef.current.map((col, idx) => ({
+          id: col._id as Id<"columns">,
+          position: idx,
+        }));
+        await reorderColumns({ items: columnItems });
+        return;
+      }
+
+      // Otherwise handle card reordering
+      const activeColumnData = columns.find((col) =>
         col.cards?.some((card) => card._id === activeId)
       );
 
-      if (!activeColumn) return;
+      if (!activeColumnData) return;
 
       // Reorder within same column
       if (
         activeId !== overId &&
-        activeColumn.cards?.some((c) => c._id === overId)
+        activeColumnData.cards?.some((c) => c._id === overId)
       ) {
-        const oldIndex = activeColumn.cards.findIndex((c) => c._id === activeId);
-        const newIndex = activeColumn.cards.findIndex((c) => c._id === overId);
+        const oldIndex = activeColumnData.cards.findIndex((c) => c._id === activeId);
+        const newIndex = activeColumnData.cards.findIndex((c) => c._id === overId);
 
-        const newCards = arrayMove(activeColumn.cards, oldIndex, newIndex);
+        const newCards = arrayMove(activeColumnData.cards, oldIndex, newIndex);
 
         setColumns((cols) =>
           cols.map((col) =>
-            col._id === activeColumn._id ? { ...col, cards: newCards } : col
+            col._id === activeColumnData._id ? { ...col, cards: newCards } : col
           )
         );
       }
 
-      // Persist changes using ref to get latest state after handleDragOver updates
+      // Persist card changes using ref to get latest state after handleDragOver updates
       const allCards = columnsRef.current.flatMap((col) =>
         (col.cards || []).map((card, idx) => ({
           id: card._id as Id<"cards">,
@@ -166,12 +207,13 @@ export function useKanbanDnd({ initialColumns, canDrag }: UseKanbanDndOptions) {
 
       await reorderCards({ items: allCards });
     },
-    [columns, reorderCards]
+    [columns, activeColumn, reorderCards, reorderColumns]
   );
 
   return {
     columns,
     activeCard,
+    activeColumn,
     sensors,
     collisionDetection: customCollisionDetection,
     handleDragStart,

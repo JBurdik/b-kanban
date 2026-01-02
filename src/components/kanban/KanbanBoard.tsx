@@ -75,6 +75,7 @@ export function KanbanBoard({
   const {
     columns,
     activeCard,
+    activeColumn,
     sensors,
     collisionDetection,
     handleDragStart,
@@ -83,6 +84,7 @@ export function KanbanBoard({
   } = useKanbanDnd({
     initialColumns: filteredColumns,
     canDrag,
+    canReorderColumns: canAddColumn,
   });
 
   const handleCreateColumn = async (name: string) => {
@@ -119,6 +121,7 @@ export function KanbanBoard({
               boardId={board._id}
               canEdit={canDrag}
               canManageColumns={canAddColumn}
+              isDraggingColumn={!!activeColumn}
               onCardClick={onCardClick}
               onCardDoubleClick={onCardDoubleClick}
             />
@@ -140,6 +143,35 @@ export function KanbanBoard({
 
       <DragOverlay>
         {activeCard && <KanbanCard card={activeCard} isOverlay />}
+        {activeColumn && (
+          <div className="flex-shrink-0 w-72 sm:w-80 lg:w-72 xl:w-80 bg-dark-surface rounded-lg shadow-2xl opacity-90 max-h-[400px] overflow-hidden">
+            <div className="flex items-center justify-between p-3 border-b border-dark-border">
+              <div className="flex items-center gap-1">
+                <div className="p-1 text-dark-muted">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+                  </svg>
+                </div>
+                <h3 className="font-medium text-sm">
+                  {activeColumn.name}
+                  <span className="ml-2 text-dark-muted">({activeColumn.cards?.length || 0})</span>
+                </h3>
+              </div>
+            </div>
+            <div className="p-2 space-y-2">
+              {activeColumn.cards?.slice(0, 3).map((card) => (
+                <div key={card._id} className="p-2 bg-dark-bg rounded-lg text-sm text-dark-text truncate">
+                  {card.title}
+                </div>
+              ))}
+              {(activeColumn.cards?.length || 0) > 3 && (
+                <div className="text-xs text-dark-muted text-center py-1">
+                  +{activeColumn.cards!.length - 3} more cards
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </DragOverlay>
     </DndContext>
   );

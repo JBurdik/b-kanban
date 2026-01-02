@@ -200,7 +200,7 @@ function BoardPage() {
           <UserDropdown
             userName={userName}
             userEmail={userEmail}
-            userImage={userImage}
+            userImage={userImage ?? undefined}
             userId={userId}
           />
         </div>

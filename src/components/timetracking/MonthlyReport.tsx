@@ -83,7 +83,7 @@ export function MonthlyReport({ userEmail }: MonthlyReportProps) {
             <p className="text-dark-muted text-sm mt-1">
               Total time logged
             </p>
-            {summary.entryCount > 0 && (
+            {(summary.entryCount ?? 0) > 0 && (
               <p className="text-dark-muted text-xs mt-2">
                 {summary.entryCount} {summary.entryCount === 1 ? "entry" : "entries"}
               </p>
@@ -95,7 +95,7 @@ export function MonthlyReport({ userEmail }: MonthlyReportProps) {
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-dark-muted">By Project</h4>
               <div className="space-y-2">
-                {summary.byBoard.map((item, index) => {
+                {summary.byBoard.map((item) => {
                   const percentage = summary.totalMs > 0
                     ? (item.totalMs / summary.totalMs) * 100
                     : 0;

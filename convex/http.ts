@@ -18,10 +18,7 @@ const allowedOrigins = [
 authComponent.registerRoutes(http, createAuth, {
   cors: {
     allowedOrigins,
-    allowCredentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    allowedMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    maxAge: 86400,
   },
 });
 

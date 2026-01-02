@@ -13,7 +13,7 @@ declare module "@tiptap/core" {
   }
 }
 
-const CalloutComponent = ({ node, updateAttributes }: any) => {
+const CalloutComponent = ({ node, updateAttributes: _updateAttributes }: any) => {
   const type = node.attrs.type as CalloutType;
 
   const icons: Record<CalloutType, React.ReactNode> = {

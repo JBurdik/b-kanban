@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Id } from "convex/_generated/dataModel";
-import type { Card, Column, BoardMember, BoardRole, Priority } from "@/lib/types";
+import type { Card, Column, BoardMember, BoardRole } from "@/lib/types";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { Avatar } from "@/components/Avatar";
 import type { FilterOption } from "./FilterBar";
@@ -69,12 +69,6 @@ export function TableView({
       return a.position - b.position;
     });
   }, [cards, board.columns]);
-
-  const priorityOrder: Record<Priority, number> = {
-    high: 0,
-    medium: 1,
-    low: 2,
-  };
 
   return (
     <div className="h-full overflow-auto p-4">

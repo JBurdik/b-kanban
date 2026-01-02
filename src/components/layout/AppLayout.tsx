@@ -4,6 +4,8 @@ import { api } from "convex/_generated/api";
 import { useSession } from "@/lib/auth-client";
 import { Sidebar, MobileSidebar, MobileMenuButton } from "./Sidebar";
 import { useSidebarState } from "@/hooks/useSidebarState";
+import { NotificationBell } from "@/components/NotificationBell";
+import { UserDropdown } from "@/components/UserDropdown";
 import clsx from "clsx";
 
 interface AppLayoutProps {
@@ -34,9 +36,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           isCollapsed={isCollapsed}
           onToggle={toggle}
           userEmail={userEmail}
-          userName={userName}
-          userImage={userImage}
-          userId={userId}
         />
       </div>
 
@@ -45,25 +44,40 @@ export function AppLayout({ children }: AppLayoutProps) {
         isOpen={isMobileOpen}
         onClose={closeMobile}
         userEmail={userEmail}
-        userName={userName}
-        userImage={userImage}
-        userId={userId}
       />
 
       {/* Main Content */}
       <main
         className={clsx(
-          "min-h-screen transition-all duration-300",
+          "min-h-screen transition-all duration-300 flex flex-col",
           // On desktop, add margin for sidebar
           isCollapsed ? "lg:ml-16" : "lg:ml-64"
         )}
       >
-        {/* Mobile Header */}
-        <div className="lg:hidden h-14 border-b border-dark-border flex items-center px-4 sticky top-0 bg-dark-bg z-30">
-          <MobileMenuButton onClick={toggleMobile} />
+        {/* Top Bar */}
+        <div className="h-14 border-b border-dark-border flex items-center justify-between px-4 sticky top-0 bg-dark-bg z-30">
+          {/* Left: Mobile menu button */}
+          <div className="lg:hidden">
+            <MobileMenuButton onClick={toggleMobile} />
+          </div>
+          <div className="hidden lg:block" />
+
+          {/* Right: Notifications and User */}
+          <div className="flex items-center gap-2">
+            <NotificationBell userEmail={userEmail} />
+            <UserDropdown
+              userName={userName}
+              userEmail={userEmail}
+              userImage={userImage}
+              userId={userId}
+            />
+          </div>
         </div>
 
-        {children}
+        {/* Page Content */}
+        <div className="flex-1">
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -2,27 +2,20 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Logo, LogoIcon } from "@/components/ui/Logo";
-import { Avatar } from "@/components/Avatar";
-import { NotificationBell } from "@/components/NotificationBell";
-import { signOut } from "@/lib/auth-client";
 import clsx from "clsx";
+
+const APP_VERSION = "1.0.0";
 
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
   userEmail?: string;
-  userName?: string;
-  userImage?: string;
-  userId?: string;
 }
 
 export function Sidebar({
   isCollapsed,
   onToggle,
   userEmail,
-  userName,
-  userImage,
-  userId,
 }: SidebarProps) {
   const location = useLocation();
   const boards = useQuery(api.boards.list, userEmail ? { userEmail } : "skip");
@@ -39,22 +32,26 @@ export function Sidebar({
       )}
     >
       {/* Header with Logo */}
-      <div className="h-14 flex items-center justify-between px-3 border-b border-dark-border">
-        <Link to="/boards" className="flex items-center gap-2 overflow-hidden">
-          {isCollapsed ? (
-            <LogoIcon size={28} />
-          ) : (
+      <div className={clsx(
+        "h-14 flex items-center border-b border-dark-border",
+        isCollapsed ? "justify-center px-2" : "justify-between px-3"
+      )}>
+        {!isCollapsed && (
+          <Link to="/boards" className="flex items-center gap-2 overflow-hidden">
             <Logo size="sm" showText={true} />
-          )}
-        </Link>
+          </Link>
+        )}
         <button
           onClick={onToggle}
-          className="p-1.5 rounded hover:bg-dark-hover text-dark-muted hover:text-dark-text transition-colors"
+          className={clsx(
+            "p-2 rounded-lg hover:bg-dark-hover text-dark-muted hover:text-dark-text transition-colors",
+            isCollapsed && "mx-auto"
+          )}
           title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <svg
             className={clsx(
-              "w-4 h-4 transition-transform",
+              "w-5 h-5 transition-transform",
               isCollapsed && "rotate-180"
             )}
             fill="none"
@@ -165,50 +162,19 @@ export function Sidebar({
         </div>
       </nav>
 
-      {/* User Section */}
-      <div className="border-t border-dark-border p-3">
-        {/* Notification Bell */}
-        {userEmail && (
-          <div
-            className={clsx(
-              "flex items-center gap-3 mb-3",
-              isCollapsed && "justify-center"
-            )}
-          >
-            <NotificationBell userEmail={userEmail} />
-            {!isCollapsed && (
-              <span className="text-xs text-dark-muted">Notifications</span>
-            )}
+      {/* App Info Footer */}
+      <div className={clsx(
+        "border-t border-dark-border p-3",
+        isCollapsed ? "text-center" : ""
+      )}>
+        {!isCollapsed ? (
+          <div className="text-xs text-dark-muted">
+            <p className="font-medium text-dark-muted/70">bProductive</p>
+            <p>Kanban Board v{APP_VERSION}</p>
           </div>
+        ) : (
+          <p className="text-[10px] text-dark-muted/50">v{APP_VERSION}</p>
         )}
-
-        {/* User Profile */}
-        <div
-          className={clsx(
-            "flex items-center gap-3",
-            isCollapsed && "justify-center"
-          )}
-        >
-          <Avatar
-            name={userName ?? "User"}
-            id={userId}
-            imageUrl={userImage}
-            size="sm"
-          />
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-dark-text truncate">
-                {userName}
-              </p>
-              <button
-                onClick={() => signOut()}
-                className="text-xs text-dark-muted hover:text-accent transition-colors"
-              >
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
       </div>
     </aside>
   );
@@ -219,16 +185,10 @@ export function MobileSidebar({
   isOpen,
   onClose,
   userEmail,
-  userName,
-  userImage,
-  userId,
 }: {
   isOpen: boolean;
   onClose: () => void;
   userEmail?: string;
-  userName?: string;
-  userImage?: string;
-  userId?: string;
 }) {
   if (!isOpen) return null;
 
@@ -246,9 +206,6 @@ export function MobileSidebar({
           isCollapsed={false}
           onToggle={onClose}
           userEmail={userEmail}
-          userName={userName}
-          userImage={userImage}
-          userId={userId}
         />
       </aside>
     </>

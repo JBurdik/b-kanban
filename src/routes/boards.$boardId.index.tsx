@@ -144,7 +144,7 @@ function BoardPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] lg:h-screen flex flex-col">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
       {/* Board header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-dark-border">
         <div className="flex items-center gap-4">

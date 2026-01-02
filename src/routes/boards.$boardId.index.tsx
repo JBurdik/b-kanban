@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
+import { useSession } from "@/lib/auth-client";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import type { Card } from "@/lib/types";
@@ -10,6 +11,8 @@ import { TableView } from "@/components/kanban/TableView";
 import { BoardMembers } from "@/components/BoardMembers";
 import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
 import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
+import { NotificationBell } from "@/components/NotificationBell";
+import { UserDropdown } from "@/components/UserDropdown";
 
 type ViewMode = "board" | "table";
 
@@ -20,6 +23,7 @@ export const Route = createFileRoute("/boards/$boardId/")({
 function BoardPage() {
   const { boardId } = Route.useParams();
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
+  const { data: authSession } = useSession();
   const [showMembers, setShowMembers] = useState(false);
   const [filter, setFilter] = useState<FilterOption>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("board");
@@ -32,11 +36,16 @@ function BoardPage() {
     userEmail,
   });
 
-  // Get current user for filtering
+  // Get current user for filtering and display
   const currentUser = useQuery(
     api.users.getByEmail,
     userEmail ? { email: userEmail } : "skip"
   );
+
+  // User display info
+  const userName = currentUser?.name ?? authSession?.user?.name;
+  const userImage = currentUser?.image ?? authSession?.user?.image;
+  const userId = currentUser?.id ?? authSession?.user?.id;
 
   // Mutation for updating board name
   const updateBoard = useMutation(api.boards.update);
@@ -144,11 +153,12 @@ function BoardPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
-      {/* Board header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-dark-border">
-        <div className="flex items-center gap-4">
-          <Link to="/boards" className="text-dark-muted hover:text-dark-text">
+    <div className="h-screen flex flex-col -mt-14">
+      {/* Top bar with board name - replaces global top bar for this page */}
+      <div className="h-14 flex items-center justify-between px-4 border-b border-dark-border bg-dark-bg sticky top-0 z-30">
+        {/* Left: Back + Board name */}
+        <div className="flex items-center gap-3">
+          <Link to="/boards" className="p-1.5 rounded-lg text-dark-muted hover:text-dark-text hover:bg-dark-hover transition-colors">
             <svg
               className="w-5 h-5"
               fill="none"
@@ -184,19 +194,33 @@ function BoardPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Right: Notifications + User */}
+        <div className="flex items-center gap-2">
+          <NotificationBell userEmail={userEmail} />
+          <UserDropdown
+            userName={userName}
+            userEmail={userEmail}
+            userImage={userImage}
+            userId={userId}
+          />
+        </div>
+      </div>
+
+      {/* Secondary toolbar: View toggle, Filters, Members */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-dark-border bg-dark-surface/50">
+        <div className="flex items-center gap-3">
           {/* View toggle */}
           <div className="flex items-center bg-dark-bg rounded-lg p-1 border border-dark-border">
             <button
               onClick={() => setViewMode("board")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 viewMode === "board"
                   ? "bg-accent text-white shadow-sm"
                   : "text-dark-muted hover:text-dark-text hover:bg-dark-hover"
               }`}
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -212,14 +236,14 @@ function BoardPage() {
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 viewMode === "table"
                   ? "bg-accent text-white shadow-sm"
                   : "text-dark-muted hover:text-dark-text hover:bg-dark-hover"
               }`}
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -241,28 +265,28 @@ function BoardPage() {
             onFilterChange={setFilter}
             taskCounts={taskCounts}
           />
-
-          {/* Members button */}
-          <button
-            onClick={() => setShowMembers(true)}
-            className="flex items-center gap-2 text-dark-muted hover:text-dark-text transition-colors"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-              />
-            </svg>
-            <span className="text-sm">{board.members?.length || 0} members</span>
-          </button>
         </div>
+
+        {/* Members button */}
+        <button
+          onClick={() => setShowMembers(true)}
+          className="flex items-center gap-2 px-3 py-1.5 text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            />
+          </svg>
+          <span className="text-sm">{board.members?.length || 0} members</span>
+        </button>
       </div>
 
       {/* Board content */}

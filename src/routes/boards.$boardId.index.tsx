@@ -62,6 +62,41 @@ function BoardPage() {
     return { all, myTasks, unassigned };
   }, [board?.columns, currentUser?.id]);
 
+  // Card click handlers - must be before early returns
+  const handleCardClick = useCallback((card: Card) => {
+    setSelectedCard(card);
+    setEditMode(false);
+  }, []);
+
+  const handleCardDoubleClick = useCallback((card: Card) => {
+    setSelectedCard(card);
+    setEditMode(true);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setSelectedCard(null);
+    setEditMode(false);
+  }, []);
+
+  // Find the full card data with column info for the slide panel
+  const selectedCardWithColumn = useMemo(() => {
+    if (!selectedCard || !board?.columns) return null;
+
+    for (const column of board.columns) {
+      const card = column.cards.find((c) => c._id === selectedCard._id);
+      if (card) {
+        return {
+          ...card,
+          column: {
+            id: column._id,
+            name: column.name,
+          },
+        };
+      }
+    }
+    return null;
+  }, [selectedCard, board?.columns]);
+
   if (userLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-screen lg:h-screen">
@@ -103,41 +138,6 @@ function BoardPage() {
       name,
     });
   };
-
-  // Card click handlers
-  const handleCardClick = useCallback((card: Card) => {
-    setSelectedCard(card);
-    setEditMode(false);
-  }, []);
-
-  const handleCardDoubleClick = useCallback((card: Card) => {
-    setSelectedCard(card);
-    setEditMode(true);
-  }, []);
-
-  const handleClosePanel = useCallback(() => {
-    setSelectedCard(null);
-    setEditMode(false);
-  }, []);
-
-  // Find the full card data with column info for the slide panel
-  const selectedCardWithColumn = useMemo(() => {
-    if (!selectedCard || !board?.columns) return null;
-
-    for (const column of board.columns) {
-      const card = column.cards.find((c) => c._id === selectedCard._id);
-      if (card) {
-        return {
-          ...card,
-          column: {
-            id: column._id,
-            name: column.name,
-          },
-        };
-      }
-    }
-    return null;
-  }, [selectedCard, board?.columns]);
 
   return (
     <div className="h-[calc(100vh-3.5rem)] lg:h-screen flex flex-col">

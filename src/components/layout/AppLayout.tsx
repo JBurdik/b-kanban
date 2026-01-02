@@ -55,8 +55,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         className={clsx(
           "min-h-screen transition-all duration-300",
           // On desktop, add margin for sidebar
-          "lg:ml-64",
-          isCollapsed && "lg:ml-16"
+          isCollapsed ? "lg:ml-16" : "lg:ml-64"
         )}
       >
         {/* Mobile Header */}

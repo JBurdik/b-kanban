@@ -186,18 +186,17 @@ function BoardPage() {
 
         <div className="flex items-center gap-4">
           {/* View toggle */}
-          <div className="flex items-center bg-dark-bg rounded-lg p-0.5 border border-dark-border">
+          <div className="flex items-center bg-dark-bg rounded-lg p-1 border border-dark-border">
             <button
               onClick={() => setViewMode("board")}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                 viewMode === "board"
-                  ? "bg-dark-surface text-dark-text"
-                  : "text-dark-muted hover:text-dark-text"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-dark-muted hover:text-dark-text hover:bg-dark-hover"
               }`}
-              title="Board view"
             >
               <svg
-                className="w-4 h-4"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -209,18 +208,18 @@ function BoardPage() {
                   d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
                 />
               </svg>
+              <span className="hidden sm:inline">Board</span>
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                 viewMode === "table"
-                  ? "bg-dark-surface text-dark-text"
-                  : "text-dark-muted hover:text-dark-text"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-dark-muted hover:text-dark-text hover:bg-dark-hover"
               }`}
-              title="Table view"
             >
               <svg
-                className="w-4 h-4"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -232,6 +231,7 @@ function BoardPage() {
                   d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                 />
               </svg>
+              <span className="hidden sm:inline">Table</span>
             </button>
           </div>
 

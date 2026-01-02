@@ -68,7 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <UserDropdown
               userName={userName}
               userEmail={userEmail}
-              userImage={userImage}
+              userImage={userImage ?? undefined}
               userId={userId}
             />
           </div>

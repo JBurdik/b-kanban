@@ -20,6 +20,8 @@ interface Props {
   boardId: Id<"boards">;
   canEdit?: boolean;
   canManageColumns?: boolean;
+  onCardClick?: (card: Card) => void;
+  onCardDoubleClick?: (card: Card) => void;
 }
 
 export function KanbanColumn({
@@ -27,6 +29,8 @@ export function KanbanColumn({
   boardId,
   canEdit = true,
   canManageColumns = false,
+  onCardClick,
+  onCardDoubleClick,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(column.name);
@@ -140,7 +144,13 @@ export function KanbanColumn({
           strategy={verticalListSortingStrategy}
         >
           {cards.map((card) => (
-            <KanbanCard key={card._id} card={card} boardId={boardId} />
+            <KanbanCard
+              key={card._id}
+              card={card}
+              boardId={boardId}
+              onCardClick={onCardClick}
+              onCardDoubleClick={onCardDoubleClick}
+            />
           ))}
         </SortableContext>
 

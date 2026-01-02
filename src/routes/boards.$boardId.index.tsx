@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import type { Card } from "@/lib/types";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { BoardMembers } from "@/components/BoardMembers";
+import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
+import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
 
 export const Route = createFileRoute("/boards/$boardId/")({
   component: BoardPage,
@@ -15,6 +18,9 @@ function BoardPage() {
   const { boardId } = Route.useParams();
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const [showMembers, setShowMembers] = useState(false);
+  const [filter, setFilter] = useState<FilterOption>("all");
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   // Real-time subscription to board data
   const board = useQuery(api.boards.get, {
@@ -22,14 +28,43 @@ function BoardPage() {
     userEmail,
   });
 
+  // Get current user for filtering
+  const currentUser = useQuery(
+    api.users.getByEmail,
+    userEmail ? { email: userEmail } : "skip"
+  );
+
   // Mutation for updating board name
   const updateBoard = useMutation(api.boards.update);
 
   const isLoading = board === undefined;
 
+  // Calculate task counts for filter bar
+  const taskCounts = useMemo(() => {
+    if (!board?.columns) return { all: 0, myTasks: 0, unassigned: 0 };
+
+    let all = 0;
+    let myTasks = 0;
+    let unassigned = 0;
+
+    board.columns.forEach((column) => {
+      column.cards.forEach((card) => {
+        all++;
+        if (card.assignee?.id === currentUser?.id) {
+          myTasks++;
+        }
+        if (!card.assignee) {
+          unassigned++;
+        }
+      });
+    });
+
+    return { all, myTasks, unassigned };
+  }, [board?.columns, currentUser?.id]);
+
   if (userLoading || isLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
+      <div className="flex items-center justify-center h-screen lg:h-screen">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
       </div>
     );
@@ -41,7 +76,7 @@ function BoardPage() {
 
   if (!board) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-3.5rem)]">
+      <div className="flex flex-col items-center justify-center h-screen">
         <p className="text-dark-muted mb-4">Board not found</p>
         <Link to="/boards" className="btn-primary">
           Back to boards
@@ -69,8 +104,43 @@ function BoardPage() {
     });
   };
 
+  // Card click handlers
+  const handleCardClick = useCallback((card: Card) => {
+    setSelectedCard(card);
+    setEditMode(false);
+  }, []);
+
+  const handleCardDoubleClick = useCallback((card: Card) => {
+    setSelectedCard(card);
+    setEditMode(true);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setSelectedCard(null);
+    setEditMode(false);
+  }, []);
+
+  // Find the full card data with column info for the slide panel
+  const selectedCardWithColumn = useMemo(() => {
+    if (!selectedCard || !board?.columns) return null;
+
+    for (const column of board.columns) {
+      const card = column.cards.find((c) => c._id === selectedCard._id);
+      if (card) {
+        return {
+          ...card,
+          column: {
+            id: column._id,
+            name: column.name,
+          },
+        };
+      }
+    }
+    return null;
+  }, [selectedCard, board?.columns]);
+
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
+    <div className="h-[calc(100vh-3.5rem)] lg:h-screen flex flex-col">
       {/* Board header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-dark-border">
         <div className="flex items-center gap-4">
@@ -110,31 +180,46 @@ function BoardPage() {
           )}
         </div>
 
-        {/* Members button */}
-        <button
-          onClick={() => setShowMembers(true)}
-          className="flex items-center gap-2 text-dark-muted hover:text-dark-text transition-colors"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-4">
+          {/* Filter bar */}
+          <FilterBar
+            currentFilter={filter}
+            onFilterChange={setFilter}
+            taskCounts={taskCounts}
+          />
+
+          {/* Members button */}
+          <button
+            onClick={() => setShowMembers(true)}
+            className="flex items-center gap-2 text-dark-muted hover:text-dark-text transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-            />
-          </svg>
-          <span className="text-sm">{board.members?.length || 0} members</span>
-        </button>
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+              />
+            </svg>
+            <span className="text-sm">{board.members?.length || 0} members</span>
+          </button>
+        </div>
       </div>
 
       {/* Kanban board */}
       <div className="flex-1 overflow-hidden">
-        <KanbanBoard board={board} />
+        <KanbanBoard
+          board={board}
+          filter={filter}
+          currentUserId={currentUser?.id}
+          onCardClick={handleCardClick}
+          onCardDoubleClick={handleCardDoubleClick}
+        />
       </div>
 
       {/* Members modal */}
@@ -144,6 +229,17 @@ function BoardPage() {
           members={membersForModal}
           userRole={board.userRole}
           onClose={() => setShowMembers(false)}
+        />
+      )}
+
+      {/* Card slide panel */}
+      {selectedCardWithColumn && (
+        <CardSlidePanel
+          card={selectedCardWithColumn}
+          board={board}
+          userEmail={userEmail}
+          editMode={editMode}
+          onClose={handleClosePanel}
         />
       )}
     </div>

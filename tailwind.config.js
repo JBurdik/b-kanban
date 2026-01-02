@@ -24,11 +24,21 @@ export default {
       },
       animation: {
         "slide-in-right": "slide-in-right 0.3s ease-out",
+        "slide-out-right": "slide-out-right 0.2s ease-in",
+        "slide-in-left": "slide-in-left 0.3s ease-out",
         "fade-in": "fade-in 0.2s ease-out",
       },
       keyframes: {
         "slide-in-right": {
           from: { transform: "translateX(100%)", opacity: "0" },
+          to: { transform: "translateX(0)", opacity: "1" },
+        },
+        "slide-out-right": {
+          from: { transform: "translateX(0)", opacity: "1" },
+          to: { transform: "translateX(100%)", opacity: "0" },
+        },
+        "slide-in-left": {
+          from: { transform: "translateX(-100%)", opacity: "0" },
           to: { transform: "translateX(0)", opacity: "1" },
         },
         "fade-in": {

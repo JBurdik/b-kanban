@@ -21,6 +21,7 @@ const trustedOrigins = [
   "http://localhost",
   "https://bproductive.burdych.net",
   "https://api-kanban.burdych.net",
+  "https://kanban-api.burdych.net",
   "https://kanban.burdych.net",
   siteUrl,
   // Add any additional origins from TRUSTED_ORIGINS env var (comma-separated)

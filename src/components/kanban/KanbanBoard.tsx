@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -14,6 +14,7 @@ import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
 import { AddColumnModal } from "./AddColumnModal";
 import { AddColumnButton } from "./AddColumnButton";
+import type { FilterOption } from "./FilterBar";
 
 interface KanbanColumnWithCards extends Column {
   cards: Card[];
@@ -29,9 +30,19 @@ interface Board {
 
 interface Props {
   board: Board;
+  filter?: FilterOption;
+  currentUserId?: string;
+  onCardClick?: (card: Card) => void;
+  onCardDoubleClick?: (card: Card) => void;
 }
 
-export function KanbanBoard({ board }: Props) {
+export function KanbanBoard({
+  board,
+  filter = "all",
+  currentUserId,
+  onCardClick,
+  onCardDoubleClick,
+}: Props) {
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
 
@@ -40,6 +51,26 @@ export function KanbanBoard({ board }: Props) {
   const canAddColumn = canManageColumns(userRole);
 
   const createColumn = useMutation(api.columns.create);
+
+  // Apply filter to cards while keeping column structure
+  const filteredColumns = useMemo(() => {
+    if (filter === "all" || !currentUserId) {
+      return board.columns || [];
+    }
+
+    return (board.columns || []).map((column) => ({
+      ...column,
+      cards: column.cards.filter((card) => {
+        if (filter === "my-tasks") {
+          return card.assignee?.id === currentUserId;
+        }
+        if (filter === "unassigned") {
+          return !card.assignee;
+        }
+        return true;
+      }),
+    }));
+  }, [board.columns, filter, currentUserId]);
 
   const {
     columns,
@@ -50,7 +81,7 @@ export function KanbanBoard({ board }: Props) {
     handleDragOver,
     handleDragEnd,
   } = useKanbanDnd({
-    initialColumns: board.columns || [],
+    initialColumns: filteredColumns,
     canDrag,
   });
 
@@ -88,6 +119,8 @@ export function KanbanBoard({ board }: Props) {
               boardId={board._id}
               canEdit={canDrag}
               canManageColumns={canAddColumn}
+              onCardClick={onCardClick}
+              onCardDoubleClick={onCardDoubleClick}
             />
           ))}
         </SortableContext>

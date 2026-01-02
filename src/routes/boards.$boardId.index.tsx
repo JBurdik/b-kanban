@@ -1,11 +1,20 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
+import { useSession } from "@/lib/auth-client";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import type { Card } from "@/lib/types";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { TableView } from "@/components/kanban/TableView";
 import { BoardMembers } from "@/components/BoardMembers";
+import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
+import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
+import { NotificationBell } from "@/components/NotificationBell";
+import { UserDropdown } from "@/components/UserDropdown";
+
+type ViewMode = "board" | "table";
 
 export const Route = createFileRoute("/boards/$boardId/")({
   component: BoardPage,
@@ -14,7 +23,12 @@ export const Route = createFileRoute("/boards/$boardId/")({
 function BoardPage() {
   const { boardId } = Route.useParams();
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
+  const { data: authSession } = useSession();
   const [showMembers, setShowMembers] = useState(false);
+  const [filter, setFilter] = useState<FilterOption>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("board");
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   // Real-time subscription to board data
   const board = useQuery(api.boards.get, {
@@ -22,14 +36,83 @@ function BoardPage() {
     userEmail,
   });
 
+  // Get current user for filtering and display
+  const currentUser = useQuery(
+    api.users.getByEmail,
+    userEmail ? { email: userEmail } : "skip"
+  );
+
+  // User display info
+  const userName = currentUser?.name ?? authSession?.user?.name;
+  const userImage = currentUser?.image ?? authSession?.user?.image;
+  const userId = currentUser?.id ?? authSession?.user?.id;
+
   // Mutation for updating board name
   const updateBoard = useMutation(api.boards.update);
 
   const isLoading = board === undefined;
 
+  // Calculate task counts for filter bar
+  const taskCounts = useMemo(() => {
+    if (!board?.columns) return { all: 0, myTasks: 0, unassigned: 0 };
+
+    let all = 0;
+    let myTasks = 0;
+    let unassigned = 0;
+
+    board.columns.forEach((column) => {
+      column.cards.forEach((card) => {
+        all++;
+        if (card.assignee?.id === currentUser?.id) {
+          myTasks++;
+        }
+        if (!card.assignee) {
+          unassigned++;
+        }
+      });
+    });
+
+    return { all, myTasks, unassigned };
+  }, [board?.columns, currentUser?.id]);
+
+  // Card click handlers - must be before early returns
+  const handleCardClick = useCallback((card: Card) => {
+    setSelectedCard(card);
+    setEditMode(false);
+  }, []);
+
+  const handleCardDoubleClick = useCallback((card: Card) => {
+    setSelectedCard(card);
+    setEditMode(true);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setSelectedCard(null);
+    setEditMode(false);
+  }, []);
+
+  // Find the full card data with column info for the slide panel
+  const selectedCardWithColumn = useMemo(() => {
+    if (!selectedCard || !board?.columns) return null;
+
+    for (const column of board.columns) {
+      const card = column.cards.find((c) => c._id === selectedCard._id);
+      if (card) {
+        return {
+          ...card,
+          column: {
+            id: column._id,
+            name: column.name,
+          },
+        };
+      }
+    }
+    return null;
+  }, [selectedCard, board?.columns]);
+
   if (userLoading || isLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
+      <div className="flex items-center justify-center h-screen lg:h-screen">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
       </div>
     );
@@ -41,7 +124,7 @@ function BoardPage() {
 
   if (!board) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-3.5rem)]">
+      <div className="flex flex-col items-center justify-center h-screen">
         <p className="text-dark-muted mb-4">Board not found</p>
         <Link to="/boards" className="btn-primary">
           Back to boards
@@ -70,11 +153,12 @@ function BoardPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
-      {/* Board header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-dark-border">
-        <div className="flex items-center gap-4">
-          <Link to="/boards" className="text-dark-muted hover:text-dark-text">
+    <div className="h-screen flex flex-col -mt-14">
+      {/* Top bar with board name - replaces global top bar for this page */}
+      <div className="h-14 flex items-center justify-between px-4 border-b border-dark-border bg-dark-bg sticky top-0 z-30">
+        {/* Left: Back + Board name */}
+        <div className="flex items-center gap-3">
+          <Link to="/boards" className="p-1.5 rounded-lg text-dark-muted hover:text-dark-text hover:bg-dark-hover transition-colors">
             <svg
               className="w-5 h-5"
               fill="none"
@@ -110,10 +194,83 @@ function BoardPage() {
           )}
         </div>
 
+        {/* Right: Notifications + User */}
+        <div className="flex items-center gap-2">
+          <NotificationBell userEmail={userEmail} />
+          <UserDropdown
+            userName={userName}
+            userEmail={userEmail}
+            userImage={userImage}
+            userId={userId}
+          />
+        </div>
+      </div>
+
+      {/* Secondary toolbar: View toggle, Filters, Members */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-dark-border bg-dark-surface/50">
+        <div className="flex items-center gap-3">
+          {/* View toggle */}
+          <div className="flex items-center bg-dark-bg rounded-lg p-1 border border-dark-border">
+            <button
+              onClick={() => setViewMode("board")}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                viewMode === "board"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-dark-muted hover:text-dark-text hover:bg-dark-hover"
+              }`}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                />
+              </svg>
+              <span className="hidden sm:inline">Board</span>
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                viewMode === "table"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-dark-muted hover:text-dark-text hover:bg-dark-hover"
+              }`}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+              <span className="hidden sm:inline">Table</span>
+            </button>
+          </div>
+
+          {/* Filter bar */}
+          <FilterBar
+            currentFilter={filter}
+            onFilterChange={setFilter}
+            taskCounts={taskCounts}
+          />
+        </div>
+
         {/* Members button */}
         <button
           onClick={() => setShowMembers(true)}
-          className="flex items-center gap-2 text-dark-muted hover:text-dark-text transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
         >
           <svg
             className="w-5 h-5"
@@ -132,9 +289,25 @@ function BoardPage() {
         </button>
       </div>
 
-      {/* Kanban board */}
+      {/* Board content */}
       <div className="flex-1 overflow-hidden">
-        <KanbanBoard board={board} />
+        {viewMode === "board" ? (
+          <KanbanBoard
+            board={board}
+            filter={filter}
+            currentUserId={currentUser?.id}
+            onCardClick={handleCardClick}
+            onCardDoubleClick={handleCardDoubleClick}
+          />
+        ) : (
+          <TableView
+            board={board}
+            filter={filter}
+            currentUserId={currentUser?.id}
+            onCardClick={handleCardClick}
+            onCardDoubleClick={handleCardDoubleClick}
+          />
+        )}
       </div>
 
       {/* Members modal */}
@@ -144,6 +317,17 @@ function BoardPage() {
           members={membersForModal}
           userRole={board.userRole}
           onClose={() => setShowMembers(false)}
+        />
+      )}
+
+      {/* Card slide panel */}
+      {selectedCardWithColumn && (
+        <CardSlidePanel
+          card={selectedCardWithColumn}
+          board={board}
+          userEmail={userEmail}
+          editMode={editMode}
+          onClose={handleClosePanel}
         />
       )}
     </div>

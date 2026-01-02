@@ -3,7 +3,9 @@ import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
+  useSortable,
 } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -20,6 +22,9 @@ interface Props {
   boardId: Id<"boards">;
   canEdit?: boolean;
   canManageColumns?: boolean;
+  isDraggingColumn?: boolean;
+  onCardClick?: (card: Card) => void;
+  onCardDoubleClick?: (card: Card) => void;
 }
 
 export function KanbanColumn({
@@ -27,6 +32,9 @@ export function KanbanColumn({
   boardId,
   canEdit = true,
   canManageColumns = false,
+  isDraggingColumn = false,
+  onCardClick,
+  onCardDoubleClick,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(column.name);
@@ -34,7 +42,31 @@ export function KanbanColumn({
   const [newCardTitle, setNewCardTitle] = useState("");
   const [isCreatingCard, setIsCreatingCard] = useState(false);
 
-  const { setNodeRef, isOver } = useDroppable({ id: column._id });
+  // Sortable for column reordering (admins only)
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: column._id,
+    disabled: !canManageColumns,
+  });
+
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: column._id });
+
+  // Combine refs for both sortable and droppable
+  const setNodeRef = (node: HTMLDivElement | null) => {
+    setSortableRef(node);
+    setDroppableRef(node);
+  };
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   const updateColumn = useMutation(api.columns.update);
   const deleteColumn = useMutation(api.columns.remove);
@@ -73,15 +105,40 @@ export function KanbanColumn({
 
   const cards = column.cards || [];
 
+  // Don't render content while dragging (show placeholder)
+  if (isDragging && !isDraggingColumn) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="flex-shrink-0 w-72 sm:w-80 lg:w-72 xl:w-80 bg-dark-surface/50 rounded-lg border-2 border-dashed border-dark-border min-h-[200px]"
+      />
+    );
+  }
+
   return (
     <div
       ref={setNodeRef}
+      style={style}
       className={`flex-shrink-0 w-72 sm:w-80 lg:w-72 xl:w-80 bg-dark-surface rounded-lg flex flex-col max-h-full ${
-        isOver ? "ring-2 ring-accent" : ""
-      }`}
+        isOver && !isDragging ? "ring-2 ring-accent" : ""
+      } ${isDragging ? "opacity-90 shadow-2xl ring-2 ring-accent" : ""}`}
     >
       {/* Column header */}
       <div className="flex items-center justify-between p-3 border-b border-dark-border">
+        {/* Drag handle for admins */}
+        {canManageColumns && (
+          <button
+            {...attributes}
+            {...listeners}
+            className="p-1 -ml-1 mr-1 text-dark-muted hover:text-dark-text cursor-grab active:cursor-grabbing touch-none"
+            title="Drag to reorder"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+            </svg>
+          </button>
+        )}
         {isEditing && canManageColumns ? (
           <input
             type="text"
@@ -140,7 +197,13 @@ export function KanbanColumn({
           strategy={verticalListSortingStrategy}
         >
           {cards.map((card) => (
-            <KanbanCard key={card._id} card={card} boardId={boardId} />
+            <KanbanCard
+              key={card._id}
+              card={card}
+              boardId={boardId}
+              onCardClick={onCardClick}
+              onCardDoubleClick={onCardDoubleClick}
+            />
           ))}
         </SortableContext>
 

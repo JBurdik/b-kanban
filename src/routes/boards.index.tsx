@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { PriorityBadge } from "@/components/ui/PriorityBadge";
+import type { Priority } from "@/lib/types";
+import { TimeTrackerWidget } from "@/components/timetracking";
 
 export const Route = createFileRoute("/boards/")({
   component: BoardsPage,
@@ -17,13 +20,19 @@ function BoardsPage() {
   // Real-time subscription to boards (skip if not authenticated)
   const boards = useQuery(api.boards.list, userEmail ? { userEmail } : "skip");
 
+  // Get user's tasks across all boards for dashboard
+  const myTasksData = useQuery(
+    api.cards.getMyTasks,
+    userEmail ? { userEmail, limit: 5 } : "skip"
+  );
+
   // Mutations
   const createBoard = useMutation(api.boards.create);
   const deleteBoard = useMutation(api.boards.remove);
 
   if (userLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
+      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] lg:h-screen">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
       </div>
     );
@@ -53,7 +62,7 @@ function BoardsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Your Boards</h1>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
         <button onClick={() => setShowCreate(true)} className="btn-primary">
           + New Board
         </button>
@@ -86,6 +95,123 @@ function BoardsPage() {
           </form>
         </div>
       )}
+
+      {/* Dashboard Section */}
+      {myTasksData && (
+        <div className="mb-8">
+          {/* Stats Cards */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <div className="card">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-accent/10 rounded-lg">
+                  <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-dark-muted text-sm">Total Tasks</p>
+                  <p className="text-2xl font-bold">{myTasksData.stats.total}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-dark-muted text-sm">My Tasks</p>
+                  <p className="text-2xl font-bold">{myTasksData.stats.myTasks}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/10 rounded-lg">
+                  <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-dark-muted text-sm">Unassigned</p>
+                  <p className="text-2xl font-bold">{myTasksData.stats.unassigned}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-500/10 rounded-lg">
+                  <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-dark-muted text-sm">High Priority</p>
+                  <p className="text-2xl font-bold">{myTasksData.stats.highPriority}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Tracker Widget */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Time Today</h3>
+              <Link to="/time" className="text-xs text-accent hover:text-accent/80">
+                View all
+              </Link>
+            </div>
+            <TimeTrackerWidget userEmail={userEmail!} />
+          </div>
+
+          {/* Recent Tasks */}
+          {myTasksData.tasks.length > 0 && (
+            <div className="card">
+              <h3 className="font-semibold mb-4">My Recent Tasks</h3>
+              <div className="space-y-3">
+                {myTasksData.tasks.map((task) => (
+                  <Link
+                    key={task._id}
+                    to="/boards/$boardId"
+                    params={{ boardId: task.boardId }}
+                    className="flex items-center justify-between p-3 rounded-lg bg-dark-bg hover:bg-dark-hover transition-colors group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xs font-mono text-dark-muted shrink-0">
+                        {task.slug}
+                      </span>
+                      <span className="truncate group-hover:text-accent transition-colors">
+                        {task.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs text-dark-muted hidden sm:block">
+                        {task.columnName}
+                      </span>
+                      <PriorityBadge priority={task.priority as Priority} />
+                      {task.dueDate && (
+                        <span className={`text-xs ${
+                          task.dueDate < Date.now() ? 'text-red-400' : 'text-dark-muted'
+                        }`}>
+                          {new Date(task.dueDate).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Boards Section Header */}
+      <h2 className="text-lg font-semibold mb-4">Your Boards</h2>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -167,6 +167,9 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
           onPriorityChange={setPriority}
           onAssigneeChange={setAssigneeId}
           onEffortChange={setEffort}
+          cardId={card._id}
+          cardTitle={title}
+          userEmail={userEmail}
         />
       </div>
     </div>

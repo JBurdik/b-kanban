@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TimeRouteImport } from './routes/time'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
@@ -19,6 +20,11 @@ import { Route as BoardsBoardIdRouteImport } from './routes/boards.$boardId'
 import { Route as BoardsBoardIdIndexRouteImport } from './routes/boards.$boardId.index'
 import { Route as BoardsBoardIdCardsCardSlugRouteImport } from './routes/boards.$boardId.cards.$cardSlug'
 
+const TimeRoute = TimeRouteImport.update({
+  id: '/time',
+  path: '/time',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/time': typeof TimeRoute
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/time': typeof TimeRoute
   '/boards': typeof BoardsIndexRoute
   '/boards/$boardId': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/time': typeof TimeRoute
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/profile'
     | '/register'
+    | '/time'
     | '/boards/$boardId'
     | '/boards/'
     | '/boards/$boardId/'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/profile'
     | '/register'
+    | '/time'
     | '/boards'
     | '/boards/$boardId'
     | '/boards/$boardId/cards/$cardSlug'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/profile'
     | '/register'
+    | '/time'
     | '/boards/$boardId'
     | '/boards/'
     | '/boards/$boardId/'
@@ -138,10 +150,18 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
+  TimeRoute: typeof TimeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/time': {
+      id: '/time'
+      path: '/time'
+      fullPath: '/time'
+      preLoaderRoute: typeof TimeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
+  TimeRoute: TimeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

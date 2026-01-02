@@ -3,7 +3,26 @@ import { authComponent, createAuth } from "./auth";
 
 const http = httpRouter();
 
-// Use simple cors: true for maximum compatibility
-authComponent.registerRoutes(http, createAuth, { cors: true });
+// Build allowed origins from environment + defaults
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:80",
+  "http://localhost",
+  "https://bproductive.burdych.net",
+  "https://kanban.burdych.net",
+  "https://kanban-api.burdych.net",
+  process.env.SITE_URL,
+].filter((origin): origin is string => !!origin);
+
+// Use explicit CORS configuration for cross-domain auth
+authComponent.registerRoutes(http, createAuth, {
+  cors: {
+    allowedOrigins,
+    allowCredentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    maxAge: 86400,
+  },
+});
 
 export default http;

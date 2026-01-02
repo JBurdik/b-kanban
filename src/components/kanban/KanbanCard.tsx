@@ -14,9 +14,17 @@ interface Props {
   card: Card;
   boardId?: Id<"boards">;
   isOverlay?: boolean;
+  onCardClick?: (card: Card) => void;
+  onCardDoubleClick?: (card: Card) => void;
 }
 
-export function KanbanCard({ card, boardId, isOverlay }: Props) {
+export function KanbanCard({
+  card,
+  boardId,
+  isOverlay,
+  onCardClick,
+  onCardDoubleClick,
+}: Props) {
   const navigate = useNavigate();
 
   const {
@@ -52,19 +60,33 @@ export function KanbanCard({ card, boardId, isOverlay }: Props) {
         tabIndex={0}
         onClick={() => {
           if (!isDragging && boardId) {
-            navigate({
-              to: "/boards/$boardId/cards/$cardSlug",
-              params: { boardId, cardSlug: card.slug },
-            });
+            if (onCardClick) {
+              onCardClick(card);
+            } else {
+              navigate({
+                to: "/boards/$boardId/cards/$cardSlug",
+                params: { boardId, cardSlug: card.slug },
+              });
+            }
+          }
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          if (!isDragging && onCardDoubleClick) {
+            onCardDoubleClick(card);
           }
         }}
         onKeyDown={(e) => {
           if ((e.key === "Enter" || e.key === " ") && !isDragging && boardId) {
             e.preventDefault();
-            navigate({
-              to: "/boards/$boardId/cards/$cardSlug",
-              params: { boardId, cardSlug: card.slug },
-            });
+            if (onCardClick) {
+              onCardClick(card);
+            } else {
+              navigate({
+                to: "/boards/$boardId/cards/$cardSlug",
+                params: { boardId, cardSlug: card.slug },
+              });
+            }
           }
         }}
         className={clsx(

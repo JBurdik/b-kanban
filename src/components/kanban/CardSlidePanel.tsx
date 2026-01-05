@@ -64,7 +64,7 @@ export function CardSlidePanel({
   const [priority, setPriority] = useState(card.priority);
   const [columnId, setColumnId] = useState(card.columnId);
   const [assigneeId, setAssigneeId] = useState<Id<"users"> | undefined>(
-    card.assignee?.id
+    card.assignee?.id,
   );
   const [effort, setEffort] = useState<number | undefined>(card.effort);
   const [isEditing, setIsEditing] = useState(editMode);
@@ -139,7 +139,7 @@ export function CardSlidePanel({
         currentUserEmail: userEmail,
       });
     },
-    [card._id, updateCard, userEmail]
+    [card._id, updateCard, userEmail],
   );
 
   const { isSaving } = useAutoSave({
@@ -164,11 +164,11 @@ export function CardSlidePanel({
         .filter(
           (m) =>
             m.name.toLowerCase().includes(queryLower) ||
-            m.email.toLowerCase().includes(queryLower)
+            m.email.toLowerCase().includes(queryLower),
         )
         .slice(0, 5);
     },
-    [searchMembers]
+    [searchMembers],
   );
 
   // Get current assignee from members based on assigneeId state
@@ -344,7 +344,9 @@ export function CardSlidePanel({
                   <div className="flex flex-wrap gap-4 mb-6 text-sm">
                     <div>
                       <span className="text-dark-muted">Status: </span>
-                      <span className="text-dark-text">{currentColumnName}</span>
+                      <span className="text-dark-text">
+                        {currentColumnName}
+                      </span>
                     </div>
                     {currentAssignee && (
                       <div>
@@ -397,7 +399,9 @@ export function CardSlidePanel({
                     </h3>
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-accent" />
-                      <span className="text-dark-text">{currentColumnName}</span>
+                      <span className="text-dark-text">
+                        {currentColumnName}
+                      </span>
                     </div>
                   </div>
 
@@ -432,7 +436,9 @@ export function CardSlidePanel({
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-dark-muted italic">Unassigned</p>
+                      <p className="text-sm text-dark-muted italic">
+                        Unassigned
+                      </p>
                     )}
                   </div>
 
@@ -459,7 +465,9 @@ export function CardSlidePanel({
                         <span className="text-dark-text">{effort} hours</span>
                       </div>
                     ) : (
-                      <p className="text-sm text-dark-muted italic">Not estimated</p>
+                      <p className="text-sm text-dark-muted italic">
+                        Not estimated
+                      </p>
                     )}
                   </div>
 

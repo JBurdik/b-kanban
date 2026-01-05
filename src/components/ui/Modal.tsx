@@ -19,6 +19,8 @@ export interface ModalProps {
   showCloseButton?: boolean;
   /** Whether clicking backdrop closes modal */
   closeOnBackdropClick?: boolean;
+  /** Z-index level for stacking modals */
+  zIndex?: number;
 }
 
 const sizeStyles = {
@@ -57,6 +59,7 @@ export function Modal({
   size = "md",
   showCloseButton = true,
   closeOnBackdropClick = true,
+  zIndex = 50,
 }: ModalProps) {
   // Handle escape key
   useEscapeKey(onClose, open);
@@ -74,7 +77,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0" style={{ zIndex }}>
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"

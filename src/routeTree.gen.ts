@@ -18,7 +18,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BoardsIndexRouteImport } from './routes/boards.index'
 import { Route as BoardsBoardIdRouteImport } from './routes/boards.$boardId'
 import { Route as BoardsBoardIdIndexRouteImport } from './routes/boards.$boardId.index'
+import { Route as BoardsBoardIdSecretsRouteImport } from './routes/boards.$boardId.secrets'
 import { Route as BoardsBoardIdDocsRouteImport } from './routes/boards.$boardId.docs'
+import { Route as BoardsBoardIdSecretsIndexRouteImport } from './routes/boards.$boardId.secrets.index'
 import { Route as BoardsBoardIdDocsIndexRouteImport } from './routes/boards.$boardId.docs.index'
 import { Route as BoardsBoardIdDocsDocIdRouteImport } from './routes/boards.$boardId.docs.$docId'
 import { Route as BoardsBoardIdCardsCardSlugRouteImport } from './routes/boards.$boardId.cards.$cardSlug'
@@ -68,11 +70,22 @@ const BoardsBoardIdIndexRoute = BoardsBoardIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BoardsBoardIdRoute,
 } as any)
+const BoardsBoardIdSecretsRoute = BoardsBoardIdSecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => BoardsBoardIdRoute,
+} as any)
 const BoardsBoardIdDocsRoute = BoardsBoardIdDocsRouteImport.update({
   id: '/docs',
   path: '/docs',
   getParentRoute: () => BoardsBoardIdRoute,
 } as any)
+const BoardsBoardIdSecretsIndexRoute =
+  BoardsBoardIdSecretsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BoardsBoardIdSecretsRoute,
+  } as any)
 const BoardsBoardIdDocsIndexRoute = BoardsBoardIdDocsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -100,10 +113,12 @@ export interface FileRoutesByFullPath {
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
+  '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
+  '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -116,6 +131,7 @@ export interface FileRoutesByTo {
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsIndexRoute
+  '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -128,10 +144,12 @@ export interface FileRoutesById {
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
+  '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
+  '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -145,10 +163,12 @@ export interface FileRouteTypes {
     | '/boards/$boardId'
     | '/boards/'
     | '/boards/$boardId/docs'
+    | '/boards/$boardId/secrets'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
     | '/boards/$boardId/docs/'
+    | '/boards/$boardId/secrets/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -161,6 +181,7 @@ export interface FileRouteTypes {
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
     | '/boards/$boardId/docs'
+    | '/boards/$boardId/secrets'
   id:
     | '__root__'
     | '/'
@@ -172,10 +193,12 @@ export interface FileRouteTypes {
     | '/boards/$boardId'
     | '/boards/'
     | '/boards/$boardId/docs'
+    | '/boards/$boardId/secrets'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
     | '/boards/$boardId/docs/'
+    | '/boards/$boardId/secrets/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -252,12 +275,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdIndexRouteImport
       parentRoute: typeof BoardsBoardIdRoute
     }
+    '/boards/$boardId/secrets': {
+      id: '/boards/$boardId/secrets'
+      path: '/secrets'
+      fullPath: '/boards/$boardId/secrets'
+      preLoaderRoute: typeof BoardsBoardIdSecretsRouteImport
+      parentRoute: typeof BoardsBoardIdRoute
+    }
     '/boards/$boardId/docs': {
       id: '/boards/$boardId/docs'
       path: '/docs'
       fullPath: '/boards/$boardId/docs'
       preLoaderRoute: typeof BoardsBoardIdDocsRouteImport
       parentRoute: typeof BoardsBoardIdRoute
+    }
+    '/boards/$boardId/secrets/': {
+      id: '/boards/$boardId/secrets/'
+      path: '/'
+      fullPath: '/boards/$boardId/secrets/'
+      preLoaderRoute: typeof BoardsBoardIdSecretsIndexRouteImport
+      parentRoute: typeof BoardsBoardIdSecretsRoute
     }
     '/boards/$boardId/docs/': {
       id: '/boards/$boardId/docs/'
@@ -296,14 +333,27 @@ const BoardsBoardIdDocsRouteChildren: BoardsBoardIdDocsRouteChildren = {
 const BoardsBoardIdDocsRouteWithChildren =
   BoardsBoardIdDocsRoute._addFileChildren(BoardsBoardIdDocsRouteChildren)
 
+interface BoardsBoardIdSecretsRouteChildren {
+  BoardsBoardIdSecretsIndexRoute: typeof BoardsBoardIdSecretsIndexRoute
+}
+
+const BoardsBoardIdSecretsRouteChildren: BoardsBoardIdSecretsRouteChildren = {
+  BoardsBoardIdSecretsIndexRoute: BoardsBoardIdSecretsIndexRoute,
+}
+
+const BoardsBoardIdSecretsRouteWithChildren =
+  BoardsBoardIdSecretsRoute._addFileChildren(BoardsBoardIdSecretsRouteChildren)
+
 interface BoardsBoardIdRouteChildren {
   BoardsBoardIdDocsRoute: typeof BoardsBoardIdDocsRouteWithChildren
+  BoardsBoardIdSecretsRoute: typeof BoardsBoardIdSecretsRouteWithChildren
   BoardsBoardIdIndexRoute: typeof BoardsBoardIdIndexRoute
   BoardsBoardIdCardsCardSlugRoute: typeof BoardsBoardIdCardsCardSlugRoute
 }
 
 const BoardsBoardIdRouteChildren: BoardsBoardIdRouteChildren = {
   BoardsBoardIdDocsRoute: BoardsBoardIdDocsRouteWithChildren,
+  BoardsBoardIdSecretsRoute: BoardsBoardIdSecretsRouteWithChildren,
   BoardsBoardIdIndexRoute: BoardsBoardIdIndexRoute,
   BoardsBoardIdCardsCardSlugRoute: BoardsBoardIdCardsCardSlugRoute,
 }

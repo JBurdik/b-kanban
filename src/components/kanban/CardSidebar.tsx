@@ -4,6 +4,7 @@ import { Avatar } from "@/components/Avatar";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
 import { StatusSelect } from "@/components/ui/StatusSelect";
 import { AssigneeSelect } from "@/components/ui/AssigneeSelect";
+import { LinkedDocuments } from "./LinkedDocuments";
 import { PRIORITY_CONFIG } from "@/lib/constants";
 import type { Priority, Column, BoardMember } from "@/lib/types";
 import { formatDateLong } from "@/utils/formatting";
@@ -29,6 +30,8 @@ interface Props {
   cardId?: Id<"cards">;
   cardTitle?: string;
   userEmail?: string;
+  // Board ID for linked documents
+  boardId?: Id<"boards">;
 }
 
 export function CardSidebar({
@@ -49,6 +52,7 @@ export function CardSidebar({
   cardId,
   cardTitle,
   userEmail,
+  boardId,
 }: Props) {
   const {
     activeTimer,
@@ -238,6 +242,21 @@ export function CardSidebar({
               Timer running on another task
             </p>
           )}
+        </div>
+      )}
+
+      {/* Linked Documents */}
+      {cardId && boardId && (
+        <div className="mb-4 pt-4 border-t border-dark-border">
+          <label className="block text-xs text-dark-muted mb-2">
+            Linked Documents
+          </label>
+          <LinkedDocuments
+            cardId={cardId}
+            boardId={boardId}
+            userEmail={userEmail}
+            canEdit={canEdit}
+          />
         </div>
       )}
     </aside>

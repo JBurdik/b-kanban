@@ -170,6 +170,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
           cardId={card._id}
           cardTitle={title}
           userEmail={userEmail}
+          boardId={board._id}
         />
       </div>
     </div>

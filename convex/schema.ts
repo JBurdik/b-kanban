@@ -179,6 +179,31 @@ export default defineSchema({
     description: v.string(),
     startedAt: v.number(),
     createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // ============================================
+  // Documents Tables
+  // ============================================
+
+  // Documents - shared notes/docs per board
+  documents: defineTable({
+    boardId: v.id("boards"),
+    title: v.string(),
+    content: v.optional(v.string()), // TipTap HTML content
+    createdById: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
   })
-    .index("by_user", ["userId"]),
+    .index("by_board", ["boardId"])
+    .index("by_board_updated", ["boardId", "updatedAt"]),
+
+  // Card-Document links (many-to-many)
+  documentLinks: defineTable({
+    cardId: v.id("cards"),
+    documentId: v.id("documents"),
+    createdById: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_card", ["cardId"])
+    .index("by_document", ["documentId"]),
 });

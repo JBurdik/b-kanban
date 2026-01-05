@@ -300,6 +300,26 @@ export const remove = mutation({
       await ctx.db.delete(member._id);
     }
 
+    // Delete all documents and their links
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    for (const doc of documents) {
+      // Delete document links first
+      const docLinks = await ctx.db
+        .query("documentLinks")
+        .withIndex("by_document", (q) => q.eq("documentId", doc._id))
+        .collect();
+
+      for (const link of docLinks) {
+        await ctx.db.delete(link._id);
+      }
+
+      await ctx.db.delete(doc._id);
+    }
+
     await ctx.db.delete(args.boardId);
 
     return { success: true };

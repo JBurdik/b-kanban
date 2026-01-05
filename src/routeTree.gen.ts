@@ -18,6 +18,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BoardsIndexRouteImport } from './routes/boards.index'
 import { Route as BoardsBoardIdRouteImport } from './routes/boards.$boardId'
 import { Route as BoardsBoardIdIndexRouteImport } from './routes/boards.$boardId.index'
+import { Route as BoardsBoardIdDocsRouteImport } from './routes/boards.$boardId.docs'
+import { Route as BoardsBoardIdDocsIndexRouteImport } from './routes/boards.$boardId.docs.index'
+import { Route as BoardsBoardIdDocsDocIdRouteImport } from './routes/boards.$boardId.docs.$docId'
 import { Route as BoardsBoardIdCardsCardSlugRouteImport } from './routes/boards.$boardId.cards.$cardSlug'
 
 const TimeRoute = TimeRouteImport.update({
@@ -65,6 +68,21 @@ const BoardsBoardIdIndexRoute = BoardsBoardIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BoardsBoardIdRoute,
 } as any)
+const BoardsBoardIdDocsRoute = BoardsBoardIdDocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => BoardsBoardIdRoute,
+} as any)
+const BoardsBoardIdDocsIndexRoute = BoardsBoardIdDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BoardsBoardIdDocsRoute,
+} as any)
+const BoardsBoardIdDocsDocIdRoute = BoardsBoardIdDocsDocIdRouteImport.update({
+  id: '/$docId',
+  path: '/$docId',
+  getParentRoute: () => BoardsBoardIdDocsRoute,
+} as any)
 const BoardsBoardIdCardsCardSlugRoute =
   BoardsBoardIdCardsCardSlugRouteImport.update({
     id: '/cards/$cardSlug',
@@ -81,8 +99,11 @@ export interface FileRoutesByFullPath {
   '/time': typeof TimeRoute
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
+  '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
+  '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +114,8 @@ export interface FileRoutesByTo {
   '/boards': typeof BoardsIndexRoute
   '/boards/$boardId': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
+  '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/docs': typeof BoardsBoardIdDocsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,8 +127,11 @@ export interface FileRoutesById {
   '/time': typeof TimeRoute
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
+  '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
+  '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -118,8 +144,11 @@ export interface FileRouteTypes {
     | '/time'
     | '/boards/$boardId'
     | '/boards/'
+    | '/boards/$boardId/docs'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
+    | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/docs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,6 +159,8 @@ export interface FileRouteTypes {
     | '/boards'
     | '/boards/$boardId'
     | '/boards/$boardId/cards/$cardSlug'
+    | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/docs'
   id:
     | '__root__'
     | '/'
@@ -140,8 +171,11 @@ export interface FileRouteTypes {
     | '/time'
     | '/boards/$boardId'
     | '/boards/'
+    | '/boards/$boardId/docs'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
+    | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/docs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -218,6 +252,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdIndexRouteImport
       parentRoute: typeof BoardsBoardIdRoute
     }
+    '/boards/$boardId/docs': {
+      id: '/boards/$boardId/docs'
+      path: '/docs'
+      fullPath: '/boards/$boardId/docs'
+      preLoaderRoute: typeof BoardsBoardIdDocsRouteImport
+      parentRoute: typeof BoardsBoardIdRoute
+    }
+    '/boards/$boardId/docs/': {
+      id: '/boards/$boardId/docs/'
+      path: '/'
+      fullPath: '/boards/$boardId/docs/'
+      preLoaderRoute: typeof BoardsBoardIdDocsIndexRouteImport
+      parentRoute: typeof BoardsBoardIdDocsRoute
+    }
+    '/boards/$boardId/docs/$docId': {
+      id: '/boards/$boardId/docs/$docId'
+      path: '/$docId'
+      fullPath: '/boards/$boardId/docs/$docId'
+      preLoaderRoute: typeof BoardsBoardIdDocsDocIdRouteImport
+      parentRoute: typeof BoardsBoardIdDocsRoute
+    }
     '/boards/$boardId/cards/$cardSlug': {
       id: '/boards/$boardId/cards/$cardSlug'
       path: '/cards/$cardSlug'
@@ -228,12 +283,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface BoardsBoardIdDocsRouteChildren {
+  BoardsBoardIdDocsDocIdRoute: typeof BoardsBoardIdDocsDocIdRoute
+  BoardsBoardIdDocsIndexRoute: typeof BoardsBoardIdDocsIndexRoute
+}
+
+const BoardsBoardIdDocsRouteChildren: BoardsBoardIdDocsRouteChildren = {
+  BoardsBoardIdDocsDocIdRoute: BoardsBoardIdDocsDocIdRoute,
+  BoardsBoardIdDocsIndexRoute: BoardsBoardIdDocsIndexRoute,
+}
+
+const BoardsBoardIdDocsRouteWithChildren =
+  BoardsBoardIdDocsRoute._addFileChildren(BoardsBoardIdDocsRouteChildren)
+
 interface BoardsBoardIdRouteChildren {
+  BoardsBoardIdDocsRoute: typeof BoardsBoardIdDocsRouteWithChildren
   BoardsBoardIdIndexRoute: typeof BoardsBoardIdIndexRoute
   BoardsBoardIdCardsCardSlugRoute: typeof BoardsBoardIdCardsCardSlugRoute
 }
 
 const BoardsBoardIdRouteChildren: BoardsBoardIdRouteChildren = {
+  BoardsBoardIdDocsRoute: BoardsBoardIdDocsRouteWithChildren,
   BoardsBoardIdIndexRoute: BoardsBoardIdIndexRoute,
   BoardsBoardIdCardsCardSlugRoute: BoardsBoardIdCardsCardSlugRoute,
 }

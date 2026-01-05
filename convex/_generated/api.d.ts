@@ -14,6 +14,8 @@ import type * as boards from "../boards.js";
 import type * as cards from "../cards.js";
 import type * as columns from "../columns.js";
 import type * as comments from "../comments.js";
+import type * as documentLinks from "../documentLinks.js";
+import type * as documents from "../documents.js";
 import type * as http from "../http.js";
 import type * as lib_rbac from "../lib/rbac.js";
 import type * as members from "../members.js";
@@ -34,6 +36,8 @@ declare const fullApi: ApiFromModules<{
   cards: typeof cards;
   columns: typeof columns;
   comments: typeof comments;
+  documentLinks: typeof documentLinks;
+  documents: typeof documents;
   http: typeof http;
   "lib/rbac": typeof lib_rbac;
   members: typeof members;

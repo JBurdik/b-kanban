@@ -15,6 +15,7 @@ import {
   TableIcon,
   CalloutIcon,
   HighlightIcon,
+  LinkIcon,
 } from "./CommandIcons";
 
 interface CommandItem {
@@ -97,6 +98,16 @@ const commands: CommandItem[] = [
     description: "Highlight selected text",
     icon: <HighlightIcon />,
     command: (editor) => editor.chain().focus().toggleHighlight().run(),
+  },
+  {
+    title: "Link",
+    description: "Add a hyperlink",
+    icon: <LinkIcon />,
+    command: (editor) => {
+      // Dispatch custom event to open link popover in RichTextEditor
+      editor.chain().focus().run();
+      window.dispatchEvent(new CustomEvent("editor:open-link-popover"));
+    },
   },
 ];
 

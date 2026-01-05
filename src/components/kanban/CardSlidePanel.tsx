@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -15,6 +15,10 @@ import { CardContent } from "./CardContent";
 import { CardSidebar } from "./CardSidebar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { Avatar } from "@/components/Avatar";
+
+const MIN_PANEL_WIDTH = 400;
+const MAX_PANEL_WIDTH = 1200;
+const DEFAULT_PANEL_WIDTH = 672; // max-w-2xl equivalent
 
 interface CardWithColumn extends Card {
   column: {
@@ -65,6 +69,9 @@ export function CardSlidePanel({
   const [effort, setEffort] = useState<number | undefined>(card.effort);
   const [isEditing, setIsEditing] = useState(editMode);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const updateCard = useMutation(api.cards.update);
   const searchMembers = useQuery(api.members.search, {
@@ -86,6 +93,37 @@ export function CardSlidePanel({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose]);
+
+  // Resize handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      setPanelWidth(Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing]);
 
   // Use auto-save hook
   const handleSave = useCallback(
@@ -152,12 +190,27 @@ export function CardSlidePanel({
 
       {/* Panel */}
       <div
-        className={`fixed bg-dark-surface border-l border-dark-border shadow-2xl z-50 flex flex-col animate-slide-in-right transition-all duration-300 ${
+        ref={panelRef}
+        style={!isExpanded ? { width: panelWidth } : undefined}
+        className={`fixed bg-dark-surface border-l border-dark-border shadow-2xl z-50 flex flex-col animate-slide-in-right ${
           isExpanded
-            ? "inset-4 rounded-xl border"
-            : "inset-y-0 right-0 w-full max-w-2xl"
+            ? "inset-4 rounded-xl border transition-all duration-300"
+            : "inset-y-0 right-0"
         }`}
       >
+        {/* Resize handle - only when not expanded */}
+        {!isExpanded && (
+          <div
+            onMouseDown={handleResizeStart}
+            className={`absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize group z-10 ${
+              isResizing ? "bg-accent" : "hover:bg-accent/50"
+            }`}
+          >
+            {/* Visual indicator */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-dark-border group-hover:bg-accent/50 rounded-full transition-colors" />
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-dark-border">
           <div className="flex items-center gap-3">
@@ -271,6 +324,7 @@ export function CardSlidePanel({
                 cardId={card._id}
                 cardTitle={title}
                 userEmail={userEmail}
+                boardId={board._id}
               />
             </>
           ) : (

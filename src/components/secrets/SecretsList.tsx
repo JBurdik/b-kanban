@@ -504,7 +504,7 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
       </div>
 
       {/* Group management bar */}
-      {hasSecrets && canManage && viewMode === "grouped" && (
+      {canManage && (
         <div className="flex items-center gap-2">
           {showNewGroupInput ? (
             <div className="flex items-center gap-2">

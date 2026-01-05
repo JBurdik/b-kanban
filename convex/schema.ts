@@ -138,7 +138,7 @@ export default defineSchema({
       v.literal("assigned"),
       v.literal("mentioned"),
       v.literal("commented"),
-      v.literal("card_updated")
+      v.literal("card_updated"),
     ),
     cardId: v.id("cards"),
     boardId: v.id("boards"),
@@ -158,11 +158,11 @@ export default defineSchema({
   // Time entries - logged time records
   timeEntries: defineTable({
     userId: v.id("users"),
-    cardId: v.optional(v.id("cards")),      // Optional link to card
-    boardId: v.optional(v.id("boards")),    // Denormalized for filtering
+    cardId: v.optional(v.id("cards")), // Optional link to card
+    boardId: v.optional(v.id("boards")), // Denormalized for filtering
     description: v.string(),
-    durationMs: v.number(),                  // Duration in milliseconds
-    date: v.number(),                        // Start of day timestamp
+    durationMs: v.number(), // Duration in milliseconds
+    date: v.number(), // Start of day timestamp
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -206,4 +206,33 @@ export default defineSchema({
   })
     .index("by_card", ["cardId"])
     .index("by_document", ["documentId"]),
+  // Secrets Table - E2E Encrypted
+  // ============================================
+
+  // Secret groups for organizing secrets by app/service
+  secretGroups: defineTable({
+    boardId: v.id("boards"),
+    name: v.string(), // e.g., "Landing Page", "Admin", "Reservation App"
+    color: v.optional(v.string()), // Hex color for visual distinction
+    createdAt: v.number(),
+  })
+    .index("by_board", ["boardId"])
+    .index("by_board_name", ["boardId", "name"]),
+
+  secrets: defineTable({
+    boardId: v.id("boards"),
+    name: v.string(), // e.g., "API_KEY", "DATABASE_URL"
+    encryptedValue: v.string(), // Base64 AES-256-GCM ciphertext
+    iv: v.string(), // Base64 initialization vector
+    salt: v.string(), // Base64 PBKDF2 salt
+    visibility: v.union(v.literal("public"), v.literal("hidden")),
+    description: v.optional(v.string()),
+    groupId: v.optional(v.id("secretGroups")), // Optional group for organization
+    createdById: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_board", ["boardId"])
+    .index("by_board_name", ["boardId", "name"])
+    .index("by_group", ["groupId"]),
 });

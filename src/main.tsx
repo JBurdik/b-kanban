@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { ConvexProvider } from "./components/ConvexProvider";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import "./index.css";
 
 const router = createRouter({
@@ -18,8 +19,10 @@ declare module "@tanstack/react-router" {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ConvexProvider>
-      <RouterProvider router={router} />
-    </ConvexProvider>
+    <ThemeProvider>
+      <ConvexProvider>
+        <RouterProvider router={router} />
+      </ConvexProvider>
+    </ThemeProvider>
   </StrictMode>
 );

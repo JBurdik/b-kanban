@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Logo } from "@/components/ui/Logo";
+import { BoardIcon } from "@/components/BoardIcon";
 import clsx from "clsx";
 
 const APP_VERSION = "1.0.0";
@@ -94,21 +95,16 @@ export function Sidebar({ isCollapsed, onToggle, userEmail }: SidebarProps) {
                     )}
                     title={isCollapsed ? board.name : undefined}
                   >
-                    <span className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-                        />
-                      </svg>
-                    </span>
+                    <BoardIcon
+                      board={{
+                        name: board.name,
+                        iconType: board.iconType,
+                        iconEmoji: board.iconEmoji,
+                        iconUrl: board.iconUrl,
+                      }}
+                      size="xs"
+                      className="flex-shrink-0"
+                    />
                     {!isCollapsed && (
                       <span className="truncate text-sm">{board.name}</span>
                     )}

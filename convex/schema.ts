@@ -63,6 +63,10 @@ export default defineSchema({
     slugPrefix: v.string(),
     cardCounter: v.number(),
     ownerId: v.id("users"),
+    // Board icon (either emoji or uploaded image)
+    iconType: v.optional(v.union(v.literal("emoji"), v.literal("image"))),
+    iconEmoji: v.optional(v.string()),
+    iconStorageId: v.optional(v.id("_storage")),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),

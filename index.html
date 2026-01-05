@@ -1,10 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>B-Kanban</title>
+    <script>
+      // Prevent flash of unstyled content
+      (function() {
+        const mode = localStorage.getItem('theme-mode') || 'system';
+        const accent = localStorage.getItem('theme-accent') || 'amber';
+        const isDark = mode === 'dark' ||
+          (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) document.documentElement.classList.add('dark');
+        document.documentElement.dataset.accent = accent;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

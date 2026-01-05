@@ -73,10 +73,15 @@ export interface BoardMember {
 // Board Types
 // ============================================================================
 
+export type BoardIconType = "emoji" | "image";
+
 export interface Board {
   _id: Id<"boards">;
   name: string;
   description?: string;
+  iconType?: BoardIconType;
+  iconEmoji?: string;
+  iconUrl?: string | null;
   columns?: Column[] | ColumnWithCards[];
   members?: BoardMember[];
   userRole?: BoardRole;

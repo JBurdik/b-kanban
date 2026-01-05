@@ -13,6 +13,8 @@ import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
 import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserDropdown } from "@/components/UserDropdown";
+import { BoardIcon } from "@/components/BoardIcon";
+import { BoardIconPicker } from "@/components/BoardIconPicker";
 
 type ViewMode = "board" | "table";
 
@@ -25,6 +27,7 @@ function BoardPage() {
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const { data: authSession } = useSession();
   const [showMembers, setShowMembers] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [filter, setFilter] = useState<FilterOption>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -156,7 +159,7 @@ function BoardPage() {
     <div className="h-screen flex flex-col -mt-14">
       {/* Top bar with board name - replaces global top bar for this page */}
       <div className="h-14 flex items-center justify-between px-4 border-b border-dark-border bg-dark-bg sticky top-0 z-30">
-        {/* Left: Back + Board name */}
+        {/* Left: Back + Board icon + Board name */}
         <div className="flex items-center gap-3">
           <Link to="/boards" className="p-1.5 rounded-lg text-dark-muted hover:text-dark-text hover:bg-dark-hover transition-colors">
             <svg
@@ -173,6 +176,50 @@ function BoardPage() {
               />
             </svg>
           </Link>
+
+          {/* Board icon with picker for owners/admins */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                if (board.userRole === "owner" || board.userRole === "admin") {
+                  setShowIconPicker(!showIconPicker);
+                }
+              }}
+              className={`p-1 rounded ${
+                board.userRole === "owner" || board.userRole === "admin"
+                  ? "hover:bg-dark-hover cursor-pointer"
+                  : ""
+              }`}
+              title={
+                board.userRole === "owner" || board.userRole === "admin"
+                  ? "Change board icon"
+                  : undefined
+              }
+            >
+              <BoardIcon
+                board={{
+                  name: board.name,
+                  iconType: board.iconType,
+                  iconEmoji: board.iconEmoji,
+                  iconUrl: board.iconUrl,
+                }}
+                size="md"
+              />
+            </button>
+            {showIconPicker && (
+              <BoardIconPicker
+                boardId={boardId as Id<"boards">}
+                boardName={board.name}
+                currentIcon={{
+                  type: board.iconType,
+                  emoji: board.iconEmoji,
+                  url: board.iconUrl,
+                }}
+                onClose={() => setShowIconPicker(false)}
+              />
+            )}
+          </div>
+
           {isOwner ? (
             <input
               type="text"

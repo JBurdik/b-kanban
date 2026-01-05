@@ -56,8 +56,14 @@ export const list = query({
 
         const membership = memberships.find((m) => m.boardId === boardId);
 
+        // Get icon URL if board has an uploaded image icon
+        const iconUrl = board.iconStorageId
+          ? await ctx.storage.getUrl(board.iconStorageId)
+          : null;
+
         return {
           ...board,
+          iconUrl,
           columnCount: columns.length,
           userRole: membership?.role,
         };
@@ -153,8 +159,14 @@ export const get = query({
       ? memberships.find((m) => m.userId === currentUserId)?.role
       : undefined;
 
+    // Get icon URL if board has an uploaded image icon
+    const iconUrl = board.iconStorageId
+      ? await ctx.storage.getUrl(board.iconStorageId)
+      : null;
+
     return {
       ...board,
+      iconUrl,
       columns: columnsWithCards,
       members,
       userRole,
@@ -320,7 +332,207 @@ export const remove = mutation({
       await ctx.db.delete(doc._id);
     }
 
+    // Delete board icon from storage if exists
+    const board = await ctx.db.get(args.boardId);
+    if (board?.iconStorageId) {
+      await ctx.storage.delete(board.iconStorageId);
+    }
+
     await ctx.db.delete(args.boardId);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Generate upload URL for board icon
+ */
+export const generateIconUploadUrl = mutation({
+  args: {
+    boardId: v.id("boards"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Look up user by email
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check membership (should be owner or admin)
+    const membership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!membership || membership.role === "member") {
+      throw new Error("Only owners and admins can change board icon");
+    }
+
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Save uploaded board icon
+ */
+export const saveIcon = mutation({
+  args: {
+    boardId: v.id("boards"),
+    storageId: v.id("_storage"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Look up user by email
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check membership
+    const membership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!membership || membership.role === "member") {
+      throw new Error("Only owners and admins can change board icon");
+    }
+
+    const board = await ctx.db.get(args.boardId);
+    if (!board) {
+      throw new Error("Board not found");
+    }
+
+    // Delete old icon from storage if exists
+    if (board.iconStorageId) {
+      await ctx.storage.delete(board.iconStorageId);
+    }
+
+    await ctx.db.patch(args.boardId, {
+      iconType: "image",
+      iconStorageId: args.storageId,
+      iconEmoji: undefined,
+      updatedAt: Date.now(),
+    });
+
+    const url = await ctx.storage.getUrl(args.storageId);
+    return { success: true, url };
+  },
+});
+
+/**
+ * Set emoji icon for board
+ */
+export const setEmojiIcon = mutation({
+  args: {
+    boardId: v.id("boards"),
+    emoji: v.string(),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Look up user by email
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check membership
+    const membership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!membership || membership.role === "member") {
+      throw new Error("Only owners and admins can change board icon");
+    }
+
+    const board = await ctx.db.get(args.boardId);
+    if (!board) {
+      throw new Error("Board not found");
+    }
+
+    // Delete old image icon from storage if exists
+    if (board.iconStorageId) {
+      await ctx.storage.delete(board.iconStorageId);
+    }
+
+    await ctx.db.patch(args.boardId, {
+      iconType: "emoji",
+      iconEmoji: args.emoji,
+      iconStorageId: undefined,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Remove board icon
+ */
+export const removeIcon = mutation({
+  args: {
+    boardId: v.id("boards"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Look up user by email
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check membership
+    const membership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!membership || membership.role === "member") {
+      throw new Error("Only owners and admins can change board icon");
+    }
+
+    const board = await ctx.db.get(args.boardId);
+    if (!board) {
+      throw new Error("Board not found");
+    }
+
+    // Delete image from storage if exists
+    if (board.iconStorageId) {
+      await ctx.storage.delete(board.iconStorageId);
+    }
+
+    await ctx.db.patch(args.boardId, {
+      iconType: undefined,
+      iconEmoji: undefined,
+      iconStorageId: undefined,
+      updatedAt: Date.now(),
+    });
 
     return { success: true };
   },

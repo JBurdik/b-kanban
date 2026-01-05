@@ -5,21 +5,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Custom dark theme colors
+        // Theme colors using CSS variables (RGB format)
         dark: {
-          bg: "#0d0d0d",
-          surface: "#1a1a1a",
-          border: "#2a2a2a",
-          hover: "#333333",
-          text: "#e5e5e5",
-          muted: "#888888",
+          bg: "rgb(var(--bg) / <alpha-value>)",
+          surface: "rgb(var(--surface) / <alpha-value>)",
+          border: "rgb(var(--border) / <alpha-value>)",
+          hover: "rgb(var(--hover) / <alpha-value>)",
+          text: "rgb(var(--text) / <alpha-value>)",
+          muted: "rgb(var(--muted) / <alpha-value>)",
         },
-        // Orange/Amber accent - bProductive branding
+        // Accent colors using CSS variables (RGB format)
         accent: {
-          DEFAULT: "#f59e0b", // amber-500
-          hover: "#d97706",   // amber-600
-          light: "#fbbf24",   // amber-400
-          dark: "#b45309",    // amber-700
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          hover: "rgb(var(--accent-hover) / <alpha-value>)",
+          light: "rgb(var(--accent-light) / <alpha-value>)",
+          dark: "rgb(var(--accent-dark) / <alpha-value>)",
         },
       },
       animation: {

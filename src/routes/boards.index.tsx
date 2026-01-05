@@ -7,6 +7,7 @@ import type { Id } from "convex/_generated/dataModel";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import type { Priority } from "@/lib/types";
 import { TimeTrackerWidget } from "@/components/timetracking";
+import { BoardIcon } from "@/components/BoardIcon";
 
 export const Route = createFileRoute("/boards/")({
   component: BoardsPage,
@@ -238,15 +239,27 @@ function BoardsPage() {
               className="card hover:border-accent/50 transition-colors group"
             >
               <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="font-semibold group-hover:text-accent transition-colors">
-                    {board.name}
-                  </h2>
-                  {board.description && (
-                    <p className="text-dark-muted text-sm mt-1">
-                      {board.description}
-                    </p>
-                  )}
+                <div className="flex items-start gap-3">
+                  <BoardIcon
+                    board={{
+                      name: board.name,
+                      iconType: board.iconType,
+                      iconEmoji: board.iconEmoji,
+                      iconUrl: board.iconUrl,
+                    }}
+                    size="md"
+                    className="shrink-0 mt-0.5"
+                  />
+                  <div>
+                    <h2 className="font-semibold group-hover:text-accent transition-colors">
+                      {board.name}
+                    </h2>
+                    {board.description && (
+                      <p className="text-dark-muted text-sm mt-1">
+                        {board.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={(e) => {

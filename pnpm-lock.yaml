@@ -80,6 +80,12 @@ importers:
       convex:
         specifier: ^1.31.2
         version: 1.31.2(react@19.2.3)
+      prosemirror-state:
+        specifier: ^1.4.4
+        version: 1.4.4
+      prosemirror-view:
+        specifier: ^1.41.4
+        version: 1.41.4
       react:
         specifier: ^19.0.0
         version: 19.2.3

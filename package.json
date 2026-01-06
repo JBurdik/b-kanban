@@ -36,6 +36,8 @@
     "better-auth": "^1.4.9",
     "clsx": "^2.1.1",
     "convex": "^1.31.2",
+    "prosemirror-state": "^1.4.4",
+    "prosemirror-view": "^1.41.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tippy.js": "^6.3.7"

@@ -1,5 +1,6 @@
 import Image from "@tiptap/extension-image";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
 import type { Editor } from "@tiptap/core";
 
 export interface ImageUploadOptions {
@@ -28,11 +29,11 @@ export const ImageUploadExtension = Image.extend<ImageUploadOptions>({
       new Plugin({
         key: new PluginKey("imageUpload"),
         props: {
-          handlePaste(_view, event) {
+          handlePaste(_view: EditorView, event: ClipboardEvent) {
             if (!onUpload) return false;
 
             const items = Array.from(event.clipboardData?.items || []);
-            const imageItem = items.find((item) => item.type.startsWith("image/"));
+            const imageItem = items.find((item: DataTransferItem) => item.type.startsWith("image/"));
 
             if (!imageItem) return false;
 
@@ -44,11 +45,11 @@ export const ImageUploadExtension = Image.extend<ImageUploadOptions>({
             return true;
           },
 
-          handleDrop(_view, event) {
+          handleDrop(_view: EditorView, event: DragEvent) {
             if (!onUpload) return false;
 
             const files = Array.from(event.dataTransfer?.files || []);
-            const imageFile = files.find((file) => file.type.startsWith("image/"));
+            const imageFile = files.find((file: File) => file.type.startsWith("image/"));
 
             if (!imageFile) return false;
 

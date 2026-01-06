@@ -5,6 +5,7 @@ import { useConvexUser } from "@/hooks/useConvexUser";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Priority } from "@/lib/types";
 import { TimeTrackerWidget } from "@/components/timetracking";
 import { BoardIcon } from "@/components/BoardIcon";
@@ -17,6 +18,8 @@ function BoardsPage() {
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const [showCreate, setShowCreate] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: Id<"boards">; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Real-time subscription to boards (skip if not authenticated)
   const boards = useQuery(api.boards.list, userEmail ? { userEmail } : "skip");
@@ -52,9 +55,14 @@ function BoardsPage() {
     }
   };
 
-  const handleDelete = async (boardId: Id<"boards">) => {
-    if (confirm("Delete this board?")) {
-      await deleteBoard({ boardId });
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteBoard({ boardId: deleteTarget.id });
+      setDeleteTarget(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -264,7 +272,7 @@ function BoardsPage() {
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    handleDelete(board._id);
+                    setDeleteTarget({ id: board._id, name: board.name });
                   }}
                   className="text-dark-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
@@ -290,6 +298,17 @@ function BoardsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Board"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This will permanently delete all columns, cards, and attachments. This action cannot be undone.`}
+        confirmText="Delete Board"
+        variant="danger"
+        loading={isDeleting}
+      />
     </div>
   );
 }

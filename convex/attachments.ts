@@ -136,3 +136,23 @@ export const remove = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Get URL for an uploaded image (used for inline editor images)
+ * This is simpler than saveAttachment - just returns the URL without storing metadata
+ */
+export const getImageUrl = mutation({
+  args: {
+    storageId: v.id("_storage"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("Unauthorized");
+
+    const url = await ctx.storage.getUrl(args.storageId);
+    if (!url) throw new Error("Image not found");
+
+    return { url };
+  },
+});

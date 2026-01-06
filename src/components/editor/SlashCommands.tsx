@@ -16,6 +16,7 @@ import {
   CalloutIcon,
   HighlightIcon,
   LinkIcon,
+  ImageIcon,
 } from "./CommandIcons";
 
 interface CommandItem {
@@ -107,6 +108,16 @@ const commands: CommandItem[] = [
       // Dispatch custom event to open link popover in RichTextEditor
       editor.chain().focus().run();
       window.dispatchEvent(new CustomEvent("editor:open-link-popover"));
+    },
+  },
+  {
+    title: "Image",
+    description: "Upload an image",
+    icon: <ImageIcon />,
+    command: (editor) => {
+      // Dispatch custom event to trigger image upload in RichTextEditor
+      editor.chain().focus().run();
+      window.dispatchEvent(new CustomEvent("editor:open-image-upload"));
     },
   },
 ];

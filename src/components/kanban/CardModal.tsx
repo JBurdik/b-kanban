@@ -8,6 +8,7 @@ import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
 import type { Card, Column, BoardMember, Priority } from "@/lib/types";
 
 interface KanbanColumnWithCards extends Column {
@@ -43,6 +44,7 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
 
   const updateCard = useMutation(api.cards.update);
   const deleteCard = useMutation(api.cards.remove);
+  const { onImageUpload } = useEditorImageUpload(userEmail);
 
   const handleSave = useCallback(
     async (data: CardData) => {
@@ -158,7 +160,12 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
         {/* Description with rich text editor */}
         <div>
           <label className="block text-sm text-dark-muted mb-2">Description</label>
-          <RichTextEditor content={content} onChange={setContent} placeholder="Add a description..." />
+          <RichTextEditor
+            content={content}
+            onChange={setContent}
+            placeholder="Add a description..."
+            onImageUpload={onImageUpload}
+          />
         </div>
 
         {/* Attachments */}

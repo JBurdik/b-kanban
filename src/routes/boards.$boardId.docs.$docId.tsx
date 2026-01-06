@@ -6,6 +6,7 @@ import type { Id } from "convex/_generated/dataModel";
 import { useState, useEffect, useCallback } from "react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
 
 export const Route = createFileRoute("/boards/$boardId/docs/$docId")({
   component: DocumentEditorPage,
@@ -17,6 +18,7 @@ function DocumentEditorPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
+  const { onImageUpload } = useEditorImageUpload(userEmail);
 
   const document = useQuery(
     api.documents.get,
@@ -208,6 +210,7 @@ function DocumentEditorPage() {
             content={content}
             onChange={setContent}
             placeholder="Start writing..."
+            onImageUpload={onImageUpload}
           />
 
           {/* Linked cards section */}

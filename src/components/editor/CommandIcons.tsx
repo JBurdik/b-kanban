@@ -99,3 +99,13 @@ export function LinkIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function ImageIcon({ className }: IconProps) {
+  return (
+    <svg className={clsx("w-5 h-5", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} />
+      <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 15l-5-5L5 21" />
+    </svg>
+  );
+}

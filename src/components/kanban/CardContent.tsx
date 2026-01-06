@@ -2,6 +2,7 @@ import type { Id } from "convex/_generated/dataModel";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AttachmentList } from "./AttachmentList";
 import { CommentList } from "./CommentList";
+import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
 
 interface MentionUser {
   id: Id<"users">;
@@ -33,6 +34,8 @@ export function CardContent({
   onContentChange,
   onMentionSearch,
 }: Props) {
+  const { onImageUpload } = useEditorImageUpload(userEmail);
+
   return (
     <div className="flex-1 overflow-y-auto p-6">
       {/* Title */}
@@ -58,6 +61,7 @@ export function CardContent({
             content={content}
             onChange={onContentChange}
             onMentionSearch={onMentionSearch}
+            onImageUpload={onImageUpload}
             placeholder="Add a description..."
           />
         ) : content ? (

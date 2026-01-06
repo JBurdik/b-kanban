@@ -13,6 +13,7 @@ import { SlashCommands } from "./editor/SlashCommands";
 import { Callout } from "./editor/CalloutExtension";
 import { createMentionExtension } from "./editor/MentionExtension";
 import { LinkPopover, LinkPopoverContent } from "./editor/LinkPopover";
+import { ImageUploadExtension, triggerImageUpload } from "./editor/ImageUploadExtension";
 import { useMemo, useState, useEffect } from "react";
 import clsx from "clsx";
 import type { Id } from "convex/_generated/dataModel";
@@ -30,6 +31,7 @@ interface Props {
   placeholder?: string;
   readOnly?: boolean;
   onMentionSearch?: (query: string) => Promise<MentionUser[]>;
+  onImageUpload?: (file: File) => Promise<string | null>;
 }
 
 export function RichTextEditor({
@@ -38,6 +40,7 @@ export function RichTextEditor({
   placeholder,
   readOnly = false,
   onMentionSearch,
+  onImageUpload,
 }: Props) {
   const [showLinkPopover, setShowLinkPopover] = useState(false);
   const [showFloatingLinkPopover, setShowFloatingLinkPopover] = useState(false);
@@ -47,6 +50,13 @@ export function RichTextEditor({
     if (!onMentionSearch) return null;
     return createMentionExtension({ onSearch: onMentionSearch });
   }, [onMentionSearch]);
+
+  const imageExtension = useMemo(() => {
+    if (!onImageUpload) return null;
+    return ImageUploadExtension.configure({
+      onUpload: onImageUpload,
+    });
+  }, [onImageUpload]);
 
   const extensions = useMemo(() => {
     const exts: AnyExtension[] = [
@@ -86,8 +96,11 @@ export function RichTextEditor({
     if (mentionExtension) {
       exts.push(mentionExtension);
     }
+    if (imageExtension) {
+      exts.push(imageExtension);
+    }
     return exts;
-  }, [placeholder, mentionExtension]);
+  }, [placeholder, mentionExtension, imageExtension]);
 
   const editor = useEditor({
     extensions,
@@ -123,6 +136,16 @@ export function RichTextEditor({
     window.addEventListener("editor:open-link-popover", handleOpenLinkPopover);
     return () => window.removeEventListener("editor:open-link-popover", handleOpenLinkPopover);
   }, [editor]);
+
+  // Listen for custom event from slash commands to trigger image upload
+  useEffect(() => {
+    const handleOpenImageUpload = () => {
+      if (!editor || !onImageUpload) return;
+      triggerImageUpload(editor, onImageUpload);
+    };
+    window.addEventListener("editor:open-image-upload", handleOpenImageUpload);
+    return () => window.removeEventListener("editor:open-image-upload", handleOpenImageUpload);
+  }, [editor, onImageUpload]);
 
   if (!editor) return null;
 
@@ -374,6 +397,19 @@ export function RichTextEditor({
         .ProseMirror a:hover,
         .ProseMirror .editor-link:hover {
           color: #d97706;
+        }
+
+        /* Image styles */
+        .ProseMirror img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 0.5em;
+          margin: 0.5em 0;
+          cursor: pointer;
+        }
+        .ProseMirror img.ProseMirror-selectednode {
+          outline: 2px solid #f59e0b;
+          outline-offset: 2px;
         }
 
         /* Callout styles */

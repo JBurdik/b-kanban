@@ -173,31 +173,40 @@ export function useKanbanDnd({ initialColumns, canDrag, canReorderColumns = fals
       }
 
       // Otherwise handle card reordering
-      const activeColumnData = columns.find((col) =>
+      const activeColumnData = columnsRef.current.find((col) =>
         col.cards?.some((card) => card._id === activeId)
       );
 
       if (!activeColumnData) return;
 
-      // Reorder within same column
-      if (
+      // Check if reordering within same column
+      const isSameColumnReorder =
         activeId !== overId &&
-        activeColumnData.cards?.some((c) => c._id === overId)
-      ) {
+        activeColumnData.cards?.some((c) => c._id === overId);
+
+      // Compute the final columns state for persistence
+      let finalColumns = columnsRef.current;
+
+      if (isSameColumnReorder) {
         const oldIndex = activeColumnData.cards.findIndex((c) => c._id === activeId);
         const newIndex = activeColumnData.cards.findIndex((c) => c._id === overId);
-
         const newCards = arrayMove(activeColumnData.cards, oldIndex, newIndex);
 
+        // Update local state
         setColumns((cols) =>
           cols.map((col) =>
             col._id === activeColumnData._id ? { ...col, cards: newCards } : col
           )
         );
+
+        // Use computed state for persistence (don't rely on ref which hasn't updated)
+        finalColumns = columnsRef.current.map((col) =>
+          col._id === activeColumnData._id ? { ...col, cards: newCards } : col
+        );
       }
 
-      // Persist card changes using ref to get latest state after handleDragOver updates
-      const allCards = columnsRef.current.flatMap((col) =>
+      // Persist card changes
+      const allCards = finalColumns.flatMap((col) =>
         (col.cards || []).map((card, idx) => ({
           id: card._id as Id<"cards">,
           columnId: col._id as Id<"columns">,
@@ -207,7 +216,7 @@ export function useKanbanDnd({ initialColumns, canDrag, canReorderColumns = fals
 
       await reorderCards({ items: allCards });
     },
-    [columns, activeColumn, reorderCards, reorderColumns]
+    [activeColumn, reorderCards, reorderColumns]
   );
 
   return {

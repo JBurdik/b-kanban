@@ -67,6 +67,7 @@ function CardDetailRoute() {
 
   return (
     <CardDetailPage
+      key={card._id}
       card={card}
       board={board}
       userEmail={userEmail}

@@ -14,7 +14,7 @@ import { Callout } from "./editor/CalloutExtension";
 import { createMentionExtension } from "./editor/MentionExtension";
 import { LinkPopover, LinkPopoverContent } from "./editor/LinkPopover";
 import { ImageUploadExtension, triggerImageUpload } from "./editor/ImageUploadExtension";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import clsx from "clsx";
 import type { Id } from "convex/_generated/dataModel";
 
@@ -102,11 +102,15 @@ export function RichTextEditor({
     return exts;
   }, [placeholder, mentionExtension, imageExtension]);
 
+  // Track if content changes are from internal editing
+  const isInternalChange = useRef(false);
+
   const editor = useEditor({
     extensions,
     content,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
+      isInternalChange.current = true;
       onChange(editor.getHTML());
     },
     editorProps: {
@@ -116,6 +120,23 @@ export function RichTextEditor({
       },
     },
   });
+
+  // Sync content prop changes to editor (for external updates)
+  useEffect(() => {
+    if (!editor) return;
+
+    // Skip if change was from internal editing
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
+
+    // Only update if content actually differs
+    const currentHTML = editor.getHTML();
+    if (content !== currentHTML) {
+      editor.commands.setContent(content, false);
+    }
+  }, [content, editor]);
 
   // Listen for custom event from slash commands to open link popover
   useEffect(() => {

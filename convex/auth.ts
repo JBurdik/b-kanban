@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { bearer } from "better-auth/plugins";
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { DataModel } from "./_generated/dataModel";
@@ -46,6 +47,10 @@ export const createAuth = (
       requireEmailVerification: false,
     },
     trustedOrigins,
-    plugins: [convex({ authConfig }), crossDomain({ siteUrl })],
+    plugins: [
+      convex({ authConfig }),
+      crossDomain({ siteUrl }),
+      bearer(), // Enable Bearer token auth for desktop/mobile apps
+    ],
     logger: { disabled: optionsOnly },
   });

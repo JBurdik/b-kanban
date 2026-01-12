@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { signIn } from "@/lib/auth-client";
+import { signIn, storeBearerToken } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -19,7 +19,18 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn.email({ email, password });
+      const result = await signIn.email(
+        { email, password },
+        {
+          onSuccess: (ctx) => {
+            // Store bearer token for Tauri/desktop app auth
+            const authToken = ctx.response.headers.get("set-auth-token");
+            if (authToken) {
+              storeBearerToken(authToken);
+            }
+          },
+        }
+      );
       if (result.error) {
         setError(result.error.message || "Failed to sign in");
       } else {

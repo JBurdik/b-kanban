@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { signUp } from "@/lib/auth-client";
+import { signUp, storeBearerToken } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -20,7 +20,18 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const result = await signUp.email({ name, email, password });
+      const result = await signUp.email(
+        { name, email, password },
+        {
+          onSuccess: (ctx) => {
+            // Store bearer token for Tauri/desktop app auth
+            const authToken = ctx.response.headers.get("set-auth-token");
+            if (authToken) {
+              storeBearerToken(authToken);
+            }
+          },
+        }
+      );
       if (result.error) {
         setError(result.error.message || "Failed to create account");
       } else {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { Avatar } from "@/components/Avatar";
-import { signOut } from "@/lib/auth-client";
+import { signOut, storeBearerToken } from "@/lib/auth-client";
 import { ThemePicker } from "@/components/ThemePicker";
 
 interface Props {
@@ -91,6 +91,7 @@ export function UserDropdown({ userName, userEmail, userImage, userId }: Props) 
             <button
               onClick={() => {
                 setIsOpen(false);
+                storeBearerToken(null); // Clear bearer token on sign out
                 signOut();
               }}
               className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-dark-hover transition-colors"

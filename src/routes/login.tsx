@@ -2,6 +2,9 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { signIn, storeBearerToken } from "@/lib/auth-client";
 
+// Detect if running in Tauri desktop app
+const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
+
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
@@ -34,7 +37,12 @@ function LoginPage() {
       if (result.error) {
         setError(result.error.message || "Failed to sign in");
       } else {
-        navigate({ to: "/boards" });
+        if (isTauri) {
+          // In Tauri, reload to pick up the new token in ConvexProvider
+          window.location.href = "/boards";
+        } else {
+          navigate({ to: "/boards" });
+        }
       }
     } catch {
       setError("An unexpected error occurred");

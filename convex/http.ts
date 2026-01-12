@@ -11,6 +11,8 @@ const allowedOrigins = [
   "https://bproductive.burdych.net",
   "https://kanban.burdych.net",
   "https://kanban-api.burdych.net",
+  "tauri://localhost", // Tauri v1 desktop app
+  "http://tauri.localhost", // Tauri v2 desktop app"
   process.env.SITE_URL,
 ].filter((origin): origin is string => !!origin);
 

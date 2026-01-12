@@ -45,6 +45,7 @@
   "devDependencies": {
     "@tanstack/router-devtools": "^1.93.1",
     "@tanstack/router-plugin": "^1.93.1",
+    "@tauri-apps/cli": "^2.9.6",
     "@tiptap/core": "^2.10.4",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.1",

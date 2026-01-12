@@ -24,7 +24,8 @@ const trustedOrigins = [
   "https://kanban-api.burdych.net",
   "https://kanban.burdych.net",
   "tauri://localhost", // Tauri v1 desktop app
-  "http://tauri.localhost", // Tauri v2 desktop app
+  "https://tauri.localhost", // Tauri v2 desktop app (https)
+  "http://tauri.localhost", // Tauri v2 desktop app (http)
   siteUrl,
   // Add any additional origins from TRUSTED_ORIGINS env var (comma-separated)
   ...(process.env.TRUSTED_ORIGINS?.split(",").map((o) => o.trim()) || []),

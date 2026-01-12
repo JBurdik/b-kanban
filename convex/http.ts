@@ -12,7 +12,8 @@ const allowedOrigins = [
   "https://kanban.burdych.net",
   "https://kanban-api.burdych.net",
   "tauri://localhost", // Tauri v1 desktop app
-  "http://tauri.localhost", // Tauri v2 desktop app"
+  "https://tauri.localhost", // Tauri v2 desktop app (https)
+  "http://tauri.localhost", // Tauri v2 desktop app (http)
   process.env.SITE_URL,
 ].filter((origin): origin is string => !!origin);
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -7,9 +7,10 @@ import { AttachmentList } from "./AttachmentList";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
-import { useAutoSave } from "@/hooks/useAutoSave";
+import { useCardFormState } from "@/hooks/useCardFormState";
 import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
-import type { Card, Column, BoardMember, Priority } from "@/lib/types";
+import { AUTO_SAVE_DELAY } from "@/lib/constants";
+import type { Card, Column, BoardMember } from "@/lib/types";
 
 interface KanbanColumnWithCards extends Column {
   cards: Card[];
@@ -24,47 +25,17 @@ interface Props {
   onClose: () => void;
 }
 
-interface CardData {
-  title: string;
-  content: string;
-  priority: Priority;
-  columnId: Id<"columns">;
-  assigneeId?: Id<"users">;
-  effort?: number;
-}
-
 export function CardModal({ card, columns, members = [], userEmail, onClose }: Props) {
-  const [title, setTitle] = useState(card.title);
-  const [content, setContent] = useState(card.content || "");
-  const [priority, setPriority] = useState<Priority>(card.priority);
-  const [columnId, setColumnId] = useState(card.columnId);
-  const [assigneeId, setAssigneeId] = useState<Id<"users"> | undefined>(card.assignee?.id);
-  const [effort, setEffort] = useState<number | undefined>(card.effort);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const updateCard = useMutation(api.cards.update);
   const deleteCard = useMutation(api.cards.remove);
   const { onImageUpload } = useEditorImageUpload(userEmail);
 
-  const handleSave = useCallback(
-    async (data: CardData) => {
-      await updateCard({
-        cardId: card._id,
-        title: data.title,
-        content: data.content,
-        priority: data.priority,
-        columnId: data.columnId,
-        assigneeId: data.assigneeId,
-        effort: data.effort,
-        currentUserEmail: userEmail,
-      });
-    },
-    [card._id, updateCard, userEmail]
-  );
-
-  const { isSaving } = useAutoSave({
-    data: { title, content, priority, columnId, assigneeId, effort },
-    originalData: {
+  // Use the new form state hook that tracks dirty fields and syncs with real-time updates
+  const { values, setField, getDirtyFields, hasChanges, markSaved } = useCardFormState({
+    serverData: {
       title: card.title,
       content: card.content || "",
       priority: card.priority,
@@ -72,8 +43,46 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
       assigneeId: card.assignee?.id,
       effort: card.effort,
     },
-    onSave: handleSave,
   });
+
+  // Auto-save with debounce - only save dirty fields
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!hasChanges) {
+      return;
+    }
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      const dirtyFields = getDirtyFields();
+
+      if (Object.keys(dirtyFields).length === 0) {
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        await updateCard({
+          cardId: card._id,
+          ...dirtyFields,
+          currentUserEmail: userEmail,
+        });
+        markSaved();
+      } finally {
+        setIsSaving(false);
+      }
+    }, AUTO_SAVE_DELAY);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [values, hasChanges, getDirtyFields, card._id, updateCard, userEmail, markSaved]);
 
   const handleDelete = async () => {
     if (confirm("Delete this card?")) {
@@ -94,8 +103,8 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
         <div>
           <input
             type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={values.title}
+            onChange={(e) => setField("title", e.target.value)}
             className="w-full bg-transparent text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-accent rounded px-2 -mx-2"
             placeholder="Card title"
           />
@@ -105,8 +114,8 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
         <div>
           <label className="block text-sm text-dark-muted mb-2">Status</label>
           <select
-            value={columnId}
-            onChange={(e) => setColumnId(e.target.value as Id<"columns">)}
+            value={values.columnId}
+            onChange={(e) => setField("columnId", e.target.value as Id<"columns">)}
             className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-dark-text text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {columns.map((col) => (
@@ -120,15 +129,15 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
         {/* Priority selector */}
         <div>
           <label className="block text-sm text-dark-muted mb-2">Priority</label>
-          <PrioritySelector value={priority} onChange={setPriority} />
+          <PrioritySelector value={values.priority} onChange={(p) => setField("priority", p)} />
         </div>
 
         {/* Assignee selector */}
         <div>
           <label className="block text-sm text-dark-muted mb-2">Assignee</label>
           <select
-            value={assigneeId || ""}
-            onChange={(e) => setAssigneeId(e.target.value ? (e.target.value as Id<"users">) : undefined)}
+            value={values.assigneeId || ""}
+            onChange={(e) => setField("assigneeId", e.target.value ? (e.target.value as Id<"users">) : undefined)}
             className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-dark-text text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="">Unassigned</option>
@@ -150,8 +159,8 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
             type="number"
             min="0"
             step="0.5"
-            value={effort ?? ""}
-            onChange={(e) => setEffort(e.target.value ? parseFloat(e.target.value) : undefined)}
+            value={values.effort ?? ""}
+            onChange={(e) => setField("effort", e.target.value ? parseFloat(e.target.value) : undefined)}
             className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-dark-text text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="e.g., 2, 4, 8"
           />
@@ -161,8 +170,8 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
         <div>
           <label className="block text-sm text-dark-muted mb-2">Description</label>
           <RichTextEditor
-            content={content}
-            onChange={setContent}
+            content={values.content}
+            onChange={(c) => setField("content", c)}
             placeholder="Add a description..."
             onImageUpload={onImageUpload}
           />

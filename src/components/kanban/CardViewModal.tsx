@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
@@ -33,6 +33,13 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentColumnId, setCurrentColumnId] = useState(card.columnId);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Sync local state when card prop changes (from real-time updates by other users)
+  useEffect(() => {
+    if (!isUpdating) {
+      setCurrentColumnId(card.columnId);
+    }
+  }, [card.columnId, isUpdating]);
 
   const canEdit = checkCanEdit(userRole);
   const currentColumn = columns.find((c) => c._id === currentColumnId);

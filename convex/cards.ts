@@ -246,13 +246,65 @@ export const update = mutation({
 });
 
 /**
- * Delete a card
+ * Archive a card (soft delete)
  */
 export const remove = mutation({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
+
+    await ctx.db.patch(args.cardId, {
+      isArchived: true,
+      archivedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Restore an archived card
+ */
+export const restore = mutation({
+  args: { cardId: v.id("cards") },
+  handler: async (ctx, args) => {
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
+    if (!card.isArchived) throw new Error("Card is not archived");
+
+    // Get max position in the original column to place card at the end
+    const cardsInColumn = await ctx.db
+      .query("cards")
+      .withIndex("by_column", (q) => q.eq("columnId", card.columnId))
+      .filter((q) => q.neq(q.field("isArchived"), true))
+      .collect();
+
+    const maxPosition = cardsInColumn.length > 0
+      ? Math.max(...cardsInColumn.map(c => c.position)) + 1
+      : 0;
+
+    await ctx.db.patch(args.cardId, {
+      isArchived: false,
+      archivedAt: undefined,
+      position: maxPosition,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Permanently delete an archived card
+ */
+export const permanentDelete = mutation({
+  args: { cardId: v.id("cards") },
+  handler: async (ctx, args) => {
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
+    if (!card.isArchived) throw new Error("Only archived cards can be permanently deleted");
 
     // Delete attachments
     const attachments = await ctx.db
@@ -265,9 +317,103 @@ export const remove = mutation({
       await ctx.db.delete(att._id);
     }
 
+    // Delete comments
+    const comments = await ctx.db
+      .query("comments")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .collect();
+
+    for (const comment of comments) {
+      await ctx.db.delete(comment._id);
+    }
+
+    // Delete notifications related to this card
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .collect();
+
+    for (const notification of notifications) {
+      await ctx.db.delete(notification._id);
+    }
+
+    // Delete document links
+    const docLinks = await ctx.db
+      .query("documentLinks")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .collect();
+
+    for (const link of docLinks) {
+      await ctx.db.delete(link._id);
+    }
+
+    // Delete time entries linked to this card
+    const timeEntries = await ctx.db
+      .query("timeEntries")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .collect();
+
+    for (const entry of timeEntries) {
+      await ctx.db.delete(entry._id);
+    }
+
     await ctx.db.delete(args.cardId);
 
     return { success: true };
+  },
+});
+
+/**
+ * List all archived cards for a board
+ */
+export const listArchived = query({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, args) => {
+    // Get all columns for this board
+    const columns = await ctx.db
+      .query("columns")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    const columnIds = columns.map(c => c._id);
+    const columnMap = new Map(columns.map(c => [c._id, c.name]));
+
+    // Get all archived cards from these columns
+    const archivedCards = [];
+    for (const columnId of columnIds) {
+      const cards = await ctx.db
+        .query("cards")
+        .withIndex("by_column", (q) => q.eq("columnId", columnId))
+        .filter((q) => q.eq(q.field("isArchived"), true))
+        .collect();
+
+      for (const card of cards) {
+        // Get assignee info
+        let assignee = null;
+        if (card.assigneeId) {
+          const assigneeUser = await ctx.db.get(card.assigneeId);
+          if (assigneeUser) {
+            assignee = {
+              id: assigneeUser._id,
+              name: assigneeUser.name,
+              email: assigneeUser.email,
+              image: assigneeUser.image,
+            };
+          }
+        }
+
+        archivedCards.push({
+          ...card,
+          assignee,
+          columnName: columnMap.get(card.columnId) || "Unknown",
+        });
+      }
+    }
+
+    // Sort by archivedAt descending (most recently archived first)
+    archivedCards.sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
+
+    return archivedCards;
   },
 });
 

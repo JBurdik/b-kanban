@@ -104,6 +104,8 @@ export default defineSchema({
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()), // Time effort in hours
+    isArchived: v.optional(v.boolean()),
+    archivedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

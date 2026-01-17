@@ -34,6 +34,8 @@ export interface Card {
   effort?: number;
   assignee?: User | null;
   dueDate?: number;
+  isArchived?: boolean;
+  archivedAt?: number;
 }
 
 export interface CardWithColumn extends Card {
@@ -116,4 +118,12 @@ export interface Notification {
   createdAt: number;
   cardId?: Id<"cards">;
   boardId?: Id<"boards">;
+}
+
+// ============================================================================
+// Archived Card Types
+// ============================================================================
+
+export interface ArchivedCard extends Card {
+  columnName: string;
 }

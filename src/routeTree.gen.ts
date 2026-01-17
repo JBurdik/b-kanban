@@ -20,8 +20,10 @@ import { Route as BoardsBoardIdRouteImport } from './routes/boards.$boardId'
 import { Route as BoardsBoardIdIndexRouteImport } from './routes/boards.$boardId.index'
 import { Route as BoardsBoardIdSecretsRouteImport } from './routes/boards.$boardId.secrets'
 import { Route as BoardsBoardIdDocsRouteImport } from './routes/boards.$boardId.docs'
+import { Route as BoardsBoardIdArchiveRouteImport } from './routes/boards.$boardId.archive'
 import { Route as BoardsBoardIdSecretsIndexRouteImport } from './routes/boards.$boardId.secrets.index'
 import { Route as BoardsBoardIdDocsIndexRouteImport } from './routes/boards.$boardId.docs.index'
+import { Route as BoardsBoardIdArchiveIndexRouteImport } from './routes/boards.$boardId.archive.index'
 import { Route as BoardsBoardIdDocsDocIdRouteImport } from './routes/boards.$boardId.docs.$docId'
 import { Route as BoardsBoardIdCardsCardSlugRouteImport } from './routes/boards.$boardId.cards.$cardSlug'
 
@@ -80,6 +82,11 @@ const BoardsBoardIdDocsRoute = BoardsBoardIdDocsRouteImport.update({
   path: '/docs',
   getParentRoute: () => BoardsBoardIdRoute,
 } as any)
+const BoardsBoardIdArchiveRoute = BoardsBoardIdArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
+  getParentRoute: () => BoardsBoardIdRoute,
+} as any)
 const BoardsBoardIdSecretsIndexRoute =
   BoardsBoardIdSecretsIndexRouteImport.update({
     id: '/',
@@ -91,6 +98,12 @@ const BoardsBoardIdDocsIndexRoute = BoardsBoardIdDocsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BoardsBoardIdDocsRoute,
 } as any)
+const BoardsBoardIdArchiveIndexRoute =
+  BoardsBoardIdArchiveIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BoardsBoardIdArchiveRoute,
+  } as any)
 const BoardsBoardIdDocsDocIdRoute = BoardsBoardIdDocsDocIdRouteImport.update({
   id: '/$docId',
   path: '/$docId',
@@ -112,11 +125,13 @@ export interface FileRoutesByFullPath {
   '/time': typeof TimeRoute
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
+  '/boards/$boardId/archive': typeof BoardsBoardIdArchiveRouteWithChildren
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/archive/': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
 }
@@ -130,6 +145,7 @@ export interface FileRoutesByTo {
   '/boards/$boardId': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/archive': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsIndexRoute
 }
@@ -143,11 +159,13 @@ export interface FileRoutesById {
   '/time': typeof TimeRoute
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
   '/boards/': typeof BoardsIndexRoute
+  '/boards/$boardId/archive': typeof BoardsBoardIdArchiveRouteWithChildren
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/archive/': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
 }
@@ -162,11 +180,13 @@ export interface FileRouteTypes {
     | '/time'
     | '/boards/$boardId'
     | '/boards/'
+    | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/secrets'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/archive/'
     | '/boards/$boardId/docs/'
     | '/boards/$boardId/secrets/'
   fileRoutesByTo: FileRoutesByTo
@@ -180,6 +200,7 @@ export interface FileRouteTypes {
     | '/boards/$boardId'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/secrets'
   id:
@@ -192,11 +213,13 @@ export interface FileRouteTypes {
     | '/time'
     | '/boards/$boardId'
     | '/boards/'
+    | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/secrets'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/archive/'
     | '/boards/$boardId/docs/'
     | '/boards/$boardId/secrets/'
   fileRoutesById: FileRoutesById
@@ -289,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdDocsRouteImport
       parentRoute: typeof BoardsBoardIdRoute
     }
+    '/boards/$boardId/archive': {
+      id: '/boards/$boardId/archive'
+      path: '/archive'
+      fullPath: '/boards/$boardId/archive'
+      preLoaderRoute: typeof BoardsBoardIdArchiveRouteImport
+      parentRoute: typeof BoardsBoardIdRoute
+    }
     '/boards/$boardId/secrets/': {
       id: '/boards/$boardId/secrets/'
       path: '/'
@@ -302,6 +332,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/boards/$boardId/docs/'
       preLoaderRoute: typeof BoardsBoardIdDocsIndexRouteImport
       parentRoute: typeof BoardsBoardIdDocsRoute
+    }
+    '/boards/$boardId/archive/': {
+      id: '/boards/$boardId/archive/'
+      path: '/'
+      fullPath: '/boards/$boardId/archive/'
+      preLoaderRoute: typeof BoardsBoardIdArchiveIndexRouteImport
+      parentRoute: typeof BoardsBoardIdArchiveRoute
     }
     '/boards/$boardId/docs/$docId': {
       id: '/boards/$boardId/docs/$docId'
@@ -319,6 +356,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface BoardsBoardIdArchiveRouteChildren {
+  BoardsBoardIdArchiveIndexRoute: typeof BoardsBoardIdArchiveIndexRoute
+}
+
+const BoardsBoardIdArchiveRouteChildren: BoardsBoardIdArchiveRouteChildren = {
+  BoardsBoardIdArchiveIndexRoute: BoardsBoardIdArchiveIndexRoute,
+}
+
+const BoardsBoardIdArchiveRouteWithChildren =
+  BoardsBoardIdArchiveRoute._addFileChildren(BoardsBoardIdArchiveRouteChildren)
 
 interface BoardsBoardIdDocsRouteChildren {
   BoardsBoardIdDocsDocIdRoute: typeof BoardsBoardIdDocsDocIdRoute
@@ -345,6 +393,7 @@ const BoardsBoardIdSecretsRouteWithChildren =
   BoardsBoardIdSecretsRoute._addFileChildren(BoardsBoardIdSecretsRouteChildren)
 
 interface BoardsBoardIdRouteChildren {
+  BoardsBoardIdArchiveRoute: typeof BoardsBoardIdArchiveRouteWithChildren
   BoardsBoardIdDocsRoute: typeof BoardsBoardIdDocsRouteWithChildren
   BoardsBoardIdSecretsRoute: typeof BoardsBoardIdSecretsRouteWithChildren
   BoardsBoardIdIndexRoute: typeof BoardsBoardIdIndexRoute
@@ -352,6 +401,7 @@ interface BoardsBoardIdRouteChildren {
 }
 
 const BoardsBoardIdRouteChildren: BoardsBoardIdRouteChildren = {
+  BoardsBoardIdArchiveRoute: BoardsBoardIdArchiveRouteWithChildren,
   BoardsBoardIdDocsRoute: BoardsBoardIdDocsRouteWithChildren,
   BoardsBoardIdSecretsRoute: BoardsBoardIdSecretsRouteWithChildren,
   BoardsBoardIdIndexRoute: BoardsBoardIdIndexRoute,

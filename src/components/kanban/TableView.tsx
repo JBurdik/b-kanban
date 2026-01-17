@@ -20,9 +20,16 @@ interface Board {
 interface Props {
   board: Board;
   filter?: FilterOption;
+  searchQuery?: string;
   currentUserId?: string;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
+}
+
+// Helper to strip HTML tags from TipTap content
+function stripHtml(html: string | undefined): string {
+  if (!html) return "";
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 interface TableCard extends Card {
@@ -32,6 +39,7 @@ interface TableCard extends Card {
 export function TableView({
   board,
   filter = "all",
+  searchQuery = "",
   currentUserId,
   onCardClick,
   onCardDoubleClick,
@@ -39,15 +47,26 @@ export function TableView({
   // Flatten all cards with their column info and apply filter
   const cards = useMemo(() => {
     const allCards: TableCard[] = [];
+    const searchLower = searchQuery.toLowerCase().trim();
 
     board.columns.forEach((column) => {
       column.cards.forEach((card) => {
-        // Apply filter
+        // Apply assignee filter
         if (filter === "my-tasks" && card.assignee?.id !== currentUserId) {
           return;
         }
         if (filter === "unassigned" && card.assignee) {
           return;
+        }
+
+        // Apply search filter
+        if (searchLower) {
+          const titleMatch = card.title.toLowerCase().includes(searchLower);
+          const slugMatch = card.slug.toLowerCase().includes(searchLower);
+          const contentMatch = stripHtml(card.content).toLowerCase().includes(searchLower);
+          if (!titleMatch && !slugMatch && !contentMatch) {
+            return;
+          }
         }
 
         allCards.push({
@@ -58,7 +77,7 @@ export function TableView({
     });
 
     return allCards;
-  }, [board.columns, filter, currentUserId]);
+  }, [board.columns, filter, searchQuery, currentUserId]);
 
   // Sort by column position, then card position
   const sortedCards = useMemo(() => {

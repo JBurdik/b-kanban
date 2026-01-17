@@ -105,6 +105,7 @@ export const get = query({
         const cards = await ctx.db
           .query("cards")
           .withIndex("by_column", (q) => q.eq("columnId", column._id))
+          .filter((q) => q.neq(q.field("isArchived"), true))
           .collect();
 
         cards.sort((a, b) => a.position - b.position);

@@ -10,6 +10,7 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { TableView } from "@/components/kanban/TableView";
 import { BoardMembers } from "@/components/BoardMembers";
 import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
+import { SearchInput } from "@/components/kanban/SearchInput";
 import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserDropdown } from "@/components/UserDropdown";
@@ -29,6 +30,7 @@ function BoardPage() {
   const [showMembers, setShowMembers] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [filter, setFilter] = useState<FilterOption>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -312,6 +314,12 @@ function BoardPage() {
             onFilterChange={setFilter}
             taskCounts={taskCounts}
           />
+
+          {/* Search input */}
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
         </div>
 
         <div className="flex items-center gap-2">
@@ -366,6 +374,7 @@ function BoardPage() {
           <KanbanBoard
             board={board}
             filter={filter}
+            searchQuery={searchQuery}
             currentUserId={currentUser?.id}
             onCardClick={handleCardClick}
             onCardDoubleClick={handleCardDoubleClick}
@@ -374,6 +383,7 @@ function BoardPage() {
           <TableView
             board={board}
             filter={filter}
+            searchQuery={searchQuery}
             currentUserId={currentUser?.id}
             onCardClick={handleCardClick}
             onCardDoubleClick={handleCardDoubleClick}

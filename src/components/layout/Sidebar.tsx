@@ -166,6 +166,32 @@ export function Sidebar({ isCollapsed, onToggle, userEmail }: SidebarProps) {
                         </svg>
                         <span>Secrets</span>
                       </Link>
+                      {/* Archive link */}
+                      <Link
+                        to="/boards/$boardId/archive"
+                        params={{ boardId: board._id }}
+                        className={clsx(
+                          "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+                          location.pathname === `/boards/${board._id}/archive`
+                            ? "bg-accent/10 text-accent"
+                            : "text-dark-muted hover:bg-dark-hover hover:text-dark-text",
+                        )}
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                          />
+                        </svg>
+                        <span>Archive</span>
+                      </Link>
                     </div>
                   )}
                 </div>

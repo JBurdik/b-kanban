@@ -6,6 +6,7 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { AttachmentList } from "./AttachmentList";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
 import { useCardFormState } from "@/hooks/useCardFormState";
 import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
@@ -27,6 +28,7 @@ interface Props {
 
 export function CardModal({ card, columns, members = [], userEmail, onClose }: Props) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const updateCard = useMutation(api.cards.update);
@@ -85,14 +87,13 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
   }, [values, hasChanges, getDirtyFields, card._id, updateCard, userEmail, markSaved]);
 
   const handleDelete = async () => {
-    if (confirm("Delete this card?")) {
-      setIsDeleting(true);
-      try {
-        await deleteCard({ cardId: card._id });
-        onClose();
-      } finally {
-        setIsDeleting(false);
-      }
+    setIsDeleting(true);
+    try {
+      await deleteCard({ cardId: card._id });
+      setShowDeleteConfirm(false);
+      onClose();
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -185,8 +186,8 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
       </div>
 
       <ModalFooter className="justify-between">
-        <Button variant="danger" onClick={handleDelete} loading={isDeleting}>
-          Delete card
+        <Button variant="danger" onClick={() => setShowDeleteConfirm(true)} loading={isDeleting}>
+          Archive card
         </Button>
         <div className="flex items-center gap-2">
           {isSaving && <span className="text-dark-muted text-sm">Saving...</span>}
@@ -195,6 +196,17 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
           </Button>
         </div>
       </ModalFooter>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Archive Card"
+        message={`Are you sure you want to archive "${card.title}"? You can restore it from the Archive page.`}
+        confirmText="Archive"
+        variant="danger"
+        loading={isDeleting}
+      />
     </Modal>
   );
 }

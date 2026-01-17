@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "convex/react";
@@ -6,6 +7,7 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { Avatar } from "@/components/Avatar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { stripHtml, formatDate } from "@/utils/formatting";
 import type { Card } from "@/lib/types";
 import clsx from "clsx";
@@ -26,6 +28,8 @@ export function KanbanCard({
   onCardDoubleClick,
 }: Props) {
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const {
     attributes,
@@ -43,10 +47,18 @@ export function KanbanCard({
 
   const deleteCard = useMutation(api.cards.remove);
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Delete this card?")) {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
       await deleteCard({ cardId: card._id });
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -104,7 +116,7 @@ export function KanbanCard({
           </div>
           {!isOverlay && (
             <button
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               className="text-dark-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <svg
@@ -149,6 +161,17 @@ export function KanbanCard({
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        title="Archive Card"
+        message={`Are you sure you want to archive "${card.title}"? You can restore it from the Archive page.`}
+        confirmText="Archive"
+        variant="danger"
+        loading={isDeleting}
+      />
     </>
   );
 }

@@ -31,14 +31,22 @@ interface Board {
 interface Props {
   board: Board;
   filter?: FilterOption;
+  searchQuery?: string;
   currentUserId?: string;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
 }
 
+// Helper to strip HTML tags from TipTap content
+function stripHtml(html: string | undefined): string {
+  if (!html) return "";
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 export function KanbanBoard({
   board,
   filter = "all",
+  searchQuery = "",
   currentUserId,
   onCardClick,
   onCardDoubleClick,
@@ -52,25 +60,35 @@ export function KanbanBoard({
 
   const createColumn = useMutation(api.columns.create);
 
-  // Apply filter to cards while keeping column structure
+  // Apply filter and search to cards while keeping column structure
   const filteredColumns = useMemo(() => {
-    if (filter === "all" || !currentUserId) {
-      return board.columns || [];
-    }
+    const searchLower = searchQuery.toLowerCase().trim();
 
     return (board.columns || []).map((column) => ({
       ...column,
       cards: column.cards.filter((card) => {
-        if (filter === "my-tasks") {
-          return card.assignee?.id === currentUserId;
+        // Apply assignee filter
+        if (filter === "my-tasks" && card.assignee?.id !== currentUserId) {
+          return false;
         }
-        if (filter === "unassigned") {
-          return !card.assignee;
+        if (filter === "unassigned" && card.assignee) {
+          return false;
         }
+
+        // Apply search filter
+        if (searchLower) {
+          const titleMatch = card.title.toLowerCase().includes(searchLower);
+          const slugMatch = card.slug.toLowerCase().includes(searchLower);
+          const contentMatch = stripHtml(card.content).toLowerCase().includes(searchLower);
+          if (!titleMatch && !slugMatch && !contentMatch) {
+            return false;
+          }
+        }
+
         return true;
       }),
     }));
-  }, [board.columns, filter, currentUserId]);
+  }, [board.columns, filter, searchQuery, currentUserId]);
 
   const {
     columns,

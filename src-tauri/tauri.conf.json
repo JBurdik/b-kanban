@@ -3,6 +3,7 @@
   "productName": "B Productive",
   "version": "0.1.0",
   "identifier": "net.burdych.bproductive",
+
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -23,7 +24,11 @@
       "csp": null
     }
   },
+
   "bundle": {
+    "macOS": {
+      "signingIdentity": "-"
+    },
     "active": true,
     "targets": "all",
     "icon": [

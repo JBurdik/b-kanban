@@ -20,6 +20,19 @@ export interface User {
 }
 
 // ============================================================================
+// Label Types
+// ============================================================================
+
+export interface Label {
+  _id: Id<"labels">;
+  boardId: Id<"boards">;
+  name: string;
+  color: string;
+  textColor: string;
+  applyToCardBg: boolean;
+}
+
+// ============================================================================
 // Card Types
 // ============================================================================
 
@@ -36,6 +49,7 @@ export interface Card {
   dueDate?: number;
   isArchived?: boolean;
   archivedAt?: number;
+  labels?: Label[];
 }
 
 export interface CardWithColumn extends Card {

@@ -124,7 +124,29 @@ export const get = query({
                 };
               }
             }
-            return { ...card, assignee };
+
+            // Fetch labels for this card
+            const cardLabels = await ctx.db
+              .query("cardLabels")
+              .withIndex("by_card", (q) => q.eq("cardId", card._id))
+              .collect();
+
+            const labelPromises = await Promise.all(
+              cardLabels.map(async (cl) => {
+                const label = await ctx.db.get(cl.labelId);
+                return label;
+              })
+            );
+
+            const labels = labelPromises.filter(
+              (l): l is NonNullable<typeof l> => l !== null
+            );
+
+            return {
+              ...card,
+              assignee,
+              labels,
+            };
           }),
         );
 

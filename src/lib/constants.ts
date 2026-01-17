@@ -78,3 +78,18 @@ export const MODAL_SIZES = {
   xl: "max-w-2xl",
   full: "max-w-none w-full h-full m-0 rounded-none",
 } as const;
+
+// ============================================================================
+// Label Colors
+// ============================================================================
+
+export const LABEL_COLORS = [
+  { bg: "bg-red-500", text: "text-white", name: "Red" },
+  { bg: "bg-orange-500", text: "text-white", name: "Orange" },
+  { bg: "bg-amber-500", text: "text-black", name: "Yellow" },
+  { bg: "bg-emerald-500", text: "text-white", name: "Green" },
+  { bg: "bg-cyan-500", text: "text-white", name: "Cyan" },
+  { bg: "bg-blue-500", text: "text-white", name: "Blue" },
+  { bg: "bg-violet-500", text: "text-white", name: "Purple" },
+  { bg: "bg-pink-500", text: "text-white", name: "Pink" },
+] as const;

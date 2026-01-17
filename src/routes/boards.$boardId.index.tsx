@@ -12,6 +12,7 @@ import { BoardMembers } from "@/components/BoardMembers";
 import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
 import { SearchInput } from "@/components/kanban/SearchInput";
 import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
+import { LabelManager } from "@/components/labels/LabelManager";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserDropdown } from "@/components/UserDropdown";
 import { BoardIcon } from "@/components/BoardIcon";
@@ -29,6 +30,7 @@ function BoardPage() {
   const { data: authSession } = useSession();
   const [showMembers, setShowMembers] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [showLabelManager, setShowLabelManager] = useState(false);
   const [filter, setFilter] = useState<FilterOption>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("board");
@@ -323,6 +325,29 @@ function BoardPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Labels button (for admin/owner) */}
+          {(board.userRole === "owner" || board.userRole === "admin") && (
+            <button
+              onClick={() => setShowLabelManager(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                />
+              </svg>
+              <span className="text-sm">Labels</span>
+            </button>
+          )}
+
           {/* Secrets link */}
           <Link
             to="/boards/$boardId/secrets"
@@ -409,6 +434,15 @@ function BoardPage() {
           userEmail={userEmail}
           editMode={editMode}
           onClose={handleClosePanel}
+        />
+      )}
+
+      {/* Label manager modal */}
+      {showLabelManager && (
+        <LabelManager
+          boardId={boardId as Id<"boards">}
+          userEmail={userEmail}
+          onClose={() => setShowLabelManager(false)}
         />
       )}
     </div>

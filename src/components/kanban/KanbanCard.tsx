@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "convex/react";
@@ -7,6 +7,7 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { Avatar } from "@/components/Avatar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
+import { LabelBadge } from "@/components/ui/LabelBadge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { stripHtml, formatDate } from "@/utils/formatting";
 import type { Card } from "@/lib/types";
@@ -46,6 +47,11 @@ export function KanbanCard({
   };
 
   const deleteCard = useMutation(api.cards.remove);
+
+  // Find label with applyToCardBg for background styling
+  const bgLabel = useMemo(() => {
+    return card.labels?.find((l) => l.applyToCardBg);
+  }, [card.labels]);
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -102,11 +108,16 @@ export function KanbanCard({
           }
         }}
         className={clsx(
-          "group bg-dark-bg border border-dark-border rounded-lg p-3 cursor-pointer hover:border-dark-hover transition-colors card-focusable",
+          "group bg-dark-bg border border-dark-border rounded-lg p-3 cursor-pointer hover:border-dark-hover transition-colors card-focusable relative overflow-hidden",
           isDragging && "opacity-50",
           isOverlay && "shadow-xl ring-2 ring-accent",
         )}
       >
+        {/* Colored left accent for cards with applyToCardBg label */}
+        {bgLabel && (
+          <div className={clsx("absolute left-0 top-0 bottom-0 w-1", bgLabel.color)} />
+        )}
+
         <div className="flex items-start justify-between gap-2">
           <div>
             <span className="text-xs text-dark-muted font-mono">
@@ -135,6 +146,20 @@ export function KanbanCard({
             </button>
           )}
         </div>
+
+        {/* Labels */}
+        {card.labels && card.labels.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {card.labels.slice(0, 3).map((label) => (
+              <LabelBadge key={label._id} label={label} size="sm" />
+            ))}
+            {card.labels.length > 3 && (
+              <span className="text-xs text-dark-muted px-1.5 py-0.5">
+                +{card.labels.length - 3}
+              </span>
+            )}
+          </div>
+        )}
 
         {card.content && (
           <p className="text-xs text-dark-muted mt-2 line-clamp-2">

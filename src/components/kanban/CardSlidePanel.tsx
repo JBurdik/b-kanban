@@ -10,10 +10,13 @@ import type {
   BoardMember,
   BoardRole,
   Priority,
+  Label,
 } from "@/lib/types";
 import { CardContent } from "./CardContent";
 import { CardSidebar } from "./CardSidebar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
+import { LabelBadge } from "@/components/ui/LabelBadge";
+import { LabelManager } from "@/components/labels/LabelManager";
 import { Avatar } from "@/components/Avatar";
 
 const MIN_PANEL_WIDTH = 400;
@@ -25,6 +28,7 @@ interface CardWithColumn extends Card {
     id: Id<"columns">;
     name: string;
   };
+  labels?: Label[];
 }
 
 interface Board {
@@ -71,6 +75,7 @@ export function CardSlidePanel({
   const [isExpanded, setIsExpanded] = useState(false);
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [showLabelManager, setShowLabelManager] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const updateCard = useMutation(api.cards.update);
@@ -218,6 +223,16 @@ export function CardSlidePanel({
               {card.slug}
             </span>
             <PriorityBadge priority={priority} size="sm" />
+            {card.labels && card.labels.length > 0 && (
+              <div className="flex items-center gap-1">
+                {card.labels.slice(0, 2).map((label) => (
+                  <LabelBadge key={label._id} label={label} size="sm" />
+                ))}
+                {card.labels.length > 2 && (
+                  <span className="text-xs text-dark-muted">+{card.labels.length - 2}</span>
+                )}
+              </div>
+            )}
             {isSaving && (
               <span className="text-xs text-dark-muted animate-pulse">
                 Saving...
@@ -325,6 +340,9 @@ export function CardSlidePanel({
                 cardTitle={title}
                 userEmail={userEmail}
                 boardId={board._id}
+                labels={card.labels}
+                userRole={board.userRole}
+                onOpenLabelManager={() => setShowLabelManager(true)}
               />
             </>
           ) : (
@@ -412,6 +430,20 @@ export function CardSlidePanel({
                     </h3>
                     <PriorityBadge priority={priority} />
                   </div>
+
+                  {/* Labels */}
+                  {card.labels && card.labels.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-dark-muted uppercase tracking-wide mb-2">
+                        Labels
+                      </h3>
+                      <div className="flex flex-wrap gap-1">
+                        {card.labels.map((label) => (
+                          <LabelBadge key={label._id} label={label} size="sm" />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Assignee */}
                   <div>
@@ -509,6 +541,14 @@ export function CardSlidePanel({
             </div>
           )}
         </div>
+
+        {showLabelManager && (
+          <LabelManager
+            boardId={board._id}
+            userEmail={userEmail}
+            onClose={() => setShowLabelManager(false)}
+          />
+        )}
       </div>
     </>
   );

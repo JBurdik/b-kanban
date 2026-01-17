@@ -4,9 +4,10 @@ import { Avatar } from "@/components/Avatar";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
 import { StatusSelect } from "@/components/ui/StatusSelect";
 import { AssigneeSelect } from "@/components/ui/AssigneeSelect";
+import { LabelSelector } from "@/components/labels/LabelSelector";
 import { LinkedDocuments } from "./LinkedDocuments";
 import { PRIORITY_CONFIG } from "@/lib/constants";
-import type { Priority, Column, BoardMember } from "@/lib/types";
+import type { Priority, Column, BoardMember, Label, BoardRole } from "@/lib/types";
 import { formatDateLong } from "@/utils/formatting";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { formatTimerDisplay } from "@/lib/timeUtils";
@@ -32,6 +33,10 @@ interface Props {
   userEmail?: string;
   // Board ID for linked documents
   boardId?: Id<"boards">;
+  // Labels props
+  labels?: Label[];
+  userRole?: BoardRole;
+  onOpenLabelManager?: () => void;
 }
 
 export function CardSidebar({
@@ -53,6 +58,9 @@ export function CardSidebar({
   cardTitle,
   userEmail,
   boardId,
+  labels,
+  userRole,
+  onOpenLabelManager,
 }: Props) {
   const {
     activeTimer,
@@ -109,6 +117,24 @@ export function CardSidebar({
           </span>
         )}
       </div>
+
+      {/* Labels */}
+      {cardId && boardId && (
+        <div className="mb-4">
+          <label className="block text-xs text-dark-muted mb-1">Labels</label>
+          <LabelSelector
+            boardId={boardId}
+            cardId={cardId}
+            currentLabels={labels || []}
+            userEmail={userEmail}
+            onOpenManager={
+              (userRole === "owner" || userRole === "admin") && onOpenLabelManager
+                ? onOpenLabelManager
+                : undefined
+            }
+          />
+        </div>
+      )}
 
       {/* Assignee */}
       <div className="mb-4">

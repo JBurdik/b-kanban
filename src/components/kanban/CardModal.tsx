@@ -8,6 +8,8 @@ import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
+import { LabelSelector } from "@/components/labels/LabelSelector";
+import { LabelManager } from "@/components/labels/LabelManager";
 import { useCardFormState } from "@/hooks/useCardFormState";
 import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
 import { AUTO_SAVE_DELAY } from "@/lib/constants";
@@ -23,12 +25,14 @@ interface Props {
   columns: KanbanColumnWithCards[];
   members?: BoardMember[];
   userEmail?: string;
+  userRole?: "owner" | "admin" | "member";
   onClose: () => void;
 }
 
-export function CardModal({ card, columns, members = [], userEmail, onClose }: Props) {
+export function CardModal({ card, boardId, columns, members = [], userEmail, userRole, onClose }: Props) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLabelManager, setShowLabelManager] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const updateCard = useMutation(api.cards.update);
@@ -133,6 +137,22 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
           <PrioritySelector value={values.priority} onChange={(p) => setField("priority", p)} />
         </div>
 
+        {/* Labels */}
+        <div>
+          <label className="block text-sm text-dark-muted mb-2">Labels</label>
+          <LabelSelector
+            boardId={boardId}
+            cardId={card._id}
+            currentLabels={card.labels || []}
+            userEmail={userEmail}
+            onOpenManager={
+              userRole === "owner" || userRole === "admin"
+                ? () => setShowLabelManager(true)
+                : undefined
+            }
+          />
+        </div>
+
         {/* Assignee selector */}
         <div>
           <label className="block text-sm text-dark-muted mb-2">Assignee</label>
@@ -207,6 +227,14 @@ export function CardModal({ card, columns, members = [], userEmail, onClose }: P
         variant="danger"
         loading={isDeleting}
       />
+
+      {showLabelManager && (
+        <LabelManager
+          boardId={boardId}
+          userEmail={userEmail}
+          onClose={() => setShowLabelManager(false)}
+        />
+      )}
     </Modal>
   );
 }

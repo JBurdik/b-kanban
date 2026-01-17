@@ -212,6 +212,29 @@ export default defineSchema({
   })
     .index("by_card", ["cardId"])
     .index("by_document", ["documentId"]),
+  // ============================================
+  // Labels Tables
+  // ============================================
+
+  // Labels table - board-specific labels
+  labels: defineTable({
+    boardId: v.id("boards"),
+    name: v.string(),
+    color: v.string(), // Tailwind bg class e.g., "bg-blue-500"
+    textColor: v.string(), // Tailwind text class e.g., "text-white"
+    applyToCardBg: v.boolean(), // If true, cards with this label get colored bg
+    createdAt: v.number(),
+  }).index("by_board", ["boardId"]),
+
+  // Junction table for card-label many-to-many
+  cardLabels: defineTable({
+    cardId: v.id("cards"),
+    labelId: v.id("labels"),
+    createdAt: v.number(),
+  })
+    .index("by_card", ["cardId"])
+    .index("by_label", ["labelId"]),
+
   // Secrets Table - E2E Encrypted
   // ============================================
 

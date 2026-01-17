@@ -17,6 +17,7 @@ import type * as comments from "../comments.js";
 import type * as documentLinks from "../documentLinks.js";
 import type * as documents from "../documents.js";
 import type * as http from "../http.js";
+import type * as labels from "../labels.js";
 import type * as lib_rbac from "../lib/rbac.js";
 import type * as members from "../members.js";
 import type * as notifications from "../notifications.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   documentLinks: typeof documentLinks;
   documents: typeof documents;
   http: typeof http;
+  labels: typeof labels;
   "lib/rbac": typeof lib_rbac;
   members: typeof members;
   notifications: typeof notifications;

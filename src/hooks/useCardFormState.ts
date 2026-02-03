@@ -5,7 +5,7 @@ import type { Priority } from "@/lib/types";
 export interface CardFormData {
   title: string;
   content: string;
-  priority: Priority;
+  priority?: Priority;
   columnId: Id<"columns">;
   assigneeId?: Id<"users">;
   effort?: number;

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import { useCardFormState } from "@/hooks/useCardFormState";
 import { canEdit as checkCanEdit } from "@/lib/permissions";
 import type {
   Card,
@@ -15,6 +16,9 @@ import type {
 import { CardContent } from "./CardContent";
 import { CardSidebar } from "./CardSidebar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
+import { PrioritySelector } from "@/components/ui/PrioritySelector";
+import { StatusSelect } from "@/components/ui/StatusSelect";
+import { AssigneeSelect } from "@/components/ui/AssigneeSelect";
 import { LabelBadge } from "@/components/ui/LabelBadge";
 import { LabelManager } from "@/components/labels/LabelManager";
 import { Avatar } from "@/components/Avatar";
@@ -50,7 +54,7 @@ interface Props {
 interface CardData {
   title: string;
   content: string;
-  priority: Priority;
+  priority?: Priority;
   columnId: Id<"columns">;
   assigneeId?: Id<"users">;
   effort?: number;
@@ -63,14 +67,18 @@ export function CardSlidePanel({
   editMode = false,
   onClose,
 }: Props) {
-  const [title, setTitle] = useState(card.title);
-  const [content, setContent] = useState(card.content || "");
-  const [priority, setPriority] = useState(card.priority);
-  const [columnId, setColumnId] = useState(card.columnId);
-  const [assigneeId, setAssigneeId] = useState<Id<"users"> | undefined>(
-    card.assignee?.id,
-  );
-  const [effort, setEffort] = useState<number | undefined>(card.effort);
+  // Use the useCardFormState hook for proper multi-user editing
+  const { values, setField, getDirtyFields, hasChanges, markSaved } = useCardFormState({
+    serverData: {
+      title: card.title,
+      content: card.content || "",
+      priority: card.priority,
+      columnId: card.columnId,
+      assigneeId: card.assignee?.id,
+      effort: card.effort,
+    },
+  });
+
   const [isEditing, setIsEditing] = useState(editMode);
   const [isExpanded, setIsExpanded] = useState(false);
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
@@ -87,6 +95,9 @@ export function CardSlidePanel({
   const canEdit = checkCanEdit(board.userRole);
   const columns = board.columns || [];
   const members = board.members || [];
+
+  // Derived values from form state
+  const { title, content, priority, columnId, assigneeId, effort } = values;
 
   // Close on Escape
   useEffect(() => {
@@ -130,21 +141,31 @@ export function CardSlidePanel({
     };
   }, [isResizing]);
 
-  // Use auto-save hook
+  // Use auto-save hook - only sends dirty fields to avoid overwriting other users' changes
   const handleSave = useCallback(
-    async (data: CardData) => {
-      await updateCard({
+    async (_data: CardData) => {
+      const dirtyFields = getDirtyFields();
+
+      // Build update args only with fields that have changed
+      const updateArgs: Parameters<typeof updateCard>[0] = {
         cardId: card._id,
-        title: data.title,
-        content: data.content,
-        priority: data.priority,
-        columnId: data.columnId,
-        assigneeId: data.assigneeId,
-        effort: data.effort,
         currentUserEmail: userEmail,
-      });
+      };
+
+      if ("title" in dirtyFields) updateArgs.title = dirtyFields.title;
+      if ("content" in dirtyFields) updateArgs.content = dirtyFields.content;
+      if ("columnId" in dirtyFields) updateArgs.columnId = dirtyFields.columnId;
+      if ("assigneeId" in dirtyFields) updateArgs.assigneeId = dirtyFields.assigneeId;
+      if ("effort" in dirtyFields) updateArgs.effort = dirtyFields.effort;
+      // Handle priority: send null to clear, or the value to set
+      if ("priority" in dirtyFields) {
+        updateArgs.priority = dirtyFields.priority === undefined ? null : dirtyFields.priority;
+      }
+
+      await updateCard(updateArgs);
+      markSaved();
     },
-    [card._id, updateCard, userEmail],
+    [card._id, updateCard, userEmail, getDirtyFields, markSaved],
   );
 
   const { isSaving } = useAutoSave({
@@ -158,6 +179,7 @@ export function CardSlidePanel({
       effort: card.effort,
     },
     onSave: handleSave,
+    enabled: hasChanges,
   });
 
   // Mention search callback
@@ -179,11 +201,19 @@ export function CardSlidePanel({
   // Get current assignee from members based on assigneeId state
   const currentAssignee = assigneeId
     ? members.find((m) => m.user?.id === assigneeId)?.user || card.assignee
-    : card.assignee;
+    : undefined;
 
   // Get current column name
   const currentColumnName =
     columns.find((c) => c._id === columnId)?.name || card.column.name;
+
+  // Handlers using setField
+  const handleTitleChange = useCallback((value: string) => setField("title", value), [setField]);
+  const handleContentChange = useCallback((value: string) => setField("content", value), [setField]);
+  const handlePriorityChange = useCallback((value: Priority | undefined) => setField("priority", value), [setField]);
+  const handleColumnChange = useCallback((value: Id<"columns">) => setField("columnId", value), [setField]);
+  const handleAssigneeChange = useCallback((value: Id<"users"> | undefined) => setField("assigneeId", value), [setField]);
+  const handleEffortChange = useCallback((value: number | undefined) => setField("effort", value), [setField]);
 
   return (
     <>
@@ -222,7 +252,6 @@ export function CardSlidePanel({
             <span className="text-sm text-dark-muted font-mono">
               {card.slug}
             </span>
-            <PriorityBadge priority={priority} size="sm" />
             {card.labels && card.labels.length > 0 && (
               <div className="flex items-center gap-1">
                 {card.labels.slice(0, 2).map((label) => (
@@ -306,6 +335,68 @@ export function CardSlidePanel({
           </div>
         </div>
 
+        {/* Metadata Bar - always visible with status, assignee, priority */}
+        <div className="px-4 py-3 border-b border-dark-border bg-dark-bg/30 flex flex-wrap items-center gap-4">
+          {/* Status */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-dark-muted uppercase font-medium">Status</span>
+            {canEdit ? (
+              <StatusSelect
+                value={columnId}
+                onChange={handleColumnChange}
+                columns={columns}
+                size="sm"
+              />
+            ) : (
+              <span className="text-sm text-dark-text px-2 py-0.5 bg-dark-hover rounded">
+                {currentColumnName}
+              </span>
+            )}
+          </div>
+
+          {/* Assignee */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-dark-muted uppercase font-medium">Assignee</span>
+            {canEdit ? (
+              <AssigneeSelect
+                value={assigneeId}
+                onChange={handleAssigneeChange}
+                members={members}
+                size="sm"
+              />
+            ) : currentAssignee ? (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-dark-hover rounded">
+                <Avatar
+                  name={currentAssignee.name}
+                  id={currentAssignee.id}
+                  imageUrl={currentAssignee.image}
+                  size="xs"
+                />
+                <span className="text-sm text-dark-text">{currentAssignee.name}</span>
+              </div>
+            ) : (
+              <span className="text-sm text-dark-muted px-2 py-0.5">Unassigned</span>
+            )}
+          </div>
+
+          {/* Priority */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-dark-muted uppercase font-medium">Priority</span>
+            {canEdit ? (
+              <PrioritySelector
+                value={priority}
+                onChange={handlePriorityChange}
+                size="sm"
+                allowNone
+              />
+            ) : priority ? (
+              <PriorityBadge priority={priority} size="sm" />
+            ) : (
+              <span className="text-sm text-dark-muted px-2 py-0.5">None</span>
+            )}
+          </div>
+        </div>
+
         {/* Content */}
         <div className="flex-1 flex overflow-hidden">
           {isEditing ? (
@@ -317,8 +408,8 @@ export function CardSlidePanel({
                 content={content}
                 canEdit={true}
                 userEmail={userEmail}
-                onTitleChange={setTitle}
-                onContentChange={setContent}
+                onTitleChange={handleTitleChange}
+                onContentChange={handleContentChange}
                 onMentionSearch={handleMentionSearch}
               />
               <CardSidebar
@@ -328,14 +419,14 @@ export function CardSlidePanel({
                 effort={effort}
                 dueDate={card.dueDate}
                 currentColumn={card.column}
-                currentAssignee={card.assignee}
+                currentAssignee={currentAssignee}
                 columns={columns}
                 members={members}
                 canEdit={true}
-                onColumnChange={setColumnId}
-                onPriorityChange={setPriority}
-                onAssigneeChange={setAssigneeId}
-                onEffortChange={setEffort}
+                onColumnChange={handleColumnChange}
+                onPriorityChange={handlePriorityChange}
+                onAssigneeChange={handleAssigneeChange}
+                onEffortChange={handleEffortChange}
                 cardId={card._id}
                 cardTitle={title}
                 userEmail={userEmail}

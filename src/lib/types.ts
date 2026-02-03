@@ -43,7 +43,7 @@ export interface Card {
   title: string;
   content?: string;
   position: number;
-  priority: Priority;
+  priority?: Priority;
   effort?: number;
   assignee?: User | null;
   dueDate?: number;

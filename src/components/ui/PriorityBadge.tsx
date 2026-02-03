@@ -3,8 +3,8 @@ import { PRIORITY_CONFIG } from "@/lib/constants";
 import type { Priority } from "@/lib/types";
 
 export interface PriorityBadgeProps {
-  /** Priority level */
-  priority: Priority;
+  /** Priority level (undefined renders nothing) */
+  priority?: Priority;
   /** Whether to show the dot indicator */
   showDot?: boolean;
   /** Size variant */
@@ -28,6 +28,11 @@ export function PriorityBadge({
   size = "md",
   className,
 }: PriorityBadgeProps) {
+  // Return null if no priority set
+  if (!priority) {
+    return null;
+  }
+
   const config = PRIORITY_CONFIG[priority];
 
   return (

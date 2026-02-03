@@ -7,7 +7,7 @@ interface Props {
   boardId: Id<"boards">;
   boardName: string;
   cardSlug: string;
-  priority: Priority;
+  priority?: Priority;
   isSaving?: boolean;
 }
 

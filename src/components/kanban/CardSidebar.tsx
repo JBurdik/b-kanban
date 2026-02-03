@@ -14,7 +14,7 @@ import { formatTimerDisplay } from "@/lib/timeUtils";
 
 interface Props {
   columnId: Id<"columns">;
-  priority: Priority;
+  priority?: Priority;
   assigneeId?: Id<"users">;
   effort?: number;
   dueDate?: number;
@@ -24,7 +24,7 @@ interface Props {
   members: BoardMember[];
   canEdit: boolean;
   onColumnChange: (columnId: Id<"columns">) => void;
-  onPriorityChange: (priority: Priority) => void;
+  onPriorityChange: (priority: Priority | undefined) => void;
   onAssigneeChange: (assigneeId: Id<"users"> | undefined) => void;
   onEffortChange: (effort: number | undefined) => void;
   // Time tracking props
@@ -103,8 +103,8 @@ export function CardSidebar({
       <div className="mb-4">
         <label className="block text-xs text-dark-muted mb-1">Priority</label>
         {canEdit ? (
-          <PrioritySelector value={priority} onChange={onPriorityChange} />
-        ) : (
+          <PrioritySelector value={priority} onChange={onPriorityChange} allowNone />
+        ) : priority ? (
           <span
             className={clsx(
               "inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded border capitalize",
@@ -115,6 +115,8 @@ export function CardSidebar({
           >
             {priority}
           </span>
+        ) : (
+          <span className="text-sm text-dark-muted">None</span>
         )}
       </div>
 

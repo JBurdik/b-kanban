@@ -10,7 +10,7 @@ import type { Priority, Column, BoardMember } from "@/lib/types";
 
 interface Props {
   columnId: Id<"columns">;
-  priority: Priority;
+  priority?: Priority;
   assigneeId?: Id<"users">;
   effort?: number;
   currentColumn: { name: string };
@@ -19,7 +19,7 @@ interface Props {
   members: BoardMember[];
   canEdit: boolean;
   onColumnChange: (columnId: Id<"columns">) => void;
-  onPriorityChange: (priority: Priority) => void;
+  onPriorityChange: (priority: Priority | undefined) => void;
   onAssigneeChange: (assigneeId: Id<"users"> | undefined) => void;
   onEffortChange: (effort: number | undefined) => void;
 }
@@ -49,16 +49,20 @@ export function CardMobileDetails({
         className="w-full px-4 py-3 flex items-center justify-between text-sm"
       >
         <div className="flex items-center gap-3">
-          <span
-            className={clsx(
-              "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border capitalize",
-              PRIORITY_CONFIG[priority].bg,
-              PRIORITY_CONFIG[priority].text,
-              PRIORITY_CONFIG[priority].border,
-            )}
-          >
-            {priority}
-          </span>
+          {priority ? (
+            <span
+              className={clsx(
+                "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border capitalize",
+                PRIORITY_CONFIG[priority].bg,
+                PRIORITY_CONFIG[priority].text,
+                PRIORITY_CONFIG[priority].border,
+              )}
+            >
+              {priority}
+            </span>
+          ) : (
+            <span className="text-xs text-dark-muted px-2 py-0.5">No priority</span>
+          )}
           <span className="text-dark-muted">{currentColumn.name}</span>
           {currentAssignee && (
             <div className="flex items-center gap-1">
@@ -115,8 +119,8 @@ export function CardMobileDetails({
               Priority
             </label>
             {canEdit ? (
-              <PrioritySelector value={priority} onChange={onPriorityChange} />
-            ) : (
+              <PrioritySelector value={priority} onChange={onPriorityChange} allowNone />
+            ) : priority ? (
               <span
                 className={clsx(
                   "inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded border capitalize",
@@ -127,6 +131,8 @@ export function CardMobileDetails({
               >
                 {priority}
               </span>
+            ) : (
+              <span className="text-sm text-dark-muted">None</span>
             )}
           </div>
 

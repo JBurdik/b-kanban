@@ -175,7 +175,7 @@ export const update = mutation({
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     position: v.optional(v.number()),
-    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.null())),
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
@@ -192,7 +192,12 @@ export const update = mutation({
     if (args.title !== undefined) updates.title = args.title;
     if (args.content !== undefined) updates.content = args.content;
     if (args.position !== undefined) updates.position = args.position;
-    if (args.priority !== undefined) updates.priority = args.priority;
+    // Handle priority: null means clear, undefined means don't change
+    if (args.priority === null) {
+      updates.priority = undefined;
+    } else if (args.priority !== undefined) {
+      updates.priority = args.priority;
+    }
     if (args.assigneeId !== undefined) updates.assigneeId = args.assigneeId;
     if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
     if (args.effort !== undefined) updates.effort = args.effort;

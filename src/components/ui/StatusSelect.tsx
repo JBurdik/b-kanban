@@ -9,6 +9,7 @@ interface Props {
   columns: Column[];
   disabled?: boolean;
   className?: string;
+  size?: "sm" | "md";
 }
 
 // Status colors based on common column names
@@ -37,6 +38,7 @@ export function StatusSelect({
   columns,
   disabled = false,
   className,
+  size = "md",
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,10 +85,11 @@ export function StatusSelect({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={clsx(
-          "w-full px-3 py-2 bg-dark-surface border border-dark-border rounded-lg text-sm",
+          "bg-dark-surface border border-dark-border rounded-lg",
           "flex items-center justify-between gap-2",
           "hover:border-dark-hover focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent",
           "transition-colors",
+          size === "sm" ? "px-2 py-1 text-xs" : "w-full px-3 py-2 text-sm",
           disabled && "opacity-50 cursor-not-allowed",
           !disabled && "cursor-pointer"
         )}

@@ -4,11 +4,12 @@ interface Props {
   name: string;
   id?: string;
   imageUrl?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
 }
 
 const sizes = {
+  xs: "w-4 h-4",
   sm: "w-6 h-6",
   md: "w-8 h-8",
   lg: "w-10 h-10",

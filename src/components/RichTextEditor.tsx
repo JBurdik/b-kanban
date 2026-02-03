@@ -256,86 +256,86 @@ export function RichTextEditor({
     return () => window.removeEventListener("editor:open-image-upload", handleOpenImageUpload);
   }, [editor, onImageUpload]);
 
-  // Markdown mode UI - render early without editor
-  if (isMarkdownMode) {
-    return (
-      <div className="w-full border border-dark-border rounded-lg overflow-hidden">
-        {/* Markdown mode header */}
-        <div className="flex items-center justify-between px-3 py-2 bg-dark-surface border-b border-dark-border">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-dark-muted" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 15V9h2l2 2.5L13 9h2v6h-2v-2.5l-2 2.5-2-2.5V15H7z"/>
-            </svg>
-            <span className="text-sm text-dark-muted">Markdown Mode</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleApplyMarkdown}
-              className="px-3 py-1 text-xs font-medium bg-accent hover:bg-accent/80 text-white rounded transition-colors"
-            >
-              Apply
-            </button>
-            <button
-              onClick={() => setIsMarkdownMode(false)}
-              className="px-3 py-1 text-xs font-medium bg-dark-hover hover:bg-dark-border text-dark-text rounded transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-
-        {/* Split view: editor + preview */}
-        <div className="flex divide-x divide-dark-border">
-          {/* Markdown editor */}
-          <div className="flex-1 min-w-0">
-            <div className="px-3 py-1.5 bg-dark-bg/50 border-b border-dark-border">
-              <span className="text-xs text-dark-muted uppercase font-medium">Edit</span>
-            </div>
-            <textarea
-              value={markdownContent}
-              onChange={(e) => handleMarkdownChange(e.target.value)}
-              onBlur={handleApplyMarkdown}
-              className="w-full h-64 p-3 bg-dark-bg text-dark-text font-mono text-sm resize-none focus:outline-none"
-              placeholder="Write your markdown here..."
-              autoFocus
-            />
-          </div>
-
-          {/* Preview */}
-          <div className="flex-1 min-w-0">
-            <div className="px-3 py-1.5 bg-dark-bg/50 border-b border-dark-border">
-              <span className="text-xs text-dark-muted uppercase font-medium">Preview</span>
-            </div>
-            <div
-              className="h-64 p-3 overflow-y-auto prose prose-invert prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: markdownPreview }}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Editor must exist for WYSIWYG mode
+  // Editor must exist
   if (!editor) return null;
 
   return (
     <div className="w-full">
-      {/* Toolbar with Markdown toggle */}
-      {!readOnly && (
-        <div className="flex items-center justify-end mb-2">
-          <button
-            onClick={handleSwitchToMarkdownMode}
-            className="flex items-center gap-1.5 px-2 py-1 text-xs text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded transition-colors"
-            title="Switch to Markdown mode"
-          >
-            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 15V9h2l2 2.5L13 9h2v6h-2v-2.5l-2 2.5-2-2.5V15H7z"/>
-            </svg>
-            Markdown
-          </button>
+      {/* Markdown mode UI */}
+      {isMarkdownMode && (
+        <div className="w-full border border-dark-border rounded-lg overflow-hidden mb-4">
+          {/* Markdown mode header */}
+          <div className="flex items-center justify-between px-3 py-2 bg-dark-surface border-b border-dark-border">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-dark-muted" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 15V9h2l2 2.5L13 9h2v6h-2v-2.5l-2 2.5-2-2.5V15H7z"/>
+              </svg>
+              <span className="text-sm text-dark-muted">Markdown Mode</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleApplyMarkdown}
+                className="px-3 py-1 text-xs font-medium bg-accent hover:bg-accent/80 text-white rounded transition-colors"
+              >
+                Apply
+              </button>
+              <button
+                onClick={() => setIsMarkdownMode(false)}
+                className="px-3 py-1 text-xs font-medium bg-dark-hover hover:bg-dark-border text-dark-text rounded transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          {/* Split view: editor + preview */}
+          <div className="flex divide-x divide-dark-border">
+            {/* Markdown editor */}
+            <div className="flex-1 min-w-0">
+              <div className="px-3 py-1.5 bg-dark-bg/50 border-b border-dark-border">
+                <span className="text-xs text-dark-muted uppercase font-medium">Edit</span>
+              </div>
+              <textarea
+                value={markdownContent}
+                onChange={(e) => handleMarkdownChange(e.target.value)}
+                onBlur={handleApplyMarkdown}
+                className="w-full h-64 p-3 bg-dark-bg text-dark-text font-mono text-sm resize-none focus:outline-none"
+                placeholder="Write your markdown here..."
+                autoFocus
+              />
+            </div>
+
+            {/* Preview */}
+            <div className="flex-1 min-w-0">
+              <div className="px-3 py-1.5 bg-dark-bg/50 border-b border-dark-border">
+                <span className="text-xs text-dark-muted uppercase font-medium">Preview</span>
+              </div>
+              <div
+                className="h-64 p-3 overflow-y-auto prose prose-invert prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: markdownPreview }}
+              />
+            </div>
+          </div>
         </div>
       )}
+
+      {/* WYSIWYG Editor - hidden when in markdown mode */}
+      <div className={isMarkdownMode ? "hidden" : ""}>
+        {/* Toolbar with Markdown toggle */}
+        {!readOnly && (
+          <div className="flex items-center justify-end mb-2">
+            <button
+              onClick={handleSwitchToMarkdownMode}
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded transition-colors"
+              title="Switch to Markdown mode"
+            >
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 15V9h2l2 2.5L13 9h2v6h-2v-2.5l-2 2.5-2-2.5V15H7z"/>
+              </svg>
+              Markdown
+            </button>
+          </div>
+        )}
 
       {/* Floating Bubble Menu - appears on text selection */}
       <BubbleMenu
@@ -456,6 +456,7 @@ export function RichTextEditor({
           </div>
         </>
       )}
+      </div>
 
       {/* Editor styles */}
       <style>{`

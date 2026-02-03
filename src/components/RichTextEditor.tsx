@@ -32,6 +32,7 @@ interface Props {
   readOnly?: boolean;
   onMentionSearch?: (query: string) => Promise<MentionUser[]>;
   onImageUpload?: (file: File) => Promise<string | null>;
+  onBlur?: () => void;
 }
 
 export function RichTextEditor({
@@ -41,6 +42,7 @@ export function RichTextEditor({
   readOnly = false,
   onMentionSearch,
   onImageUpload,
+  onBlur,
 }: Props) {
   const [showLinkPopover, setShowLinkPopover] = useState(false);
   const [showFloatingLinkPopover, setShowFloatingLinkPopover] = useState(false);
@@ -112,6 +114,9 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => {
       isInternalChange.current = true;
       onChange(editor.getHTML());
+    },
+    onBlur: () => {
+      onBlur?.();
     },
     editorProps: {
       attributes: {

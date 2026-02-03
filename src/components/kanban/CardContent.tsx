@@ -21,6 +21,7 @@ interface Props {
   onTitleChange: (title: string) => void;
   onContentChange: (content: string) => void;
   onMentionSearch: (query: string) => Promise<MentionUser[]>;
+  onBlur?: () => void;
 }
 
 export function CardContent({
@@ -33,6 +34,7 @@ export function CardContent({
   onTitleChange,
   onContentChange,
   onMentionSearch,
+  onBlur,
 }: Props) {
   const { onImageUpload } = useEditorImageUpload(userEmail);
 
@@ -62,6 +64,7 @@ export function CardContent({
             onChange={onContentChange}
             onMentionSearch={onMentionSearch}
             onImageUpload={onImageUpload}
+            onBlur={onBlur}
             placeholder="Add a description..."
           />
         ) : content ? (

@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useAutoSave } from "@/hooks/useAutoSave";
 import { useCardFormState } from "@/hooks/useCardFormState";
 import { canEdit as checkCanEdit } from "@/lib/permissions";
 import type {
@@ -51,15 +50,6 @@ interface Props {
   onClose: () => void;
 }
 
-interface CardData {
-  title: string;
-  content: string;
-  priority?: Priority;
-  columnId: Id<"columns">;
-  assigneeId?: Id<"users">;
-  effort?: number;
-}
-
 export function CardSlidePanel({
   card,
   board,
@@ -84,6 +74,7 @@ export function CardSlidePanel({
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const updateCard = useMutation(api.cards.update);
@@ -99,16 +90,55 @@ export function CardSlidePanel({
   // Derived values from form state
   const { title, content, priority, columnId, assigneeId, effort } = values;
 
+  // Manual save function - only sends dirty fields to avoid overwriting other users' changes
+  const handleSave = useCallback(async () => {
+    if (!hasChanges) return;
+
+    const dirtyFields = getDirtyFields();
+
+    // Build update args only with fields that have changed
+    const updateArgs: Parameters<typeof updateCard>[0] = {
+      cardId: card._id,
+      currentUserEmail: userEmail,
+    };
+
+    if ("title" in dirtyFields) updateArgs.title = dirtyFields.title;
+    if ("content" in dirtyFields) updateArgs.content = dirtyFields.content;
+    if ("columnId" in dirtyFields) updateArgs.columnId = dirtyFields.columnId;
+    if ("assigneeId" in dirtyFields) updateArgs.assigneeId = dirtyFields.assigneeId;
+    if ("effort" in dirtyFields) updateArgs.effort = dirtyFields.effort;
+    // Handle priority: send null to clear, or the value to set
+    if ("priority" in dirtyFields) {
+      updateArgs.priority = dirtyFields.priority === undefined ? null : dirtyFields.priority;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateCard(updateArgs);
+      markSaved();
+    } finally {
+      setIsSaving(false);
+    }
+  }, [card._id, updateCard, userEmail, getDirtyFields, markSaved, hasChanges]);
+
+  // Save on close
+  const handleClose = useCallback(async () => {
+    if (hasChanges) {
+      await handleSave();
+    }
+    onClose();
+  }, [hasChanges, handleSave, onClose]);
+
   // Close on Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        handleClose();
       }
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
+  }, [handleClose]);
 
   // Resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -140,47 +170,6 @@ export function CardSlidePanel({
       document.body.style.userSelect = "";
     };
   }, [isResizing]);
-
-  // Use auto-save hook - only sends dirty fields to avoid overwriting other users' changes
-  const handleSave = useCallback(
-    async (_data: CardData) => {
-      const dirtyFields = getDirtyFields();
-
-      // Build update args only with fields that have changed
-      const updateArgs: Parameters<typeof updateCard>[0] = {
-        cardId: card._id,
-        currentUserEmail: userEmail,
-      };
-
-      if ("title" in dirtyFields) updateArgs.title = dirtyFields.title;
-      if ("content" in dirtyFields) updateArgs.content = dirtyFields.content;
-      if ("columnId" in dirtyFields) updateArgs.columnId = dirtyFields.columnId;
-      if ("assigneeId" in dirtyFields) updateArgs.assigneeId = dirtyFields.assigneeId;
-      if ("effort" in dirtyFields) updateArgs.effort = dirtyFields.effort;
-      // Handle priority: send null to clear, or the value to set
-      if ("priority" in dirtyFields) {
-        updateArgs.priority = dirtyFields.priority === undefined ? null : dirtyFields.priority;
-      }
-
-      await updateCard(updateArgs);
-      markSaved();
-    },
-    [card._id, updateCard, userEmail, getDirtyFields, markSaved],
-  );
-
-  const { isSaving } = useAutoSave({
-    data: { title, content, priority, columnId, assigneeId, effort },
-    originalData: {
-      title: card.title,
-      content: card.content || "",
-      priority: card.priority,
-      columnId: card.columnId,
-      assigneeId: card.assignee?.id,
-      effort: card.effort,
-    },
-    onSave: handleSave,
-    enabled: hasChanges,
-  });
 
   // Mention search callback
   const handleMentionSearch = useCallback(
@@ -220,7 +209,7 @@ export function CardSlidePanel({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/40 z-40 animate-fade-in"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* Panel */}
@@ -278,6 +267,16 @@ export function CardSlidePanel({
                 Edit
               </button>
             )}
+            {/* Save button - only show when editing and has changes */}
+            {canEdit && isEditing && hasChanges && (
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-3 py-1.5 text-sm font-medium bg-accent hover:bg-accent/80 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </button>
+            )}
             {/* Expand/Collapse button */}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
@@ -315,7 +314,7 @@ export function CardSlidePanel({
               )}
             </button>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 rounded-lg hover:bg-dark-hover text-dark-muted hover:text-dark-text transition-colors"
             >
               <svg
@@ -411,6 +410,7 @@ export function CardSlidePanel({
                 onTitleChange={handleTitleChange}
                 onContentChange={handleContentChange}
                 onMentionSearch={handleMentionSearch}
+                onBlur={handleSave}
               />
               <CardSidebar
                 columnId={columnId}

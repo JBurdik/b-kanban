@@ -10,10 +10,15 @@ import type {
   BoardMember,
   BoardRole,
   Priority,
+  CardType,
   Label,
 } from "@/lib/types";
+import { CardTypeSelector } from "@/components/ui/CardTypeSelector";
+import { CardTypeBadge } from "@/components/ui/CardTypeBadge";
 import { CardContent } from "./CardContent";
 import { CardSidebar } from "./CardSidebar";
+import { AttachmentList } from "./AttachmentList";
+import { CommentList } from "./CommentList";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
 import { StatusSelect } from "@/components/ui/StatusSelect";
@@ -63,6 +68,7 @@ export function CardSlidePanel({
       title: card.title,
       content: card.content || "",
       priority: card.priority,
+      type: card.type,
       columnId: card.columnId,
       assigneeId: card.assignee?.id,
       effort: card.effort,
@@ -89,7 +95,7 @@ export function CardSlidePanel({
   const members = board.members || [];
 
   // Derived values from form state
-  const { title, content, priority, columnId, assigneeId, effort } = values;
+  const { title, content, priority, type, columnId, assigneeId, effort } = values;
 
   // Manual save function - only sends dirty fields to avoid overwriting other users' changes
   const handleSave = useCallback(async () => {
@@ -106,11 +112,18 @@ export function CardSlidePanel({
     if ("title" in dirtyFields) updateArgs.title = dirtyFields.title;
     if ("content" in dirtyFields) updateArgs.content = dirtyFields.content;
     if ("columnId" in dirtyFields) updateArgs.columnId = dirtyFields.columnId;
-    if ("assigneeId" in dirtyFields) updateArgs.assigneeId = dirtyFields.assigneeId;
+    // Handle assignee: send null to clear (unassign), or the value to set
+    if ("assigneeId" in dirtyFields) {
+      updateArgs.assigneeId = dirtyFields.assigneeId === undefined ? null : dirtyFields.assigneeId;
+    }
     if ("effort" in dirtyFields) updateArgs.effort = dirtyFields.effort;
     // Handle priority: send null to clear, or the value to set
     if ("priority" in dirtyFields) {
       updateArgs.priority = dirtyFields.priority === undefined ? null : dirtyFields.priority;
+    }
+    // Handle type: send null to clear, or the value to set
+    if ("type" in dirtyFields) {
+      updateArgs.type = dirtyFields.type === undefined ? null : dirtyFields.type;
     }
 
     setIsSaving(true);
@@ -204,6 +217,7 @@ export function CardSlidePanel({
   const handleColumnChange = useCallback((value: Id<"columns">) => setField("columnId", value), [setField]);
   const handleAssigneeChange = useCallback((value: Id<"users"> | undefined) => setField("assigneeId", value), [setField]);
   const handleEffortChange = useCallback((value: number | undefined) => setField("effort", value), [setField]);
+  const handleTypeChange = useCallback((value: CardType | undefined) => setField("type", value), [setField]);
 
   // Copy link handler
   const handleCopyLink = useCallback(async () => {
@@ -424,6 +438,20 @@ export function CardSlidePanel({
               <span className="text-sm text-dark-muted px-2 py-0.5">None</span>
             )}
           </div>
+
+          {/* Type */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-dark-muted uppercase font-medium">Type</span>
+            {canEdit ? (
+              <CardTypeSelector
+                value={type}
+                onChange={handleTypeChange}
+                size="sm"
+              />
+            ) : (
+              <CardTypeBadge type={type} size="sm" />
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -445,6 +473,7 @@ export function CardSlidePanel({
               <CardSidebar
                 columnId={columnId}
                 priority={priority}
+                type={type}
                 assigneeId={assigneeId}
                 effort={effort}
                 dueDate={card.dueDate}
@@ -455,6 +484,7 @@ export function CardSlidePanel({
                 canEdit={true}
                 onColumnChange={handleColumnChange}
                 onPriorityChange={handlePriorityChange}
+                onTypeChange={handleTypeChange}
                 onAssigneeChange={handleAssigneeChange}
                 onEffortChange={handleEffortChange}
                 cardId={card._id}
@@ -520,6 +550,28 @@ export function CardSlidePanel({
                     No description. Double-click to add one.
                   </p>
                 )}
+
+                {/* Attachments */}
+                <div className="mb-6">
+                  <h2 className="text-sm font-medium text-dark-muted uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    Attachments
+                  </h2>
+                  <AttachmentList cardId={card._id} readOnly />
+                </div>
+
+                {/* Comments */}
+                <div className="mb-6">
+                  <h2 className="text-sm font-medium text-dark-muted uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Comments
+                  </h2>
+                  <CommentList cardId={card._id} boardId={board._id} userEmail={userEmail} readOnly={!canEdit} />
+                </div>
 
                 {canEdit && (
                   <p className="text-xs text-dark-muted italic">

@@ -56,6 +56,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
       title: card.title,
       content: card.content || "",
       priority: card.priority,
+      type: card.type,
       columnId: card.columnId,
       assigneeId: card.assignee?.id,
       effort: card.effort,
@@ -160,6 +161,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
         <CardSidebar
           columnId={values.columnId}
           priority={values.priority}
+          type={values.type}
           assigneeId={values.assigneeId}
           effort={values.effort}
           dueDate={card.dueDate}
@@ -170,6 +172,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
           canEdit={canEdit}
           onColumnChange={(v) => setField("columnId", v)}
           onPriorityChange={(v) => setField("priority", v)}
+          onTypeChange={(v) => setField("type", v)}
           onAssigneeChange={(v) => setField("assigneeId", v)}
           onEffortChange={(v) => setField("effort", v)}
           cardId={card._id}

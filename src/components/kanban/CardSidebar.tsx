@@ -7,7 +7,9 @@ import { AssigneeSelect } from "@/components/ui/AssigneeSelect";
 import { LabelSelector } from "@/components/labels/LabelSelector";
 import { LinkedDocuments } from "./LinkedDocuments";
 import { PRIORITY_CONFIG } from "@/lib/constants";
-import type { Priority, Column, BoardMember, Label, BoardRole } from "@/lib/types";
+import type { Priority, CardType, Column, BoardMember, Label, BoardRole } from "@/lib/types";
+import { CardTypeSelector } from "@/components/ui/CardTypeSelector";
+import { CardTypeBadge } from "@/components/ui/CardTypeBadge";
 import { formatDateLong } from "@/utils/formatting";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { formatTimerDisplay } from "@/lib/timeUtils";
@@ -15,6 +17,7 @@ import { formatTimerDisplay } from "@/lib/timeUtils";
 interface Props {
   columnId: Id<"columns">;
   priority?: Priority;
+  type?: CardType;
   assigneeId?: Id<"users">;
   effort?: number;
   dueDate?: number;
@@ -25,6 +28,7 @@ interface Props {
   canEdit: boolean;
   onColumnChange: (columnId: Id<"columns">) => void;
   onPriorityChange: (priority: Priority | undefined) => void;
+  onTypeChange: (type: CardType | undefined) => void;
   onAssigneeChange: (assigneeId: Id<"users"> | undefined) => void;
   onEffortChange: (effort: number | undefined) => void;
   // Time tracking props
@@ -42,6 +46,7 @@ interface Props {
 export function CardSidebar({
   columnId,
   priority,
+  type,
   assigneeId,
   effort,
   dueDate,
@@ -52,6 +57,7 @@ export function CardSidebar({
   canEdit,
   onColumnChange,
   onPriorityChange,
+  onTypeChange,
   onAssigneeChange,
   onEffortChange,
   cardId,
@@ -117,6 +123,16 @@ export function CardSidebar({
           </span>
         ) : (
           <span className="text-sm text-dark-muted">None</span>
+        )}
+      </div>
+
+      {/* Type */}
+      <div className="mb-4">
+        <label className="block text-xs text-dark-muted mb-1">Type</label>
+        {canEdit ? (
+          <CardTypeSelector value={type} onChange={onTypeChange} />
+        ) : (
+          <CardTypeBadge type={type} />
         )}
       </div>
 

@@ -5,6 +5,7 @@ import type { Id } from "convex/_generated/dataModel";
 // ============================================================================
 
 export type Priority = "low" | "medium" | "high";
+export type CardType = "task" | "bug";
 export type BoardRole = "owner" | "admin" | "member";
 export type NotificationType = "assigned" | "mentioned" | "commented" | "card_updated";
 
@@ -44,6 +45,7 @@ export interface Card {
   content?: string;
   position: number;
   priority?: Priority;
+  type?: CardType;
   effort?: number;
   assignee?: User | null;
   dueDate?: number;

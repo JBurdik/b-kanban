@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { Id } from "convex/_generated/dataModel";
-import type { Priority } from "@/lib/types";
+import type { Priority, CardType } from "@/lib/types";
 
 export interface CardFormData {
   title: string;
   content: string;
   priority?: Priority;
+  type?: CardType;
   columnId: Id<"columns">;
   assigneeId?: Id<"users">;
   effort?: number;

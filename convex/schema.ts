@@ -101,6 +101,7 @@ export default defineSchema({
     content: v.optional(v.string()),
     position: v.number(),
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+    type: v.optional(v.union(v.literal("task"), v.literal("bug"))),
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()), // Time effort in hours

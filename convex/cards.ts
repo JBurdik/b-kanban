@@ -115,6 +115,7 @@ export const create = mutation({
     content: v.optional(v.string()),
     position: v.optional(v.number()),
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+    type: v.optional(v.union(v.literal("task"), v.literal("bug"))),
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
@@ -154,6 +155,7 @@ export const create = mutation({
       content: args.content,
       position,
       priority: args.priority ?? "medium",
+      type: args.type ?? "task",
       assigneeId: args.assigneeId,
       dueDate: args.dueDate,
       effort: args.effort,
@@ -176,7 +178,8 @@ export const update = mutation({
     content: v.optional(v.string()),
     position: v.optional(v.number()),
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.null())),
-    assigneeId: v.optional(v.id("users")),
+    type: v.optional(v.union(v.literal("task"), v.literal("bug"), v.null())),
+    assigneeId: v.optional(v.union(v.id("users"), v.null())),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
     currentUserEmail: v.optional(v.string()), // For notification triggers
@@ -198,7 +201,18 @@ export const update = mutation({
     } else if (args.priority !== undefined) {
       updates.priority = args.priority;
     }
-    if (args.assigneeId !== undefined) updates.assigneeId = args.assigneeId;
+    // Handle type: null means clear, undefined means don't change
+    if (args.type === null) {
+      updates.type = undefined;
+    } else if (args.type !== undefined) {
+      updates.type = args.type;
+    }
+    // Handle assignee: null means unassign, undefined means don't change
+    if (args.assigneeId === null) {
+      updates.assigneeId = undefined;
+    } else if (args.assigneeId !== undefined) {
+      updates.assigneeId = args.assigneeId;
+    }
     if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
     if (args.effort !== undefined) updates.effort = args.effort;
 

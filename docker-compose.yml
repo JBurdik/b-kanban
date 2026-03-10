@@ -6,11 +6,12 @@ services:
       - "3210:3210"
       - "3211:3211"
     environment:
-      - CONVEX_CLOUD_ORIGIN=https://kanban-convex.burdych.net
-      - CONVEX_SITE_ORIGIN=https://kanban-convex.burdych.net
-      - CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY}
+      - INSTANCE_NAME=convex-self-hosted
+      - INSTANCE_SECRET=dbe62c4388e7f1414e7b02a5a3ad330a31eaf0470e039773ca006842577b1104
+      - CONVEX_CLOUD_ORIGIN=http://localhost:3210
+      - CONVEX_SITE_ORIGIN=http://localhost:3211
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - SITE_URL=https://kanban-api.burdych.net
+      - SITE_URL=http://localhost:5173
     volumes:
       - convex-data:/data
     restart: unless-stopped
@@ -27,7 +28,7 @@ services:
       - "6791:6791"
     environment:
       - NEXT_PUBLIC_DEPLOYMENT_URL=http://convex-backend:3210
-      - NEXT_PUBLIC_SITE_URL=https://kanban-convex.burdych.net
+      - NEXT_PUBLIC_SITE_URL=http://localhost:3211
     depends_on:
       convex-backend:
         condition: service_started

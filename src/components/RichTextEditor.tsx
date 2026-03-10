@@ -77,8 +77,8 @@ turndownService.addRule("highlight", {
   replacement: (content) => `==${content}==`,
 });
 
-// Convert HTML to markdown
-function htmlToMarkdown(html: string): string {
+// Convert HTML to markdown (exported for potential use elsewhere)
+export function htmlToMarkdown(html: string): string {
   return turndownService.turndown(html);
 }
 

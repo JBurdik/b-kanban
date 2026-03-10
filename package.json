@@ -41,7 +41,8 @@
     "prosemirror-view": "^1.41.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tippy.js": "^6.3.7"
+    "tippy.js": "^6.3.7",
+    "turndown": "^7.2.2"
   },
   "devDependencies": {
     "@tanstack/router-devtools": "^1.93.1",
@@ -52,6 +53,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
+    "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.2.1",

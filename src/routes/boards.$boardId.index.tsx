@@ -3,6 +3,7 @@ import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { useSession } from "@/lib/auth-client";
+import { useCardOpenMode } from "@/hooks/useCardOpenMode";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import type { Card } from "@/lib/types";
@@ -10,9 +11,11 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { TableView } from "@/components/kanban/TableView";
 import { BoardMembers } from "@/components/BoardMembers";
 import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
-import { SearchInput } from "@/components/kanban/SearchInput";
+import { SpotlightSearch } from "@/components/kanban/SpotlightSearch";
+import { VersionFilter } from "@/components/kanban/VersionFilter";
 import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
 import { LabelManager } from "@/components/labels/LabelManager";
+import { VersionManager } from "@/components/VersionManager";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserDropdown } from "@/components/UserDropdown";
 import { BoardIcon } from "@/components/BoardIcon";
@@ -28,17 +31,26 @@ function BoardPage() {
   const { boardId } = Route.useParams();
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const { data: authSession } = useSession();
+  const { mode: cardOpenMode } = useCardOpenMode();
   const [showMembers, setShowMembers] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
+  const [showVersionManager, setShowVersionManager] = useState(false);
   const [filter, setFilter] = useState<FilterOption>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVersionId, setSelectedVersionId] = useState<Id<"versions"> | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editMode, setEditMode] = useState(false);
 
   // Real-time subscription to board data
   const board = useQuery(api.boards.get, {
+    boardId: boardId as Id<"boards">,
+    userEmail,
+  });
+
+  // Get versions for this board
+  const boardVersions = useQuery(api.versions.list, {
     boardId: boardId as Id<"boards">,
     userEmail,
   });
@@ -317,10 +329,27 @@ function BoardPage() {
             taskCounts={taskCounts}
           />
 
-          {/* Search input */}
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
+          {/* Version filter */}
+          {boardVersions && boardVersions.length > 0 && (
+            <VersionFilter
+              versions={boardVersions}
+              selectedVersionId={selectedVersionId}
+              onChange={setSelectedVersionId}
+            />
+          )}
+
+          {/* Spotlight search */}
+          <SpotlightSearch
+            columns={board.columns || []}
+            onCardClick={handleCardClick}
+            onSearchChange={setSearchQuery}
+            versions={boardVersions || []}
+            selectedVersionId={selectedVersionId}
+            onVersionChange={setSelectedVersionId}
+            currentFilter={filter}
+            onFilterChange={setFilter}
+            onOpenLabelManager={(board.userRole === "owner" || board.userRole === "admin") ? () => setShowLabelManager(true) : undefined}
+            onOpenVersionManager={(board.userRole === "owner" || board.userRole === "admin") ? () => setShowVersionManager(true) : undefined}
           />
         </div>
 
@@ -345,6 +374,29 @@ function BoardPage() {
                 />
               </svg>
               <span className="text-sm">Labels</span>
+            </button>
+          )}
+
+          {/* Versions button (for admin/owner) */}
+          {(board.userRole === "owner" || board.userRole === "admin") && (
+            <button
+              onClick={() => setShowVersionManager(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
+                />
+              </svg>
+              <span className="text-sm">Versions</span>
             </button>
           )}
 
@@ -401,6 +453,7 @@ function BoardPage() {
             filter={filter}
             searchQuery={searchQuery}
             currentUserId={currentUser?.id}
+            versionFilter={selectedVersionId}
             onCardClick={handleCardClick}
             onCardDoubleClick={handleCardDoubleClick}
           />
@@ -410,6 +463,7 @@ function BoardPage() {
             filter={filter}
             searchQuery={searchQuery}
             currentUserId={currentUser?.id}
+            versionFilter={selectedVersionId}
             onCardClick={handleCardClick}
             onCardDoubleClick={handleCardDoubleClick}
           />
@@ -433,6 +487,7 @@ function BoardPage() {
           board={board}
           userEmail={userEmail}
           editMode={editMode}
+          defaultExpanded={cardOpenMode === "fullscreen"}
           onClose={handleClosePanel}
         />
       )}
@@ -443,6 +498,15 @@ function BoardPage() {
           boardId={boardId as Id<"boards">}
           userEmail={userEmail}
           onClose={() => setShowLabelManager(false)}
+        />
+      )}
+
+      {/* Version manager modal */}
+      {showVersionManager && (
+        <VersionManager
+          boardId={boardId as Id<"boards">}
+          userEmail={userEmail}
+          onClose={() => setShowVersionManager(false)}
         />
       )}
     </div>

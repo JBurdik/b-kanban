@@ -15,6 +15,8 @@ import type {
 } from "@/lib/types";
 import { CardTypeSelector } from "@/components/ui/CardTypeSelector";
 import { CardTypeBadge } from "@/components/ui/CardTypeBadge";
+import { VersionBadge } from "@/components/ui/VersionBadge";
+import { VersionSelect } from "@/components/ui/VersionSelect";
 import { CardContent } from "./CardContent";
 import { CardSidebar } from "./CardSidebar";
 import { AttachmentList } from "./AttachmentList";
@@ -52,6 +54,7 @@ interface Props {
   board: Board;
   userEmail?: string;
   editMode?: boolean;
+  defaultExpanded?: boolean;
   onClose: () => void;
 }
 
@@ -60,6 +63,7 @@ export function CardSlidePanel({
   board,
   userEmail,
   editMode = false,
+  defaultExpanded = false,
   onClose,
 }: Props) {
   // Use the useCardFormState hook for proper multi-user editing
@@ -71,12 +75,13 @@ export function CardSlidePanel({
       type: card.type,
       columnId: card.columnId,
       assigneeId: card.assignee?.id,
+      versionId: card.versionId,
       effort: card.effort,
     },
   });
 
   const [isEditing, setIsEditing] = useState(editMode);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
@@ -89,13 +94,17 @@ export function CardSlidePanel({
     boardId: board._id,
     query: "",
   });
+  const boardVersions = useQuery(api.versions.list, {
+    boardId: board._id,
+    userEmail,
+  });
 
   const canEdit = checkCanEdit(board.userRole);
   const columns = board.columns || [];
   const members = board.members || [];
 
   // Derived values from form state
-  const { title, content, priority, type, columnId, assigneeId, effort } = values;
+  const { title, content, priority, type, columnId, assigneeId, versionId, effort } = values;
 
   // Manual save function - only sends dirty fields to avoid overwriting other users' changes
   const handleSave = useCallback(async () => {
@@ -124,6 +133,10 @@ export function CardSlidePanel({
     // Handle type: send null to clear, or the value to set
     if ("type" in dirtyFields) {
       updateArgs.type = dirtyFields.type === undefined ? null : dirtyFields.type;
+    }
+    // Handle version: send null to clear, or the value to set
+    if ("versionId" in dirtyFields) {
+      updateArgs.versionId = dirtyFields.versionId === undefined ? null : dirtyFields.versionId;
     }
 
     setIsSaving(true);
@@ -218,6 +231,7 @@ export function CardSlidePanel({
   const handleAssigneeChange = useCallback((value: Id<"users"> | undefined) => setField("assigneeId", value), [setField]);
   const handleEffortChange = useCallback((value: number | undefined) => setField("effort", value), [setField]);
   const handleTypeChange = useCallback((value: CardType | undefined) => setField("type", value), [setField]);
+  const handleVersionChange = useCallback((value: Id<"versions"> | undefined) => setField("versionId", value), [setField]);
 
   // Copy link handler
   const handleCopyLink = useCallback(async () => {
@@ -243,10 +257,10 @@ export function CardSlidePanel({
       <div
         ref={panelRef}
         style={!isExpanded ? { width: panelWidth } : undefined}
-        className={`fixed bg-dark-surface border-l border-dark-border shadow-2xl z-50 flex flex-col animate-slide-in-right ${
+        className={`fixed bg-dark-surface shadow-2xl z-50 flex flex-col ${
           isExpanded
-            ? "inset-4 rounded-xl border transition-all duration-300"
-            : "inset-y-0 right-0"
+            ? "inset-2 sm:inset-4 md:inset-y-6 md:inset-x-[5%] lg:inset-y-8 lg:inset-x-[10%] xl:inset-x-[15%] rounded-xl border border-dark-border transition-all duration-300"
+            : "inset-y-0 right-0 border-l border-dark-border animate-slide-in-right"
         }`}
       >
         {/* Resize handle - only when not expanded */}
@@ -452,6 +466,25 @@ export function CardSlidePanel({
               <CardTypeBadge type={type} size="sm" />
             )}
           </div>
+
+          {/* Version */}
+          {(card.version || canEdit) && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-dark-muted uppercase font-medium">Version</span>
+              {canEdit && boardVersions ? (
+                <VersionSelect
+                  value={versionId}
+                  onChange={handleVersionChange}
+                  versions={boardVersions}
+                  size="sm"
+                />
+              ) : card.version ? (
+                <VersionBadge version={card.version} size="sm" />
+              ) : (
+                <span className="text-sm text-dark-muted px-2 py-0.5">None</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -474,6 +507,8 @@ export function CardSlidePanel({
                 columnId={columnId}
                 priority={priority}
                 type={type}
+                versionId={versionId}
+                versions={boardVersions || []}
                 assigneeId={assigneeId}
                 effort={effort}
                 dueDate={card.dueDate}
@@ -485,6 +520,7 @@ export function CardSlidePanel({
                 onColumnChange={handleColumnChange}
                 onPriorityChange={handlePriorityChange}
                 onTypeChange={handleTypeChange}
+                onVersionChange={handleVersionChange}
                 onAssigneeChange={handleAssigneeChange}
                 onEffortChange={handleEffortChange}
                 cardId={card._id}
@@ -498,10 +534,9 @@ export function CardSlidePanel({
             </>
           ) : (
             <div
-              className={`flex-1 overflow-y-auto cursor-pointer ${
+              className={`flex-1 overflow-y-auto ${
                 isExpanded ? "flex" : ""
               }`}
-              onDoubleClick={() => canEdit && setIsEditing(true)}
             >
               {/* Main content area */}
               <div className={`p-6 ${isExpanded ? "flex-1" : ""}`}>
@@ -547,7 +582,7 @@ export function CardSlidePanel({
                   </div>
                 ) : (
                   <p className="text-dark-muted text-sm italic mb-6">
-                    No description. Double-click to add one.
+                    No description.
                   </p>
                 )}
 
@@ -573,11 +608,6 @@ export function CardSlidePanel({
                   <CommentList cardId={card._id} boardId={board._id} userEmail={userEmail} readOnly={!canEdit} />
                 </div>
 
-                {canEdit && (
-                  <p className="text-xs text-dark-muted italic">
-                    Double-click anywhere to edit
-                  </p>
-                )}
               </div>
 
               {/* Side panel with details - only in expanded view */}

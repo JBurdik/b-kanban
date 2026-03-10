@@ -11,6 +11,7 @@ import { LabelBadge } from "@/components/ui/LabelBadge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { stripHtml, formatDate } from "@/utils/formatting";
 import type { Card } from "@/lib/types";
+import { VersionBadge } from "@/components/ui/VersionBadge";
 import clsx from "clsx";
 
 interface Props {
@@ -190,14 +191,19 @@ export function KanbanCard({
               </span>
             )}
           </div>
-          {card.assignee && (
-            <Avatar
-              name={card.assignee.name}
-              id={card.assignee.id}
-              imageUrl={card.assignee.image}
-              size="sm"
-            />
-          )}
+          <div className="flex items-center gap-2">
+            {card.version && (
+              <VersionBadge version={card.version} size="sm" />
+            )}
+            {card.assignee && (
+              <Avatar
+                name={card.assignee.name}
+                id={card.assignee.id}
+                imageUrl={card.assignee.image}
+                size="sm"
+              />
+            )}
+          </div>
         </div>
       </div>
 

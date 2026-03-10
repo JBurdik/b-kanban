@@ -10,6 +10,7 @@ import TableCell from "@tiptap/extension-table-cell";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import { marked } from "marked";
+import TurndownService from "turndown";
 import { SlashCommands } from "./editor/SlashCommands";
 import { Callout } from "./editor/CalloutExtension";
 import { createMentionExtension } from "./editor/MentionExtension";
@@ -46,6 +47,39 @@ function looksLikeMarkdown(text: string): boolean {
 // Convert markdown to HTML
 async function markdownToHtml(md: string): Promise<string> {
   return await marked.parse(md);
+}
+
+// Configure turndown for HTML to Markdown conversion
+const turndownService = new TurndownService({
+  headingStyle: "atx",
+  codeBlockStyle: "fenced",
+  bulletListMarker: "-",
+});
+
+// Add support for task lists
+turndownService.addRule("taskListItem", {
+  filter: (node) => {
+    return (
+      node.nodeName === "LI" &&
+      node.parentElement?.getAttribute("data-type") === "taskList"
+    );
+  },
+  replacement: (content, node) => {
+    const checkbox = (node as HTMLElement).querySelector('input[type="checkbox"]');
+    const checked = checkbox?.hasAttribute("checked") ? "x" : " ";
+    return `- [${checked}] ${content.trim()}\n`;
+  },
+});
+
+// Add support for highlights/marks
+turndownService.addRule("highlight", {
+  filter: "mark",
+  replacement: (content) => `==${content}==`,
+});
+
+// Convert HTML to markdown
+function htmlToMarkdown(html: string): string {
+  return turndownService.turndown(html);
 }
 
 interface MentionUser {

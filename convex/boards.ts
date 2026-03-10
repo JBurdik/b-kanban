@@ -142,10 +142,20 @@ export const get = query({
               (l): l is NonNullable<typeof l> => l !== null
             );
 
+            // Fetch version info
+            let version = null;
+            if (card.versionId) {
+              const v = await ctx.db.get(card.versionId);
+              if (v) {
+                version = { _id: v._id, name: v.name, color: v.color };
+              }
+            }
+
             return {
               ...card,
               assignee,
               labels,
+              version,
             };
           }),
         );

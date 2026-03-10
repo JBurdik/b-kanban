@@ -45,6 +45,10 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
     boardId: board._id,
     query: "",
   });
+  const boardVersions = useQuery(api.versions.list, {
+    boardId: board._id,
+    userEmail,
+  });
 
   const canEdit = checkCanEdit(board.userRole);
   const columns = board.columns || [];
@@ -59,6 +63,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
       type: card.type,
       columnId: card.columnId,
       assigneeId: card.assignee?.id,
+      versionId: card.versionId,
       effort: card.effort,
     },
   });
@@ -162,6 +167,8 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
           columnId={values.columnId}
           priority={values.priority}
           type={values.type}
+          versionId={values.versionId}
+          versions={boardVersions || []}
           assigneeId={values.assigneeId}
           effort={values.effort}
           dueDate={card.dueDate}
@@ -173,6 +180,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
           onColumnChange={(v) => setField("columnId", v)}
           onPriorityChange={(v) => setField("priority", v)}
           onTypeChange={(v) => setField("type", v)}
+          onVersionChange={(v) => setField("versionId", v)}
           onAssigneeChange={(v) => setField("assigneeId", v)}
           onEffortChange={(v) => setField("effort", v)}
           cardId={card._id}

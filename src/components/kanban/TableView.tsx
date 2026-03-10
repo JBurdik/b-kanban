@@ -22,6 +22,7 @@ interface Props {
   filter?: FilterOption;
   searchQuery?: string;
   currentUserId?: string;
+  versionFilter?: Id<"versions"> | null;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
 }
@@ -41,6 +42,7 @@ export function TableView({
   filter = "all",
   searchQuery = "",
   currentUserId,
+  versionFilter,
   onCardClick,
   onCardDoubleClick,
 }: Props) {
@@ -56,6 +58,11 @@ export function TableView({
           return;
         }
         if (filter === "unassigned" && card.assignee) {
+          return;
+        }
+
+        // Apply version filter
+        if (versionFilter && card.versionId !== versionFilter) {
           return;
         }
 
@@ -77,7 +84,7 @@ export function TableView({
     });
 
     return allCards;
-  }, [board.columns, filter, searchQuery, currentUserId]);
+  }, [board.columns, filter, searchQuery, currentUserId, versionFilter]);
 
   // Sort by column position, then card position
   const sortedCards = useMemo(() => {

@@ -6,6 +6,7 @@ import type { Id } from "convex/_generated/dataModel";
 import { signOut, changePassword } from "@/lib/auth-client";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { Avatar } from "@/components/Avatar";
+import { useCardOpenMode } from "@/hooks/useCardOpenMode";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -36,6 +37,7 @@ function ProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { mode: cardOpenMode, setMode: setCardOpenMode } = useCardOpenMode();
 
   // Convex mutations
   const updateProfile = useMutation(api.users.updateProfile);
@@ -359,6 +361,51 @@ function ProfilePage() {
             {isChangingPassword ? "Changing..." : "Change Password"}
           </button>
         </form>
+      </div>
+
+      {/* Preferences */}
+      <div className="card mb-6">
+        <h2 className="font-semibold mb-4">Preferences</h2>
+
+        <div className="mb-4">
+          <label className="block text-sm text-dark-muted mb-2">
+            Default card view
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCardOpenMode("sidebar")}
+              className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
+                cardOpenMode === "sidebar"
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-dark-border bg-dark-bg text-dark-muted hover:text-dark-text hover:border-dark-hover"
+              }`}
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />
+              </svg>
+              <div className="text-left">
+                <div className="text-sm font-medium">Sidebar</div>
+                <div className="text-xs text-dark-muted">Opens card in a side panel</div>
+              </div>
+            </button>
+            <button
+              onClick={() => setCardOpenMode("fullscreen")}
+              className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
+                cardOpenMode === "fullscreen"
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-dark-border bg-dark-bg text-dark-muted hover:text-dark-text hover:border-dark-hover"
+              }`}
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              <div className="text-left">
+                <div className="text-sm font-medium">Fullscreen</div>
+                <div className="text-xs text-dark-muted">Opens card in a full page</div>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Danger Zone */}

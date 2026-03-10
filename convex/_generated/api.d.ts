@@ -25,6 +25,7 @@ import type * as secretGroups from "../secretGroups.js";
 import type * as secrets from "../secrets.js";
 import type * as timeTracking from "../timeTracking.js";
 import type * as users from "../users.js";
+import type * as versions from "../versions.js";
 
 import type {
   ApiFromModules,
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   secrets: typeof secrets;
   timeTracking: typeof timeTracking;
   users: typeof users;
+  versions: typeof versions;
 }>;
 
 /**

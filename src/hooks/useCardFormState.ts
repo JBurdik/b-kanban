@@ -9,6 +9,7 @@ export interface CardFormData {
   type?: CardType;
   columnId: Id<"columns">;
   assigneeId?: Id<"users">;
+  versionId?: Id<"versions">;
   effort?: number;
 }
 

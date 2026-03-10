@@ -33,6 +33,7 @@ interface Props {
   filter?: FilterOption;
   searchQuery?: string;
   currentUserId?: string;
+  versionFilter?: Id<"versions"> | null;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
 }
@@ -48,6 +49,7 @@ export function KanbanBoard({
   filter = "all",
   searchQuery = "",
   currentUserId,
+  versionFilter,
   onCardClick,
   onCardDoubleClick,
 }: Props) {
@@ -75,6 +77,11 @@ export function KanbanBoard({
           return false;
         }
 
+        // Apply version filter
+        if (versionFilter && card.versionId !== versionFilter) {
+          return false;
+        }
+
         // Apply search filter
         if (searchLower) {
           const titleMatch = card.title.toLowerCase().includes(searchLower);
@@ -88,7 +95,7 @@ export function KanbanBoard({
         return true;
       }),
     }));
-  }, [board.columns, filter, searchQuery, currentUserId]);
+  }, [board.columns, filter, searchQuery, currentUserId, versionFilter]);
 
   const {
     columns,

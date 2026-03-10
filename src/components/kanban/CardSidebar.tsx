@@ -10,6 +10,7 @@ import { PRIORITY_CONFIG } from "@/lib/constants";
 import type { Priority, CardType, Column, BoardMember, Label, BoardRole } from "@/lib/types";
 import { CardTypeSelector } from "@/components/ui/CardTypeSelector";
 import { CardTypeBadge } from "@/components/ui/CardTypeBadge";
+import { VersionSelect } from "@/components/ui/VersionSelect";
 import { formatDateLong } from "@/utils/formatting";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { formatTimerDisplay } from "@/lib/timeUtils";
@@ -18,6 +19,8 @@ interface Props {
   columnId: Id<"columns">;
   priority?: Priority;
   type?: CardType;
+  versionId?: Id<"versions">;
+  versions: { _id: Id<"versions">; name: string; color: string }[];
   assigneeId?: Id<"users">;
   effort?: number;
   dueDate?: number;
@@ -29,6 +32,7 @@ interface Props {
   onColumnChange: (columnId: Id<"columns">) => void;
   onPriorityChange: (priority: Priority | undefined) => void;
   onTypeChange: (type: CardType | undefined) => void;
+  onVersionChange: (versionId: Id<"versions"> | undefined) => void;
   onAssigneeChange: (assigneeId: Id<"users"> | undefined) => void;
   onEffortChange: (effort: number | undefined) => void;
   // Time tracking props
@@ -47,6 +51,8 @@ export function CardSidebar({
   columnId,
   priority,
   type,
+  versionId,
+  versions,
   assigneeId,
   effort,
   dueDate,
@@ -58,6 +64,7 @@ export function CardSidebar({
   onColumnChange,
   onPriorityChange,
   onTypeChange,
+  onVersionChange,
   onAssigneeChange,
   onEffortChange,
   cardId,
@@ -133,6 +140,18 @@ export function CardSidebar({
           <CardTypeSelector value={type} onChange={onTypeChange} />
         ) : (
           <CardTypeBadge type={type} />
+        )}
+      </div>
+
+      {/* Version */}
+      <div className="mb-4">
+        <label className="block text-xs text-dark-muted mb-1">Version</label>
+        {canEdit ? (
+          <VersionSelect value={versionId} onChange={onVersionChange} versions={versions} />
+        ) : versionId ? (
+          <span className="text-sm">{versions.find((v) => v._id === versionId)?.name || "Unknown"}</span>
+        ) : (
+          <span className="text-sm text-dark-muted">None</span>
         )}
       </div>
 

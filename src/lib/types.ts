@@ -34,6 +34,16 @@ export interface Label {
 }
 
 // ============================================================================
+// Version Types
+// ============================================================================
+
+export interface Version {
+  _id: Id<"versions">;
+  name: string;
+  color: string;
+}
+
+// ============================================================================
 // Card Types
 // ============================================================================
 
@@ -49,6 +59,8 @@ export interface Card {
   effort?: number;
   assignee?: User | null;
   dueDate?: number;
+  versionId?: Id<"versions">;
+  version?: Version | null;
   isArchived?: boolean;
   archivedAt?: number;
   labels?: Label[];

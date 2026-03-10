@@ -117,6 +117,7 @@ export const create = mutation({
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
     type: v.optional(v.union(v.literal("task"), v.literal("bug"))),
     assigneeId: v.optional(v.id("users")),
+    versionId: v.optional(v.id("versions")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
   },
@@ -157,6 +158,7 @@ export const create = mutation({
       priority: args.priority ?? "medium",
       type: args.type ?? "task",
       assigneeId: args.assigneeId,
+      versionId: args.versionId,
       dueDate: args.dueDate,
       effort: args.effort,
       createdAt: now,
@@ -180,6 +182,7 @@ export const update = mutation({
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.null())),
     type: v.optional(v.union(v.literal("task"), v.literal("bug"), v.null())),
     assigneeId: v.optional(v.union(v.id("users"), v.null())),
+    versionId: v.optional(v.union(v.id("versions"), v.null())),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
     currentUserEmail: v.optional(v.string()), // For notification triggers
@@ -212,6 +215,12 @@ export const update = mutation({
       updates.assigneeId = undefined;
     } else if (args.assigneeId !== undefined) {
       updates.assigneeId = args.assigneeId;
+    }
+    // Handle version: null means clear, undefined means don't change
+    if (args.versionId === null) {
+      updates.versionId = undefined;
+    } else if (args.versionId !== undefined) {
+      updates.versionId = args.versionId;
     }
     if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
     if (args.effort !== undefined) updates.effort = args.effort;

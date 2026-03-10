@@ -103,6 +103,7 @@ export default defineSchema({
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
     type: v.optional(v.union(v.literal("task"), v.literal("bug"))),
     assigneeId: v.optional(v.id("users")),
+    versionId: v.optional(v.id("versions")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()), // Time effort in hours
     isArchived: v.optional(v.boolean()),
@@ -235,6 +236,16 @@ export default defineSchema({
   })
     .index("by_card", ["cardId"])
     .index("by_label", ["labelId"]),
+
+  // Versions table - board-specific milestones/releases
+  versions: defineTable({
+    boardId: v.id("boards"),
+    name: v.string(), // e.g., "v1.0", "Sprint 3"
+    color: v.string(), // Tailwind color class e.g., "bg-purple-500"
+    isActive: v.boolean(), // Active versions shown prominently
+    createdAt: v.number(),
+  })
+    .index("by_board", ["boardId"]),
 
   // Secrets Table - E2E Encrypted
   // ============================================

@@ -23,6 +23,7 @@ interface Props {
   canEdit?: boolean;
   canManageColumns?: boolean;
   isDraggingColumn?: boolean;
+  userEmail?: string;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
 }
@@ -33,6 +34,7 @@ export function KanbanColumn({
   canEdit = true,
   canManageColumns = false,
   isDraggingColumn = false,
+  userEmail,
   onCardClick,
   onCardDoubleClick,
 }: Props) {
@@ -95,6 +97,7 @@ export function KanbanColumn({
         columnId: column._id,
         title: newCardTitle.trim(),
         position: column.cards?.length || 0,
+        userEmail,
       });
       setShowAddCard(false);
       setNewCardTitle("");

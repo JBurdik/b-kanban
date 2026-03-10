@@ -141,6 +141,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
         effort={values.effort}
         currentColumn={card.column}
         currentAssignee={card.assignee}
+        reporter={card.reporter}
         columns={columns}
         members={members}
         canEdit={canEdit}
@@ -174,6 +175,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
           dueDate={card.dueDate}
           currentColumn={card.column}
           currentAssignee={card.assignee}
+          reporter={card.reporter}
           columns={columns}
           members={members}
           canEdit={canEdit}

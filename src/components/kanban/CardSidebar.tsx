@@ -26,6 +26,7 @@ interface Props {
   dueDate?: number;
   currentColumn: { name: string };
   currentAssignee?: { id: Id<"users">; name: string; image?: string } | null;
+  reporter?: { id: Id<"users">; name: string; image?: string } | null;
   columns: Column[];
   members: BoardMember[];
   canEdit: boolean;
@@ -58,6 +59,7 @@ export function CardSidebar({
   dueDate,
   currentColumn,
   currentAssignee,
+  reporter,
   columns,
   members,
   canEdit,
@@ -199,6 +201,26 @@ export function CardSidebar({
             )}
           </div>
         )}
+      </div>
+
+      {/* Reporter */}
+      <div className="mb-4">
+        <label className="block text-xs text-dark-muted mb-1">Reporter</label>
+        <div className="flex items-center gap-2">
+          {reporter ? (
+            <>
+              <Avatar
+                name={reporter.name}
+                id={reporter.id}
+                imageUrl={reporter.image}
+                size="sm"
+              />
+              <span className="text-sm">{reporter.name}</span>
+            </>
+          ) : (
+            <span className="text-sm text-dark-muted">Unknown</span>
+          )}
+        </div>
       </div>
 
       {/* Due Date */}

@@ -514,6 +514,7 @@ export function CardSlidePanel({
                 dueDate={card.dueDate}
                 currentColumn={card.column}
                 currentAssignee={currentAssignee}
+                reporter={card.reporter}
                 columns={columns}
                 members={members}
                 canEdit={true}
@@ -566,12 +567,24 @@ export function CardSlidePanel({
                         <span className="text-dark-text">{effort}h</span>
                       </div>
                     )}
+                    {card.reporter && (
+                      <div>
+                        <span className="text-dark-muted">Reporter: </span>
+                        <span className="text-dark-text">
+                          {card.reporter.name}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Description */}
                 {content ? (
-                  <div className="mb-6">
+                  <div
+                    className="mb-6 cursor-pointer hover:bg-dark-hover/30 rounded-lg p-2 -mx-2 transition-colors"
+                    onDoubleClick={() => setIsEditing(true)}
+                    title="Double-click to edit"
+                  >
                     <h2 className="text-sm font-medium text-dark-muted uppercase tracking-wide mb-3">
                       Description
                     </h2>
@@ -581,8 +594,12 @@ export function CardSlidePanel({
                     />
                   </div>
                 ) : (
-                  <p className="text-dark-muted text-sm italic mb-6">
-                    No description.
+                  <p
+                    className="text-dark-muted text-sm italic mb-6 cursor-pointer hover:bg-dark-hover/30 rounded-lg p-2 -mx-2 transition-colors"
+                    onDoubleClick={() => setIsEditing(true)}
+                    title="Double-click to edit"
+                  >
+                    Double-click to add description
                   </p>
                 )}
 
@@ -673,6 +690,32 @@ export function CardSlidePanel({
                     ) : (
                       <p className="text-sm text-dark-muted italic">
                         Unassigned
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Reporter */}
+                  <div>
+                    <h3 className="text-xs font-medium text-dark-muted uppercase tracking-wide mb-2">
+                      Reporter
+                    </h3>
+                    {card.reporter ? (
+                      <div className="flex items-center gap-3 p-3 bg-dark-surface rounded-lg">
+                        <Avatar
+                          name={card.reporter.name}
+                          id={card.reporter.id}
+                          imageUrl={card.reporter.image}
+                          size="md"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-dark-text">
+                            {card.reporter.name}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-dark-muted italic">
+                        Unknown
                       </p>
                     )}
                   </div>

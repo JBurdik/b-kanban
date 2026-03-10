@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 
 /**
  * Get a single card by ID
@@ -38,7 +39,21 @@ export const get = query({
       }))
     );
 
-    return { ...card, assignee, attachments: attachmentsWithUrls };
+    // Get reporter info
+    let reporter = null;
+    if (card.reporterId) {
+      const reporterUser = await ctx.db.get(card.reporterId);
+      if (reporterUser) {
+        reporter = {
+          id: reporterUser._id,
+          name: reporterUser.name,
+          email: reporterUser.email,
+          image: reporterUser.image,
+        };
+      }
+    }
+
+    return { ...card, assignee, reporter, attachments: attachmentsWithUrls };
   },
 });
 
@@ -96,9 +111,24 @@ export const getBySlug = query({
       name: column.name,
     };
 
+    // Get reporter info
+    let reporter = null;
+    if (card.reporterId) {
+      const reporterUser = await ctx.db.get(card.reporterId);
+      if (reporterUser) {
+        reporter = {
+          id: reporterUser._id,
+          name: reporterUser.name,
+          email: reporterUser.email,
+          image: reporterUser.image,
+        };
+      }
+    }
+
     return {
       ...card,
       assignee,
+      reporter,
       attachments: attachmentsWithUrls,
       column: columnInfo,
     };
@@ -120,6 +150,7 @@ export const create = mutation({
     versionId: v.optional(v.id("versions")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
+    userEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const column = await ctx.db.get(args.columnId);
@@ -147,6 +178,18 @@ export const create = mutation({
       position = cards.length;
     }
 
+    // Resolve reporter from email
+    let reporterId: Id<"users"> | undefined;
+    if (args.userEmail) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
+        .first();
+      if (user) {
+        reporterId = user._id;
+      }
+    }
+
     const now = Date.now();
 
     const cardId = await ctx.db.insert("cards", {
@@ -161,6 +204,7 @@ export const create = mutation({
       versionId: args.versionId,
       dueDate: args.dueDate,
       effort: args.effort,
+      reporterId,
       createdAt: now,
       updatedAt: now,
     });
@@ -430,9 +474,24 @@ export const listArchived = query({
           }
         }
 
+        // Get reporter info
+        let reporter = null;
+        if (card.reporterId) {
+          const reporterUser = await ctx.db.get(card.reporterId);
+          if (reporterUser) {
+            reporter = {
+              id: reporterUser._id,
+              name: reporterUser.name,
+              email: reporterUser.email,
+              image: reporterUser.image,
+            };
+          }
+        }
+
         archivedCards.push({
           ...card,
           assignee,
+          reporter,
           columnName: columnMap.get(card.columnId) || "Unknown",
         });
       }

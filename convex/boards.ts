@@ -151,9 +151,24 @@ export const get = query({
               }
             }
 
+            // Fetch reporter info
+            let reporter = null;
+            if (card.reporterId) {
+              const reporterUser = await ctx.db.get(card.reporterId);
+              if (reporterUser) {
+                reporter = {
+                  id: reporterUser._id,
+                  name: reporterUser.name,
+                  email: reporterUser.email,
+                  image: reporterUser.image,
+                };
+              }
+            }
+
             return {
               ...card,
               assignee,
+              reporter,
               labels,
               version,
             };

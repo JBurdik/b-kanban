@@ -58,6 +58,7 @@ export interface Card {
   type?: CardType;
   effort?: number;
   assignee?: User | null;
+  reporter?: User | null;
   dueDate?: number;
   versionId?: Id<"versions">;
   version?: Version | null;

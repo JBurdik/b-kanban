@@ -234,6 +234,23 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
               )}
             </div>
 
+            {/* Reporter */}
+            {card.reporter && (
+              <div className="flex items-center gap-2 text-sm">
+                <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
+                </svg>
+                <span className="text-dark-muted">by</span>
+                <Avatar name={card.reporter.name} id={card.reporter.id} size="sm" />
+                <span className="text-dark-text">{card.reporter.name}</span>
+              </div>
+            )}
+
             {/* Time Effort */}
             {card.effort !== undefined && card.effort > 0 && (
               <div className="flex items-center gap-2 text-sm">
@@ -251,11 +268,17 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
           </div>
 
           {/* Description */}
-          <div className="p-5">
+          <div
+            className={clsx("p-5", canEdit && "cursor-pointer hover:bg-dark-hover/30 rounded-lg transition-colors")}
+            onDoubleClick={() => canEdit && setIsEditing(true)}
+            title={canEdit ? "Double-click to edit" : undefined}
+          >
             {card.content ? (
               <div className="rich-content" dangerouslySetInnerHTML={{ __html: card.content }} />
             ) : (
-              <p className="text-dark-muted text-sm italic py-4 text-center">No description added yet</p>
+              <p className="text-dark-muted text-sm italic py-4 text-center">
+                {canEdit ? "Double-click to add description" : "No description added yet"}
+              </p>
             )}
           </div>
 

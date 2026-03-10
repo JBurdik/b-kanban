@@ -453,6 +453,7 @@ function BoardPage() {
             filter={filter}
             searchQuery={searchQuery}
             currentUserId={currentUser?.id}
+            userEmail={userEmail}
             versionFilter={selectedVersionId}
             onCardClick={handleCardClick}
             onCardDoubleClick={handleCardDoubleClick}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
-import { NotificationDropdown } from "./NotificationDropdown";
+import { NotificationPanel } from "./NotificationPanel";
 
 interface Props {
   userEmail?: string;
@@ -18,7 +18,7 @@ export function NotificationBell({ userEmail }: Props) {
   if (!userEmail) return null;
 
   return (
-    <div className="relative">
+    <>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
@@ -45,11 +45,11 @@ export function NotificationBell({ userEmail }: Props) {
       </button>
 
       {isOpen && (
-        <NotificationDropdown
+        <NotificationPanel
           userEmail={userEmail}
           onClose={() => setIsOpen(false)}
         />
       )}
-    </div>
+    </>
   );
 }

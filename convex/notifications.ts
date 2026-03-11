@@ -9,6 +9,14 @@ export const list = query({
     userEmail: v.string(),
     unreadOnly: v.optional(v.boolean()),
     limit: v.optional(v.number()),
+    type: v.optional(
+      v.union(
+        v.literal("assigned"),
+        v.literal("mentioned"),
+        v.literal("commented"),
+        v.literal("card_updated"),
+      )
+    ),
   },
   handler: async (ctx, args) => {
     // Get user by email
@@ -20,12 +28,22 @@ export const list = query({
     if (!user) return [];
 
     // Query notifications
-    let notificationsQuery = ctx.db
-      .query("notifications")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .order("desc");
-
-    const notifications = await notificationsQuery.collect();
+    let notifications;
+    if (args.type) {
+      notifications = await ctx.db
+        .query("notifications")
+        .withIndex("by_user_type", (q) =>
+          q.eq("userId", user._id).eq("type", args.type!)
+        )
+        .order("desc")
+        .collect();
+    } else {
+      notifications = await ctx.db
+        .query("notifications")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .order("desc")
+        .collect();
+    }
 
     // Filter by read status if needed
     const filtered = args.unreadOnly
@@ -44,18 +62,10 @@ export const list = query({
         return {
           ...notification,
           card: card
-            ? {
-                id: card._id,
-                slug: card.slug,
-                title: card.title,
-              }
+            ? { id: card._id, slug: card.slug, title: card.title }
             : null,
           fromUser: fromUser
-            ? {
-                id: fromUser._id,
-                name: fromUser.name,
-                image: fromUser.image,
-              }
+            ? { id: fromUser._id, name: fromUser.name, image: fromUser.image }
             : null,
         };
       }),

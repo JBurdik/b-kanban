@@ -158,7 +158,8 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_read", ["userId", "read"])
-    .index("by_card", ["cardId"]),
+    .index("by_card", ["cardId"])
+    .index("by_user_type", ["userId", "type"]),
 
   // ============================================
   // Time Tracking Tables

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 /**
  * Get board members
@@ -88,6 +89,13 @@ export const add = mutation({
       userId: userToAdd._id,
       role: args.role,
       createdAt: Date.now(),
+    });
+
+    // Dispatch webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+      boardId: args.boardId,
+      event: "member.joined",
+      data: { memberId, userId: userToAdd._id, email: args.email, role: args.role },
     });
 
     return memberId;

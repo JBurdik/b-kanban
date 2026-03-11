@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireAuth, requireBoardAccess } from "./lib/rbac";
 
 /**
@@ -156,6 +157,13 @@ export const accept = mutation({
 
     // Increment use count
     await ctx.db.patch(invite._id, { useCount: invite.useCount + 1 });
+
+    // Dispatch webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+      boardId: invite.boardId,
+      event: "member.joined",
+      data: { userId: user._id, role: invite.role, viaInvite: true },
+    });
 
     return { boardId: invite.boardId, alreadyMember: false };
   },

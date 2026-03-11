@@ -13,11 +13,16 @@ export default {
     copy: {
       "dist/index.html": "views/mainview/index.html",
       "dist/assets": "views/mainview/assets",
+      "dist/icon.svg": "views/mainview/icon.svg",
+      "dist/icon.png": "views/mainview/icon.png",
     },
     watchIgnore: ["dist/**"],
+    mac: {
+      codesign: false,
+      notarize: false,
+    },
   },
   release: {
-    baseUrl:
-      "https://github.com/JBurdik/b-kanban/releases/latest/download",
+    baseUrl: "https://github.com/JBurdik/b-kanban/releases/latest/download",
   },
 } satisfies ElectrobunConfig;

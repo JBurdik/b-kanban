@@ -141,6 +141,7 @@ export function CommentList({ cardId, boardId, userEmail, readOnly = false }: Pr
                   <Avatar
                     name={comment.author?.name || "Unknown"}
                     id={comment.author?.id}
+                    imageUrl={comment.author?.image}
                     size="sm"
                   />
                   <div>

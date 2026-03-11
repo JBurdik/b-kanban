@@ -12,7 +12,7 @@
     "convex:deploy": "convex deploy",
     "dev:desktop": "electrobun dev",
     "dev:desktop:hmr": "concurrently \"pnpm dev:app\" \"pnpm dev:desktop\"",
-    "build:desktop": "vite build && electrobun build"
+    "build:desktop": "vite build --mode production && electrobun build --env=stable"
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-alpha.9",

@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useSession } from "@/lib/auth-client";
 import { Logo } from "@/components/ui/Logo";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -25,9 +25,9 @@ function HomePage() {
         A modern, minimalistic kanban board for productive teams.
       </p>
       <div className="flex gap-4">
-        <a href="/login" className="btn-primary">
+        <Link to="/login" className="btn-primary">
           Get Started
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { SlashCommands } from "../editor/SlashCommands";
 import { createMentionExtension } from "../editor/MentionExtension";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import clsx from "clsx";
 import type { Id } from "convex/_generated/dataModel";
 
@@ -78,6 +78,13 @@ export function CommentEditor({
       },
     },
   });
+
+  // Sync editor content when cleared externally (e.g. after submit)
+  useEffect(() => {
+    if (editor && content === "" && editor.getHTML() !== "<p></p>") {
+      editor.commands.clearContent();
+    }
+  }, [editor, content]);
 
   if (!editor) return null;
 

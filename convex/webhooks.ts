@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { query, mutation, action, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { requireAuth, requireBoardAccess } from "./lib/rbac";
 import { createHmac } from "crypto";
 
@@ -19,8 +20,9 @@ export const create = mutation({
     secret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-    await requireBoardAccess(ctx, user._id, args.boardId, "admin");
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+    await requireBoardAccess(ctx, userId, args.boardId, "admin");
 
     if (!args.url.startsWith("https://")) {
       throw new Error("Webhook URL must start with https://");
@@ -36,7 +38,7 @@ export const create = mutation({
       events: args.events,
       secret: args.secret,
       isActive: true,
-      createdById: user._id,
+      createdById: userId,
       createdAt: now,
       updatedAt: now,
     });
@@ -74,11 +76,12 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const webhook = await ctx.db.get(args.webhookId);
     if (!webhook) throw new Error("Webhook not found");
 
-    await requireBoardAccess(ctx, user._id, webhook.boardId, "admin");
+    await requireBoardAccess(ctx, userId, webhook.boardId, "admin");
 
     if (args.url !== undefined && !args.url.startsWith("https://")) {
       throw new Error("Webhook URL must start with https://");
@@ -104,11 +107,12 @@ export const update = mutation({
 export const remove = mutation({
   args: { webhookId: v.id("webhooks") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const webhook = await ctx.db.get(args.webhookId);
     if (!webhook) throw new Error("Webhook not found");
 
-    await requireBoardAccess(ctx, user._id, webhook.boardId, "admin");
+    await requireBoardAccess(ctx, userId, webhook.boardId, "admin");
 
     await ctx.db.delete(args.webhookId);
 

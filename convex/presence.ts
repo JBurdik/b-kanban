@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 import { requireAuth } from "./lib/rbac";
 
 /**
@@ -11,13 +12,14 @@ export const heartbeat = mutation({
     activeCardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const now = Date.now();
 
     const existing = await ctx.db
       .query("boardPresence")
       .withIndex("by_user_and_board", (q) =>
-        q.eq("userId", user._id).eq("boardId", args.boardId)
+        q.eq("userId", userId).eq("boardId", args.boardId)
       )
       .unique();
 
@@ -29,7 +31,7 @@ export const heartbeat = mutation({
     } else {
       await ctx.db.insert("boardPresence", {
         boardId: args.boardId,
-        userId: user._id,
+        userId,
         activeCardId: args.activeCardId,
         lastSeen: now,
         createdAt: now,
@@ -46,12 +48,13 @@ export const leave = mutation({
     boardId: v.id("boards"),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const existing = await ctx.db
       .query("boardPresence")
       .withIndex("by_user_and_board", (q) =>
-        q.eq("userId", user._id).eq("boardId", args.boardId)
+        q.eq("userId", userId).eq("boardId", args.boardId)
       )
       .unique();
 

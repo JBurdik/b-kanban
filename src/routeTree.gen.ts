@@ -17,11 +17,14 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as BoardsRouteImport } from './routes/boards'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BoardsIndexRouteImport } from './routes/boards.index'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as BoardsBoardIdRouteImport } from './routes/boards.$boardId'
 import { Route as BoardsBoardIdIndexRouteImport } from './routes/boards.$boardId.index'
+import { Route as BoardsBoardIdWebhooksRouteImport } from './routes/boards.$boardId.webhooks'
 import { Route as BoardsBoardIdSecretsRouteImport } from './routes/boards.$boardId.secrets'
 import { Route as BoardsBoardIdDocsRouteImport } from './routes/boards.$boardId.docs'
 import { Route as BoardsBoardIdArchiveRouteImport } from './routes/boards.$boardId.archive'
+import { Route as BoardsBoardIdWebhooksIndexRouteImport } from './routes/boards.$boardId.webhooks.index'
 import { Route as BoardsBoardIdSecretsIndexRouteImport } from './routes/boards.$boardId.secrets.index'
 import { Route as BoardsBoardIdDocsIndexRouteImport } from './routes/boards.$boardId.docs.index'
 import { Route as BoardsBoardIdArchiveIndexRouteImport } from './routes/boards.$boardId.archive.index'
@@ -68,6 +71,11 @@ const BoardsIndexRoute = BoardsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BoardsRoute,
 } as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BoardsBoardIdRoute = BoardsBoardIdRouteImport.update({
   id: '/$boardId',
   path: '/$boardId',
@@ -76,6 +84,11 @@ const BoardsBoardIdRoute = BoardsBoardIdRouteImport.update({
 const BoardsBoardIdIndexRoute = BoardsBoardIdIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => BoardsBoardIdRoute,
+} as any)
+const BoardsBoardIdWebhooksRoute = BoardsBoardIdWebhooksRouteImport.update({
+  id: '/webhooks',
+  path: '/webhooks',
   getParentRoute: () => BoardsBoardIdRoute,
 } as any)
 const BoardsBoardIdSecretsRoute = BoardsBoardIdSecretsRouteImport.update({
@@ -93,6 +106,12 @@ const BoardsBoardIdArchiveRoute = BoardsBoardIdArchiveRouteImport.update({
   path: '/archive',
   getParentRoute: () => BoardsBoardIdRoute,
 } as any)
+const BoardsBoardIdWebhooksIndexRoute =
+  BoardsBoardIdWebhooksIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BoardsBoardIdWebhooksRoute,
+  } as any)
 const BoardsBoardIdSecretsIndexRoute =
   BoardsBoardIdSecretsIndexRouteImport.update({
     id: '/',
@@ -131,16 +150,19 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/time': typeof TimeRoute
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
+  '/invite/$token': typeof InviteTokenRoute
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveRouteWithChildren
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
+  '/boards/$boardId/webhooks': typeof BoardsBoardIdWebhooksRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
   '/boards/$boardId/archive/': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
+  '/boards/$boardId/webhooks/': typeof BoardsBoardIdWebhooksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -149,6 +171,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/time': typeof TimeRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/boards': typeof BoardsIndexRoute
   '/boards/$boardId': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
@@ -156,6 +179,7 @@ export interface FileRoutesByTo {
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsIndexRoute
+  '/boards/$boardId/webhooks': typeof BoardsBoardIdWebhooksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -167,16 +191,19 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/time': typeof TimeRoute
   '/boards/$boardId': typeof BoardsBoardIdRouteWithChildren
+  '/invite/$token': typeof InviteTokenRoute
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveRouteWithChildren
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
+  '/boards/$boardId/webhooks': typeof BoardsBoardIdWebhooksRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
   '/boards/$boardId/archive/': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
+  '/boards/$boardId/webhooks/': typeof BoardsBoardIdWebhooksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,16 +216,19 @@ export interface FileRouteTypes {
     | '/register'
     | '/time'
     | '/boards/$boardId'
+    | '/invite/$token'
     | '/boards/'
     | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/secrets'
+    | '/boards/$boardId/webhooks'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
     | '/boards/$boardId/archive/'
     | '/boards/$boardId/docs/'
     | '/boards/$boardId/secrets/'
+    | '/boards/$boardId/webhooks/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -207,6 +237,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/time'
+    | '/invite/$token'
     | '/boards'
     | '/boards/$boardId'
     | '/boards/$boardId/cards/$cardSlug'
@@ -214,6 +245,7 @@ export interface FileRouteTypes {
     | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/secrets'
+    | '/boards/$boardId/webhooks'
   id:
     | '__root__'
     | '/'
@@ -224,16 +256,19 @@ export interface FileRouteTypes {
     | '/register'
     | '/time'
     | '/boards/$boardId'
+    | '/invite/$token'
     | '/boards/'
     | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/secrets'
+    | '/boards/$boardId/webhooks'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
     | '/boards/$boardId/archive/'
     | '/boards/$boardId/docs/'
     | '/boards/$boardId/secrets/'
+    | '/boards/$boardId/webhooks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -244,6 +279,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   TimeRoute: typeof TimeRoute
+  InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -304,6 +340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsIndexRouteImport
       parentRoute: typeof BoardsRoute
     }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/boards/$boardId': {
       id: '/boards/$boardId'
       path: '/$boardId'
@@ -316,6 +359,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/boards/$boardId/'
       preLoaderRoute: typeof BoardsBoardIdIndexRouteImport
+      parentRoute: typeof BoardsBoardIdRoute
+    }
+    '/boards/$boardId/webhooks': {
+      id: '/boards/$boardId/webhooks'
+      path: '/webhooks'
+      fullPath: '/boards/$boardId/webhooks'
+      preLoaderRoute: typeof BoardsBoardIdWebhooksRouteImport
       parentRoute: typeof BoardsBoardIdRoute
     }
     '/boards/$boardId/secrets': {
@@ -338,6 +388,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/boards/$boardId/archive'
       preLoaderRoute: typeof BoardsBoardIdArchiveRouteImport
       parentRoute: typeof BoardsBoardIdRoute
+    }
+    '/boards/$boardId/webhooks/': {
+      id: '/boards/$boardId/webhooks/'
+      path: '/'
+      fullPath: '/boards/$boardId/webhooks/'
+      preLoaderRoute: typeof BoardsBoardIdWebhooksIndexRouteImport
+      parentRoute: typeof BoardsBoardIdWebhooksRoute
     }
     '/boards/$boardId/secrets/': {
       id: '/boards/$boardId/secrets/'
@@ -412,10 +469,24 @@ const BoardsBoardIdSecretsRouteChildren: BoardsBoardIdSecretsRouteChildren = {
 const BoardsBoardIdSecretsRouteWithChildren =
   BoardsBoardIdSecretsRoute._addFileChildren(BoardsBoardIdSecretsRouteChildren)
 
+interface BoardsBoardIdWebhooksRouteChildren {
+  BoardsBoardIdWebhooksIndexRoute: typeof BoardsBoardIdWebhooksIndexRoute
+}
+
+const BoardsBoardIdWebhooksRouteChildren: BoardsBoardIdWebhooksRouteChildren = {
+  BoardsBoardIdWebhooksIndexRoute: BoardsBoardIdWebhooksIndexRoute,
+}
+
+const BoardsBoardIdWebhooksRouteWithChildren =
+  BoardsBoardIdWebhooksRoute._addFileChildren(
+    BoardsBoardIdWebhooksRouteChildren,
+  )
+
 interface BoardsBoardIdRouteChildren {
   BoardsBoardIdArchiveRoute: typeof BoardsBoardIdArchiveRouteWithChildren
   BoardsBoardIdDocsRoute: typeof BoardsBoardIdDocsRouteWithChildren
   BoardsBoardIdSecretsRoute: typeof BoardsBoardIdSecretsRouteWithChildren
+  BoardsBoardIdWebhooksRoute: typeof BoardsBoardIdWebhooksRouteWithChildren
   BoardsBoardIdIndexRoute: typeof BoardsBoardIdIndexRoute
   BoardsBoardIdCardsCardSlugRoute: typeof BoardsBoardIdCardsCardSlugRoute
 }
@@ -424,6 +495,7 @@ const BoardsBoardIdRouteChildren: BoardsBoardIdRouteChildren = {
   BoardsBoardIdArchiveRoute: BoardsBoardIdArchiveRouteWithChildren,
   BoardsBoardIdDocsRoute: BoardsBoardIdDocsRouteWithChildren,
   BoardsBoardIdSecretsRoute: BoardsBoardIdSecretsRouteWithChildren,
+  BoardsBoardIdWebhooksRoute: BoardsBoardIdWebhooksRouteWithChildren,
   BoardsBoardIdIndexRoute: BoardsBoardIdIndexRoute,
   BoardsBoardIdCardsCardSlugRoute: BoardsBoardIdCardsCardSlugRoute,
 }
@@ -453,6 +525,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   TimeRoute: TimeRoute,
+  InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

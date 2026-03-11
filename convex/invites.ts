@@ -163,7 +163,7 @@ export const accept = mutation({
     await ctx.db.patch(invite._id, { useCount: invite.useCount + 1 });
 
     // Dispatch webhook
-    await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+    await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
       boardId: invite.boardId,
       event: "member.joined",
       data: { userId: userId, role: invite.role, viaInvite: true },

@@ -211,7 +211,7 @@ export const create = mutation({
     });
 
     // Dispatch webhook
-    await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+    await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
       boardId,
       event: "card.created",
       data: { cardId, slug, title: args.title, columnId: args.columnId },
@@ -282,7 +282,7 @@ export const update = mutation({
     // Dispatch webhook
     const column = await ctx.db.get(card.columnId);
     if (column) {
-      await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+      await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
         boardId: column.boardId,
         event: "card.updated",
         data: { cardId: args.cardId, title: card.title, updates: Object.keys(updates) },
@@ -353,7 +353,7 @@ export const remove = mutation({
     // Dispatch webhook
     const column = await ctx.db.get(card.columnId);
     if (column) {
-      await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+      await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
         boardId: column.boardId,
         event: "card.archived",
         data: { cardId: args.cardId, title: card.title },

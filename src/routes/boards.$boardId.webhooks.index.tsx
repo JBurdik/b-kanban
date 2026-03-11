@@ -49,7 +49,7 @@ function WebhooksPage() {
   const createWebhook = useMutation(api.webhooks.create);
   const updateWebhook = useMutation(api.webhooks.update);
   const removeWebhook = useMutation(api.webhooks.remove);
-  const testWebhook = useAction(api.webhooks.test);
+  const testWebhook = useAction(api.webhookActions.test);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<Id<"webhooks"> | null>(null);

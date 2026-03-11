@@ -77,7 +77,7 @@ export const create = mutation({
     // Dispatch webhook
     const column = await ctx.db.get(card.columnId);
     if (column) {
-      await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+      await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
         boardId: column.boardId,
         event: "comment.created",
         data: { commentId, cardId: args.cardId, cardTitle: card.title, authorName: author.name },

@@ -92,7 +92,7 @@ export const add = mutation({
     });
 
     // Dispatch webhook
-    await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+    await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
       boardId: args.boardId,
       event: "member.joined",
       data: { memberId, userId: userToAdd._id, email: args.email, role: args.role },

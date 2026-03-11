@@ -2,8 +2,10 @@ import { convexClient } from "@convex-dev/better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { fixedCrossDomainClient } from "./fixed-cross-domain-client";
 
-// Detect if running in Tauri desktop app
-const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
+// Detect if running in Electrobun desktop app (views:// protocol)
+const isDesktopApp =
+  typeof window !== "undefined" &&
+  window.location.protocol === "views:";
 
 // Storage key for bearer token
 const BEARER_TOKEN_KEY = "better_auth_bearer_token";
@@ -24,12 +26,12 @@ export const storeBearerToken = (token: string | null): void => {
   }
 };
 
-// Configure auth client with Bearer token support for Tauri
+// Configure auth client with Bearer token support for Electrobun desktop
 export const authClient = createAuthClient({
   baseURL: import.meta.env.VITE_CONVEX_SITE_URL as string,
   plugins: [convexClient(), fixedCrossDomainClient()],
-  // Use Bearer auth when in Tauri (cookies don't work with tauri:// protocol)
-  fetchOptions: isTauri
+  // Use Bearer auth in desktop app (cookies may not work with views:// protocol)
+  fetchOptions: isDesktopApp
     ? {
         auth: {
           type: "Bearer" as const,

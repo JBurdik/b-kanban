@@ -29,7 +29,7 @@ Kanban board app with React 19 frontend and Convex serverless backend.
 
 - **Frontend**: `src/` — React 19 + Vite + TanStack Router (file-based) + Tailwind CSS
 - **Backend**: `convex/` — Convex serverless functions (queries, mutations, actions)
-- **Desktop**: Tauri v2 support with bearer token auth
+- **Desktop**: Electrobun support with bearer token auth
 
 ### Key Path Aliases
 

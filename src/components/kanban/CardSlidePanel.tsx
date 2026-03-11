@@ -90,6 +90,18 @@ export function CardSlidePanel({
   const panelRef = useRef<HTMLDivElement>(null);
 
   const updateCard = useMutation(api.cards.update);
+  const toggleWatch = useMutation(api.cardWatchers.toggle);
+  const currentUser = useQuery(
+    api.users.getByEmail,
+    userEmail ? { email: userEmail } : "skip"
+  );
+  const isWatching = useQuery(
+    api.cardWatchers.isWatching,
+    currentUser?.id
+      ? { cardId: card._id, userId: currentUser.id as Id<"users"> }
+      : "skip"
+  );
+  const watchers = useQuery(api.cardWatchers.list, { cardId: card._id });
   const searchMembers = useQuery(api.members.search, {
     boardId: board._id,
     query: "",
@@ -166,6 +178,40 @@ export function CardSlidePanel({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [handleClose]);
+
+  // Priority shortcuts: 1 = low, 2 = medium, 3 = high
+  useEffect(() => {
+    const handlePriorityShortcut = (e: KeyboardEvent) => {
+      // Guard: skip if input is focused
+      const el = document.activeElement;
+      if (el) {
+        const tag = el.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        if (el.getAttribute("contenteditable") === "true") return;
+        if (el.closest(".ProseMirror")) return;
+      }
+      if (e.metaKey || e.ctrlKey) return;
+
+      const priorityMap: Record<string, "low" | "medium" | "high"> = {
+        "1": "low",
+        "2": "medium",
+        "3": "high",
+      };
+
+      const newPriority = priorityMap[e.key];
+      if (newPriority && canEdit) {
+        e.preventDefault();
+        updateCard({
+          cardId: card._id,
+          priority: newPriority,
+          currentUserEmail: userEmail,
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handlePriorityShortcut);
+    return () => window.removeEventListener("keydown", handlePriorityShortcut);
+  }, [card._id, updateCard, userEmail, canEdit]);
 
   // Resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -335,6 +381,32 @@ export function CardSlidePanel({
                 {isSaving ? "Saving..." : "Save"}
               </button>
             )}
+            {/* Watch button */}
+            <button
+              onClick={() => toggleWatch({ cardId: card._id })}
+              className={`p-2 rounded-lg hover:bg-dark-hover transition-colors relative ${
+                isWatching
+                  ? "text-accent"
+                  : "text-dark-muted hover:text-dark-text"
+              }`}
+              title={isWatching ? "Stop watching" : "Watch this card"}
+            >
+              {isWatching ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+              {watchers && watchers.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full bg-accent text-white px-1">
+                  {watchers.length}
+                </span>
+              )}
+            </button>
             {/* Expand/Collapse button */}
             <button
               onClick={() => setIsExpanded(!isExpanded)}

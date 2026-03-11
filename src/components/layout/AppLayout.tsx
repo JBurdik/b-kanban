@@ -4,8 +4,10 @@ import { api } from "convex/_generated/api";
 import { useSession } from "@/lib/auth-client";
 import { Sidebar, MobileSidebar, MobileMenuButton } from "./Sidebar";
 import { useSidebarState } from "@/hooks/useSidebarState";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserDropdown } from "@/components/UserDropdown";
+import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import clsx from "clsx";
 
 interface AppLayoutProps {
@@ -16,6 +18,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { data: session } = useSession();
   const { isCollapsed, isMobileOpen, toggle, toggleMobile, closeMobile } =
     useSidebarState();
+  const { showShortcutsModal, setShowShortcutsModal } = useGlobalShortcuts();
 
   // Fetch user from Convex to get updated avatar
   const convexUser = useQuery(
@@ -79,6 +82,11 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </div>
       </main>
+
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+      />
     </div>
   );
 }

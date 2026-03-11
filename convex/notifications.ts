@@ -200,6 +200,46 @@ export const create = internalMutation({
       createdAt: Date.now(),
     });
 
+    // Notify card watchers
+    const watchers = await ctx.db
+      .query("cardWatchers")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .collect();
+
+    for (const watcher of watchers) {
+      // Skip the actor and the already-notified user
+      if (watcher.userId === args.fromUserId) continue;
+      if (watcher.userId === args.userId) continue;
+
+      // Dedup check: look at recent notifications for this watcher
+      const recentWatcherNotifs = await ctx.db
+        .query("notifications")
+        .withIndex("by_user", (q) => q.eq("userId", watcher.userId))
+        .order("desc")
+        .take(10);
+
+      const watcherDuplicate = recentWatcherNotifs.find(
+        (n) =>
+          n.type === args.type &&
+          n.cardId === args.cardId &&
+          n.fromUserId === args.fromUserId &&
+          Date.now() - n.createdAt < 60000,
+      );
+
+      if (watcherDuplicate) continue;
+
+      await ctx.db.insert("notifications", {
+        userId: watcher.userId,
+        type: args.type,
+        cardId: args.cardId,
+        boardId,
+        fromUserId: args.fromUserId,
+        read: false,
+        message: args.message,
+        createdAt: Date.now(),
+      });
+    }
+
     return notificationId;
   },
 });

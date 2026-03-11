@@ -262,6 +262,78 @@ export default defineSchema({
     .index("by_board", ["boardId"])
     .index("by_board_name", ["boardId", "name"]),
 
+  // ============================================
+  // Comment Reactions
+  // ============================================
+  commentReactions: defineTable({
+    commentId: v.id("comments"),
+    userId: v.id("users"),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_comment", ["commentId"])
+    .index("by_comment_and_user", ["commentId", "userId"]),
+
+  // ============================================
+  // Card Watchers
+  // ============================================
+  cardWatchers: defineTable({
+    cardId: v.id("cards"),
+    userId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_card", ["cardId"])
+    .index("by_user", ["userId"])
+    .index("by_card_and_user", ["cardId", "userId"]),
+
+  // ============================================
+  // Board Invites
+  // ============================================
+  boardInvites: defineTable({
+    boardId: v.id("boards"),
+    token: v.string(),
+    role: v.union(v.literal("admin"), v.literal("member")),
+    createdById: v.id("users"),
+    expiresAt: v.optional(v.number()),
+    maxUses: v.optional(v.number()),
+    useCount: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_board", ["boardId"]),
+
+  // ============================================
+  // Board Presence
+  // ============================================
+  boardPresence: defineTable({
+    boardId: v.id("boards"),
+    userId: v.id("users"),
+    activeCardId: v.optional(v.id("cards")),
+    lastSeen: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_board", ["boardId"])
+    .index("by_user_and_board", ["userId", "boardId"]),
+
+  // ============================================
+  // Webhooks
+  // ============================================
+  webhooks: defineTable({
+    boardId: v.id("boards"),
+    name: v.string(),
+    url: v.string(),
+    type: v.union(v.literal("generic"), v.literal("slack"), v.literal("discord")),
+    events: v.array(v.string()),
+    secret: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdById: v.id("users"),
+    lastTriggeredAt: v.optional(v.number()),
+    lastStatus: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_board", ["boardId"]),
+
   secrets: defineTable({
     boardId: v.id("boards"),
     name: v.string(), // e.g., "API_KEY", "DATABASE_URL"

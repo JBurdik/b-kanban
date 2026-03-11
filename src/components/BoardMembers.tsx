@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { ROLE_LABELS } from "@/lib/constants";
 import { isOwner as checkIsOwner, canManageMembers as checkCanManage } from "@/lib/permissions";
 import type { BoardRole } from "@/lib/types";
+import { InviteLinkManager } from "./InviteLinkManager";
 
 interface Member {
   id: Id<"boardMembers">;
@@ -77,6 +78,13 @@ export function BoardMembers({ boardId, members, userRole, onClose }: Props) {
 
   return (
     <Modal open={true} onClose={onClose} title="Board Members" size="md">
+      {/* Invite Links Section */}
+      {canManageMembers && (
+        <div className="mb-4 pb-4 border-b border-dark-border">
+          <InviteLinkManager boardId={boardId} />
+        </div>
+      )}
+
       {/* Member List */}
       <div className="space-y-3 max-h-[40vh] overflow-y-auto">
         {members.map((member) => (

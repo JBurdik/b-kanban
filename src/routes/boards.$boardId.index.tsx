@@ -5,6 +5,7 @@ import { useConvexUser } from "@/hooks/useConvexUser";
 import { useSession } from "@/lib/auth-client";
 import { useCardOpenMode } from "@/hooks/useCardOpenMode";
 import { useBoardFilters } from "@/hooks/useBoardFilters";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import type { Card } from "@/lib/types";
@@ -106,6 +107,40 @@ function BoardPage() {
     setSelectedCard(null);
     setEditMode(false);
   }, []);
+
+  // Archive card handler for keyboard shortcut
+  const archiveCard = useMutation(api.cards.remove);
+  const handleCardArchive = useCallback(
+    (card: Card) => {
+      archiveCard({ cardId: card._id });
+    },
+    [archiveCard]
+  );
+
+  // New card handler for keyboard shortcut — triggers click on the "+ Add card" button
+  // by finding the column element and programmatically clicking
+  const createCard = useMutation(api.cards.create);
+  const handleNewCard = useCallback(
+    async (columnId: Id<"columns">) => {
+      await createCard({
+        columnId,
+        title: "Untitled",
+        position: 0,
+        userEmail,
+      });
+    },
+    [createCard, userEmail]
+  );
+
+  // Keyboard navigation for board
+  const { focusedCardId } = useKeyboardNavigation({
+    columns: board?.columns || [],
+    onCardOpen: handleCardClick,
+    onCardEdit: handleCardDoubleClick,
+    onCardArchive: handleCardArchive,
+    onNewCard: handleNewCard,
+    enabled: !selectedCard && viewMode === "board",
+  });
 
   // Find the full card data with column info for the slide panel
   const selectedCardWithColumn = useMemo(() => {
@@ -454,6 +489,7 @@ function BoardPage() {
             versionFilter={selectedVersionId}
             onCardClick={handleCardClick}
             onCardDoubleClick={handleCardDoubleClick}
+            focusedCardId={focusedCardId}
           />
         ) : (
           <TableView

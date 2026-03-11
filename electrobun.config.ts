@@ -6,12 +6,14 @@ export default {
     identifier: "net.burdych.bproductive",
     version: "0.1.0",
   },
-  runtime: {
-    exitOnLastWindowClosed: true,
-  },
   build: {
     bun: {
-      entrypoint: "src-electrobun/main.ts",
+      entrypoint: "src-electrobun/index.ts",
     },
+    copy: {
+      "dist/index.html": "views/mainview/index.html",
+      "dist/assets": "views/mainview/assets",
+    },
+    watchIgnore: ["dist/**"],
   },
 } satisfies ElectrobunConfig;

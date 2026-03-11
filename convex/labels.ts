@@ -257,3 +257,78 @@ export const removeFromCard = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Bulk add a label to multiple cards
+ */
+export const bulkAddToCards = mutation({
+  args: {
+    cardIds: v.array(v.id("cards")),
+    labelId: v.id("labels"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.cardIds.length === 0) return { success: true };
+
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, user._id, boardId, "member");
+
+    for (const cardId of args.cardIds) {
+      // Check if already attached
+      const existing = await ctx.db
+        .query("cardLabels")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .filter((q) => q.eq(q.field("labelId"), args.labelId))
+        .first();
+
+      if (!existing) {
+        await ctx.db.insert("cardLabels", {
+          cardId,
+          labelId: args.labelId,
+          createdAt: Date.now(),
+        });
+      }
+    }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Bulk remove a label from multiple cards
+ */
+export const bulkRemoveFromCards = mutation({
+  args: {
+    cardIds: v.array(v.id("cards")),
+    labelId: v.id("labels"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.cardIds.length === 0) return { success: true };
+
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, user._id, boardId, "member");
+
+    for (const cardId of args.cardIds) {
+      const cardLabel = await ctx.db
+        .query("cardLabels")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .filter((q) => q.eq(q.field("labelId"), args.labelId))
+        .first();
+
+      if (cardLabel) {
+        await ctx.db.delete(cardLabel._id);
+      }
+    }
+
+    return { success: true };
+  },
+});

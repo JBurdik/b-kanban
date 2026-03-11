@@ -27,6 +27,8 @@ interface Props {
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
   focusedCardId?: Id<"cards"> | null;
+  isSelected?: (cardId: Id<"cards">) => boolean;
+  onSelectionToggle?: (cardId: Id<"cards">) => void;
 }
 
 export function KanbanColumn({
@@ -39,6 +41,8 @@ export function KanbanColumn({
   onCardClick,
   onCardDoubleClick,
   focusedCardId,
+  isSelected,
+  onSelectionToggle,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(column.name);
@@ -209,6 +213,8 @@ export function KanbanColumn({
               onCardClick={onCardClick}
               onCardDoubleClick={onCardDoubleClick}
               isFocused={focusedCardId === card._id}
+              isSelected={isSelected?.(card._id)}
+              onSelectionToggle={onSelectionToggle}
             />
           ))}
         </SortableContext>

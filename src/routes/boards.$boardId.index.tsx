@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
@@ -6,6 +6,7 @@ import { useSession } from "@/lib/auth-client";
 import { useCardOpenMode } from "@/hooks/useCardOpenMode";
 import { useBoardFilters } from "@/hooks/useBoardFilters";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import type { Card } from "@/lib/types";
@@ -24,6 +25,7 @@ import { UserDropdown } from "@/components/UserDropdown";
 import { usePresence } from "@/hooks/usePresence";
 import { BoardIcon } from "@/components/BoardIcon";
 import { BoardIconPicker } from "@/components/BoardIconPicker";
+import { BulkActionBar } from "@/components/kanban/BulkActionBar";
 
 export const Route = createFileRoute("/boards/$boardId/")({
   component: BoardPage,
@@ -42,6 +44,27 @@ function BoardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editMode, setEditMode] = useState(false);
+
+  // Bulk selection
+  const {
+    selectedCardIds,
+    selectedCount,
+    isSelectionMode,
+    toggleCard,
+    clearSelection,
+    isSelected,
+  } = useBulkSelect();
+
+  // Escape key clears bulk selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isSelectionMode) {
+        clearSelection();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSelectionMode, clearSelection]);
 
   // Real-time subscription to board data
   const board = useQuery(api.boards.get, {
@@ -502,6 +525,8 @@ function BoardPage() {
             onCardClick={handleCardClick}
             onCardDoubleClick={handleCardDoubleClick}
             focusedCardId={focusedCardId}
+            isSelected={isSelected}
+            onSelectionToggle={toggleCard}
           />
         ) : (
           <TableView
@@ -553,6 +578,16 @@ function BoardPage() {
           boardId={boardId as Id<"boards">}
           userEmail={userEmail}
           onClose={() => setShowVersionManager(false)}
+        />
+      )}
+
+      {/* Bulk action bar */}
+      {isSelectionMode && (
+        <BulkActionBar
+          selectedCardIds={selectedCardIds}
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+          boardId={boardId as Id<"boards">}
         />
       )}
     </div>

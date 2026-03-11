@@ -38,6 +38,8 @@ interface Props {
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
   focusedCardId?: Id<"cards"> | null;
+  isSelected?: (cardId: Id<"cards">) => boolean;
+  onSelectionToggle?: (cardId: Id<"cards">) => void;
 }
 
 // Helper to strip HTML tags from TipTap content
@@ -56,6 +58,8 @@ export function KanbanBoard({
   onCardClick,
   onCardDoubleClick,
   focusedCardId,
+  isSelected,
+  onSelectionToggle,
 }: Props) {
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
@@ -155,6 +159,8 @@ export function KanbanBoard({
               onCardClick={onCardClick}
               onCardDoubleClick={onCardDoubleClick}
               focusedCardId={focusedCardId}
+              isSelected={isSelected}
+              onSelectionToggle={onSelectionToggle}
             />
           ))}
         </SortableContext>

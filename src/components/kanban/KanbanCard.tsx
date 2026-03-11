@@ -19,6 +19,8 @@ interface Props {
   boardId?: Id<"boards">;
   isOverlay?: boolean;
   isFocused?: boolean;
+  isSelected?: boolean;
+  onSelectionToggle?: (cardId: Id<"cards">) => void;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
 }
@@ -28,6 +30,8 @@ export function KanbanCard({
   boardId,
   isOverlay,
   isFocused,
+  isSelected,
+  onSelectionToggle,
   onCardClick,
   onCardDoubleClick,
 }: Props) {
@@ -79,8 +83,19 @@ export function KanbanCard({
         {...attributes}
         {...listeners}
         tabIndex={0}
-        onClick={() => {
-          if (!isDragging && boardId) {
+        onClick={(e) => {
+          if (isDragging) return;
+          // Shift+Click toggles selection
+          if (e.shiftKey && onSelectionToggle) {
+            onSelectionToggle(card._id);
+            return;
+          }
+          // When card is selected, click toggles selection off
+          if (isSelected && onSelectionToggle) {
+            onSelectionToggle(card._id);
+            return;
+          }
+          if (boardId) {
             if (onCardClick) {
               onCardClick(card);
             } else {
@@ -111,12 +126,22 @@ export function KanbanCard({
           }
         }}
         className={clsx(
-          "group bg-dark-bg border border-dark-border rounded-lg p-3 cursor-pointer hover:border-dark-hover transition-colors card-focusable relative overflow-hidden",
+          "group bg-dark-bg border rounded-lg p-3 cursor-pointer hover:border-dark-hover transition-colors card-focusable relative overflow-hidden",
           isDragging && "opacity-50",
           isOverlay && "shadow-xl ring-2 ring-accent",
           isFocused && !isOverlay && "ring-2 ring-accent",
+          isSelected ? "border-accent ring-1 ring-accent" : "border-dark-border",
         )}
       >
+        {/* Selection checkbox indicator */}
+        {isSelected && (
+          <div className="absolute top-1.5 left-1.5 w-4 h-4 bg-accent rounded flex items-center justify-center z-10">
+            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        )}
+
         {/* Colored left accent for cards with applyToCardBg label */}
         {bgLabel && (
           <div className={clsx("absolute left-0 top-0 bottom-0 w-1", bgLabel.color)} />

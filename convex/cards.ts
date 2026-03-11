@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
 
 /**
  * Get a single card by ID
@@ -209,6 +210,13 @@ export const create = mutation({
       updatedAt: now,
     });
 
+    // Dispatch webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+      boardId,
+      event: "card.created",
+      data: { cardId, slug, title: args.title, columnId: args.columnId },
+    });
+
     return cardId;
   },
 });
@@ -271,6 +279,16 @@ export const update = mutation({
 
     await ctx.db.patch(args.cardId, updates);
 
+    // Dispatch webhook
+    const column = await ctx.db.get(card.columnId);
+    if (column) {
+      await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+        boardId: column.boardId,
+        event: "card.updated",
+        data: { cardId: args.cardId, title: card.title, updates: Object.keys(updates) },
+      });
+    }
+
     // Trigger notifications
     if (args.currentUserEmail) {
       const currentUser = await ctx.db
@@ -331,6 +349,16 @@ export const remove = mutation({
       archivedAt: Date.now(),
       updatedAt: Date.now(),
     });
+
+    // Dispatch webhook
+    const column = await ctx.db.get(card.columnId);
+    if (column) {
+      await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
+        boardId: column.boardId,
+        event: "card.archived",
+        data: { cardId: args.cardId, title: card.title },
+      });
+    }
 
     return { success: true };
   },
@@ -657,5 +685,178 @@ export const getMyTasks = query({
         highPriority: highPriority.length,
       },
     };
+  },
+});
+
+/**
+ * Bulk update priority for multiple cards
+ */
+export const bulkUpdatePriority = mutation({
+  args: {
+    cardIds: v.array(v.id("cards")),
+    priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+  },
+  handler: async (ctx, args) => {
+    if (args.cardIds.length === 0) return { success: true };
+
+    const user = await requireAuth(ctx);
+    const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, user._id, boardId, "member");
+
+    const now = Date.now();
+    for (const cardId of args.cardIds) {
+      await ctx.db.patch(cardId, { priority: args.priority, updatedAt: now });
+    }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Bulk archive multiple cards
+ */
+export const bulkArchive = mutation({
+  args: {
+    cardIds: v.array(v.id("cards")),
+  },
+  handler: async (ctx, args) => {
+    if (args.cardIds.length === 0) return { success: true };
+
+    const user = await requireAuth(ctx);
+    const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, user._id, boardId, "member");
+
+    const now = Date.now();
+    for (const cardId of args.cardIds) {
+      await ctx.db.patch(cardId, {
+        isArchived: true,
+        archivedAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Bulk permanently delete multiple cards and all related data
+ */
+export const bulkDelete = mutation({
+  args: {
+    cardIds: v.array(v.id("cards")),
+  },
+  handler: async (ctx, args) => {
+    if (args.cardIds.length === 0) return { success: true };
+
+    const user = await requireAuth(ctx);
+    const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, user._id, boardId, "member");
+
+    for (const cardId of args.cardIds) {
+      // Delete attachments with storage cleanup
+      const attachments = await ctx.db
+        .query("attachments")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .collect();
+      for (const att of attachments) {
+        await ctx.storage.delete(att.storageId);
+        await ctx.db.delete(att._id);
+      }
+
+      // Delete card watchers
+      const cardWatchers = await ctx.db
+        .query("cardWatchers")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .collect();
+      for (const watcher of cardWatchers) {
+        await ctx.db.delete(watcher._id);
+      }
+
+      // Delete comments and their reactions
+      const comments = await ctx.db
+        .query("comments")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .collect();
+      for (const comment of comments) {
+        const reactions = await ctx.db
+          .query("commentReactions")
+          .withIndex("by_comment", (q) => q.eq("commentId", comment._id))
+          .collect();
+        for (const reaction of reactions) {
+          await ctx.db.delete(reaction._id);
+        }
+        await ctx.db.delete(comment._id);
+      }
+
+      // Delete notifications
+      const notifications = await ctx.db
+        .query("notifications")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .collect();
+      for (const notification of notifications) {
+        await ctx.db.delete(notification._id);
+      }
+
+      // Delete document links
+      const docLinks = await ctx.db
+        .query("documentLinks")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .collect();
+      for (const link of docLinks) {
+        await ctx.db.delete(link._id);
+      }
+
+      // Delete time entries
+      const timeEntries = await ctx.db
+        .query("timeEntries")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .collect();
+      for (const entry of timeEntries) {
+        await ctx.db.delete(entry._id);
+      }
+
+      // Delete card labels
+      const cardLabels = await ctx.db
+        .query("cardLabels")
+        .withIndex("by_card", (q) => q.eq("cardId", cardId))
+        .collect();
+      for (const cl of cardLabels) {
+        await ctx.db.delete(cl._id);
+      }
+
+      // Delete the card itself
+      await ctx.db.delete(cardId);
+    }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Bulk set version for multiple cards
+ */
+export const bulkSetVersion = mutation({
+  args: {
+    cardIds: v.array(v.id("cards")),
+    versionId: v.optional(v.id("versions")),
+  },
+  handler: async (ctx, args) => {
+    if (args.cardIds.length === 0) return { success: true };
+
+    const user = await requireAuth(ctx);
+    const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, user._id, boardId, "member");
+
+    const now = Date.now();
+    for (const cardId of args.cardIds) {
+      await ctx.db.patch(cardId, { versionId: args.versionId, updatedAt: now });
+    }
+
+    return { success: true };
   },
 });

@@ -19,7 +19,9 @@ import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
 import { LabelManager } from "@/components/labels/LabelManager";
 import { VersionManager } from "@/components/VersionManager";
 import { NotificationBell } from "@/components/NotificationBell";
+import { PresenceBar } from "@/components/kanban/PresenceBar";
 import { UserDropdown } from "@/components/UserDropdown";
+import { usePresence } from "@/hooks/usePresence";
 import { BoardIcon } from "@/components/BoardIcon";
 import { BoardIconPicker } from "@/components/BoardIconPicker";
 
@@ -63,6 +65,12 @@ function BoardPage() {
   const userName = currentUser?.name ?? authSession?.user?.name;
   const userImage = currentUser?.image ?? authSession?.user?.image;
   const userId = currentUser?.id ?? authSession?.user?.id;
+
+  // Real-time presence tracking
+  const { onlineUsers } = usePresence(
+    boardId as Id<"boards">,
+    selectedCard?._id
+  );
 
   // Mutation for updating board name
   const updateBoard = useMutation(api.boards.update);
@@ -291,6 +299,10 @@ function BoardPage() {
 
         {/* Right: Notifications + User */}
         <div className="flex items-center gap-2">
+          <PresenceBar
+            onlineUsers={onlineUsers}
+            currentUserId={currentUser?.id}
+          />
           <NotificationBell userEmail={userEmail} />
           <UserDropdown
             userName={userName}

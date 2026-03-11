@@ -32,3 +32,6 @@ npm-debug.log*
 .cache/
 .turbo/
 .worktrees
+
+# Electrobun
+build/

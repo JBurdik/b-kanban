@@ -179,6 +179,40 @@ export function CardSlidePanel({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [handleClose]);
 
+  // Priority shortcuts: 1 = low, 2 = medium, 3 = high
+  useEffect(() => {
+    const handlePriorityShortcut = (e: KeyboardEvent) => {
+      // Guard: skip if input is focused
+      const el = document.activeElement;
+      if (el) {
+        const tag = el.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        if (el.getAttribute("contenteditable") === "true") return;
+        if (el.closest(".ProseMirror")) return;
+      }
+      if (e.metaKey || e.ctrlKey) return;
+
+      const priorityMap: Record<string, "low" | "medium" | "high"> = {
+        "1": "low",
+        "2": "medium",
+        "3": "high",
+      };
+
+      const newPriority = priorityMap[e.key];
+      if (newPriority && canEdit) {
+        e.preventDefault();
+        updateCard({
+          cardId: card._id,
+          priority: newPriority,
+          currentUserEmail: userEmail,
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handlePriorityShortcut);
+    return () => window.removeEventListener("keydown", handlePriorityShortcut);
+  }, [card._id, updateCard, userEmail, canEdit]);
+
   // Resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

@@ -37,6 +37,7 @@ interface Props {
   versionFilter?: Id<"versions"> | null;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
+  focusedCardId?: Id<"cards"> | null;
 }
 
 // Helper to strip HTML tags from TipTap content
@@ -54,6 +55,7 @@ export function KanbanBoard({
   versionFilter,
   onCardClick,
   onCardDoubleClick,
+  focusedCardId,
 }: Props) {
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
@@ -152,6 +154,7 @@ export function KanbanBoard({
               userEmail={userEmail}
               onCardClick={onCardClick}
               onCardDoubleClick={onCardDoubleClick}
+              focusedCardId={focusedCardId}
             />
           ))}
         </SortableContext>

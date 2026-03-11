@@ -18,6 +18,7 @@ interface Props {
   card: Card;
   boardId?: Id<"boards">;
   isOverlay?: boolean;
+  isFocused?: boolean;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
 }
@@ -26,6 +27,7 @@ export function KanbanCard({
   card,
   boardId,
   isOverlay,
+  isFocused,
   onCardClick,
   onCardDoubleClick,
 }: Props) {
@@ -112,6 +114,7 @@ export function KanbanCard({
           "group bg-dark-bg border border-dark-border rounded-lg p-3 cursor-pointer hover:border-dark-hover transition-colors card-focusable relative overflow-hidden",
           isDragging && "opacity-50",
           isOverlay && "shadow-xl ring-2 ring-accent",
+          isFocused && !isOverlay && "ring-2 ring-accent",
         )}
       >
         {/* Colored left accent for cards with applyToCardBg label */}

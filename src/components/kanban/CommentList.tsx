@@ -4,6 +4,7 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { Avatar } from "@/components/Avatar";
 import { CommentEditor } from "./CommentEditor";
+import { CommentReactions } from "./CommentReactions";
 import { extractMentionedUserIds } from "@/utils/mentions";
 
 interface Props {
@@ -43,6 +44,7 @@ export function CommentList({ cardId, boardId, userEmail, readOnly = false }: Pr
   const updateComment = useMutation(api.comments.update);
   const deleteComment = useMutation(api.comments.remove);
   const searchMembers = useQuery(api.members.search, { boardId, query: "" });
+  const currentUser = useQuery(api.users.getByEmail, userEmail ? { email: userEmail } : "skip");
 
   // Mention search callback
   const handleMentionSearch = useCallback(async (query: string) => {
@@ -203,18 +205,24 @@ export function CommentList({ cardId, boardId, userEmail, readOnly = false }: Pr
                   </div>
                 </div>
               ) : (
-                <div className="mt-2">
-                  {isHtmlContent(comment.content) ? (
-                    <div
-                      className="comment-content text-sm text-dark-text"
-                      dangerouslySetInnerHTML={{ __html: comment.content }}
-                    />
-                  ) : (
-                    <p className="text-sm text-dark-text whitespace-pre-wrap">
-                      {comment.content}
-                    </p>
-                  )}
-                </div>
+                <>
+                  <div className="mt-2">
+                    {isHtmlContent(comment.content) ? (
+                      <div
+                        className="comment-content text-sm text-dark-text"
+                        dangerouslySetInnerHTML={{ __html: comment.content }}
+                      />
+                    ) : (
+                      <p className="text-sm text-dark-text whitespace-pre-wrap">
+                        {comment.content}
+                      </p>
+                    )}
+                  </div>
+                  <CommentReactions
+                    commentId={comment._id}
+                    currentUserId={currentUser?.id}
+                  />
+                </>
               )}
             </div>
           ))}

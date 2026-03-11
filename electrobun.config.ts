@@ -16,4 +16,8 @@ export default {
     },
     watchIgnore: ["dist/**"],
   },
+  release: {
+    baseUrl:
+      "https://github.com/JBurdik/b-kanban/releases/latest/download",
+  },
 } satisfies ElectrobunConfig;

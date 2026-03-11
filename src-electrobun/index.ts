@@ -1,6 +1,8 @@
 import { BrowserWindow, Updater } from "electrobun/bun";
+import Electrobun from "electrobun/bun";
 
 const DEV_SERVER_URL = "http://localhost:5173";
+const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
 async function getMainViewUrl(): Promise<string> {
   const channel = await Updater.localInfo.channel();
@@ -18,6 +20,23 @@ async function getMainViewUrl(): Promise<string> {
   return "views://mainview/index.html";
 }
 
+async function checkForUpdates() {
+  const channel = await Updater.localInfo.channel();
+  if (channel === "dev") return;
+
+  try {
+    const updateInfo = await Electrobun.Updater.checkForUpdate();
+    if (updateInfo.updateReady) {
+      console.log(`Update ready: ${updateInfo.version}`);
+      await Electrobun.Updater.applyUpdate();
+    } else if (updateInfo.updateAvailable) {
+      console.log(`Update available: ${updateInfo.version}, downloading...`);
+    }
+  } catch (err) {
+    console.error("Update check failed:", err);
+  }
+}
+
 const url = await getMainViewUrl();
 
 const mainWindow = new BrowserWindow({
@@ -32,3 +51,7 @@ const mainWindow = new BrowserWindow({
 });
 
 console.log("B Productive desktop app started!");
+
+// Check for updates on startup and periodically
+checkForUpdates();
+setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL);

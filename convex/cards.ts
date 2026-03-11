@@ -699,10 +699,11 @@ export const bulkUpdatePriority = mutation({
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     const now = Date.now();
     for (const cardId of args.cardIds) {
@@ -723,10 +724,11 @@ export const bulkArchive = mutation({
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     const now = Date.now();
     for (const cardId of args.cardIds) {
@@ -751,10 +753,11 @@ export const bulkDelete = mutation({
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     for (const cardId of args.cardIds) {
       // Delete attachments with storage cleanup
@@ -847,10 +850,11 @@ export const bulkSetVersion = mutation({
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     const now = Date.now();
     for (const cardId of args.cardIds) {

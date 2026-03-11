@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { requireAuth, requireBoardAccess } from "./lib/rbac";
 
 /**
@@ -26,8 +27,9 @@ export const create = mutation({
     maxUses: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
-    await requireBoardAccess(ctx, user._id, args.boardId, "admin");
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+    await requireBoardAccess(ctx, userId, args.boardId, "admin");
 
     const token = generateToken();
 
@@ -35,7 +37,7 @@ export const create = mutation({
       boardId: args.boardId,
       token,
       role: args.role,
-      createdById: user._id,
+      createdById: userId,
       expiresAt: args.expiresAt,
       maxUses: args.maxUses,
       useCount: 0,
@@ -68,11 +70,12 @@ export const list = query({
 export const revoke = mutation({
   args: { inviteId: v.id("boardInvites") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const invite = await ctx.db.get(args.inviteId);
     if (!invite) throw new Error("Invite not found");
 
-    await requireBoardAccess(ctx, user._id, invite.boardId, "admin");
+    await requireBoardAccess(ctx, userId, invite.boardId, "admin");
 
     await ctx.db.patch(args.inviteId, { isActive: false });
     return { success: true };
@@ -116,7 +119,8 @@ export const getByToken = query({
 export const accept = mutation({
   args: { token: v.string() },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const invite = await ctx.db
       .query("boardInvites")
@@ -139,7 +143,7 @@ export const accept = mutation({
     const existingMember = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", invite.boardId).eq("userId", user._id)
+        q.eq("boardId", invite.boardId).eq("userId", userId)
       )
       .first();
 
@@ -150,7 +154,7 @@ export const accept = mutation({
     // Add as member
     await ctx.db.insert("boardMembers", {
       boardId: invite.boardId,
-      userId: user._id,
+      userId: userId,
       role: invite.role,
       createdAt: Date.now(),
     });
@@ -162,7 +166,7 @@ export const accept = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.dispatch, {
       boardId: invite.boardId,
       event: "member.joined",
-      data: { userId: user._id, role: invite.role, viaInvite: true },
+      data: { userId: userId, role: invite.role, viaInvite: true },
     });
 
     return { boardId: invite.boardId, alreadyMember: false };

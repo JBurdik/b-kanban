@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { requireAuth, getBoardIdFromCard, requireBoardAccess } from "./lib/rbac";
 
 /**
@@ -10,16 +11,17 @@ export const toggle = mutation({
     cardId: v.id("cards"),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
-    await requireBoardAccess(ctx, user._id, boardId, "member");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     // Check if already watching
     const existing = await ctx.db
       .query("cardWatchers")
       .withIndex("by_card_and_user", (q) =>
-        q.eq("cardId", args.cardId).eq("userId", user._id)
+        q.eq("cardId", args.cardId).eq("userId", userId)
       )
       .first();
 
@@ -30,7 +32,7 @@ export const toggle = mutation({
 
     await ctx.db.insert("cardWatchers", {
       cardId: args.cardId,
-      userId: user._id,
+      userId: userId,
       createdAt: Date.now(),
     });
 

@@ -389,13 +389,33 @@ export const permanentDelete = mutation({
       await ctx.db.delete(att._id);
     }
 
-    // Delete comments
+    // Delete card watchers
+    const cardWatchers = await ctx.db
+      .query("cardWatchers")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .collect();
+
+    for (const watcher of cardWatchers) {
+      await ctx.db.delete(watcher._id);
+    }
+
+    // Delete comments and their reactions
     const comments = await ctx.db
       .query("comments")
       .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
       .collect();
 
     for (const comment of comments) {
+      // Delete comment reactions
+      const reactions = await ctx.db
+        .query("commentReactions")
+        .withIndex("by_comment", (q) => q.eq("commentId", comment._id))
+        .collect();
+
+      for (const reaction of reactions) {
+        await ctx.db.delete(reaction._id);
+      }
+
       await ctx.db.delete(comment._id);
     }
 

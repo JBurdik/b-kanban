@@ -98,7 +98,7 @@ export function InviteLinkManager({ boardId }: Props) {
         <div className="text-xs text-dark-muted py-2">No active invite links</div>
       ) : (
         <div className="space-y-2">
-          {invites.map((invite) => (
+          {invites.map((invite: any) => (
             <div
               key={invite._id}
               className="flex items-center justify-between p-2.5 bg-dark-bg rounded-lg"

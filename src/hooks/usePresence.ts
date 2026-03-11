@@ -9,7 +9,7 @@ export function usePresence(boardId: Id<"boards">, activeCardId?: Id<"cards">) {
   const heartbeat = useMutation(api.presence.heartbeat);
   const leave = useMutation(api.presence.leave);
   const onlineUsers = useQuery(api.presence.list, { boardId });
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   useEffect(() => {
     heartbeat({ boardId, activeCardId });

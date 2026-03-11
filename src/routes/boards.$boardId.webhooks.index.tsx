@@ -362,7 +362,7 @@ function WebhooksPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {webhooks.map((webhook) => (
+              {webhooks.map((webhook: any) => (
                 <div
                   key={webhook._id}
                   className="bg-dark-surface border border-dark-border rounded-xl p-4"
@@ -382,7 +382,7 @@ function WebhooksPage() {
 
                       {/* Events */}
                       <div className="flex flex-wrap gap-1.5 mb-2">
-                        {webhook.events.map((event) => (
+                        {webhook.events.map((event: string) => (
                           <span
                             key={event}
                             className="text-xs px-2 py-0.5 rounded-full bg-dark-hover text-dark-muted"

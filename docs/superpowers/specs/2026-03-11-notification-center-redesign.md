@@ -23,8 +23,9 @@ Replace the dropdown with a slide-over panel + add a dedicated full page for not
 **Header:**
 - Title "Notifications" (`text-lg font-semibold`)
 - "Mark all as read" button (visible only when unread exist)
-- "View all" link → `/notifications`
+- "View all" link → `/notifications` (closes panel on click)
 - X close button
+- Focus trapped within panel when open (WAI-ARIA dialog pattern)
 
 **Filter chips (below header):**
 - Pill buttons: All | Assigned | Mentioned | Comments | Updates
@@ -45,7 +46,7 @@ Replace the dropdown with a slide-over panel + add a dedicated full page for not
 
 ### 2. Full Page (/notifications route)
 
-**Route:** `src/routes/_authenticated/notifications.tsx`
+**Route:** `src/routes/notifications.tsx` (consistent with existing routes like `time.tsx`, `profile.tsx`)
 
 **Layout:**
 - Centered container, max-width 720px
@@ -56,7 +57,7 @@ Replace the dropdown with a slide-over panel + add a dedicated full page for not
 - Sticky at top during scroll
 
 **Time sections:**
-- Grouped: "Today", "Yesterday", "This week", "Older"
+- Grouped: "Today", "Yesterday", "This week", "Older" (using browser's local timezone)
 - Gray label separators between sections
 - Empty sections hidden
 
@@ -74,8 +75,16 @@ Replace the dropdown with a slide-over panel + add a dedicated full page for not
 ### 3. Backend Changes (convex/notifications.ts)
 
 - Add optional `type` filter parameter to `list` query
-- Add `cursor`/`offset` parameter for pagination on full page
-- Add `remove` mutation (already exists)
+- Use Convex-native `.paginate()` API with cursor for the full page (replace `.collect()` + slice)
+- Add `by_user_type` index to notifications table in `convex/schema.ts`: `index("by_user_type", ["userId", "type"])` for server-side type filtering
+- Add ownership verification to `remove` mutation (check `notification.userId === authenticated user`)
+- Refactor `list`, `markAllAsRead`, and `unreadCount` to use `requireAuth(ctx)` instead of accepting raw `userEmail` parameter — derive user from session
+
+**Filter chip → type mapping:**
+- "Assigned" → `assigned`
+- "Mentioned" → `mentioned`
+- "Comments" → `commented`
+- "Updates" → `card_updated`
 
 ### 4. Integration Changes
 
@@ -93,7 +102,8 @@ Extract `NotificationItem` as a shared component used by both the panel and the 
 |------|--------|
 | `src/components/NotificationPanel.tsx` | New — slide-over panel |
 | `src/components/NotificationItem.tsx` | New — shared notification item |
-| `src/routes/_authenticated/notifications.tsx` | New — full page route |
+| `src/routes/notifications.tsx` | New — full page route |
+| `convex/schema.ts` | Modify — add `by_user_type` index |
 | `src/components/NotificationBell.tsx` | Modify — render panel instead of dropdown |
 | `src/components/NotificationDropdown.tsx` | Delete |
 | `convex/notifications.ts` | Modify — add type filter + pagination |

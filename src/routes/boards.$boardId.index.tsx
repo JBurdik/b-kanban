@@ -4,13 +4,14 @@ import { useQuery, useMutation } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { useSession } from "@/lib/auth-client";
 import { useCardOpenMode } from "@/hooks/useCardOpenMode";
+import { useBoardFilters } from "@/hooks/useBoardFilters";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import type { Card } from "@/lib/types";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { TableView } from "@/components/kanban/TableView";
 import { BoardMembers } from "@/components/BoardMembers";
-import { FilterBar, type FilterOption } from "@/components/kanban/FilterBar";
+import { FilterBar } from "@/components/kanban/FilterBar";
 import { SpotlightSearch } from "@/components/kanban/SpotlightSearch";
 import { VersionFilter } from "@/components/kanban/VersionFilter";
 import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
@@ -21,8 +22,6 @@ import { UserDropdown } from "@/components/UserDropdown";
 import { BoardIcon } from "@/components/BoardIcon";
 import { BoardIconPicker } from "@/components/BoardIconPicker";
 
-type ViewMode = "board" | "table";
-
 export const Route = createFileRoute("/boards/$boardId/")({
   component: BoardPage,
 });
@@ -32,14 +31,12 @@ function BoardPage() {
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const { data: authSession } = useSession();
   const { mode: cardOpenMode } = useCardOpenMode();
+  const { filter, setFilter, viewMode, setViewMode, selectedVersionId, setSelectedVersionId } = useBoardFilters(boardId);
   const [showMembers, setShowMembers] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [showVersionManager, setShowVersionManager] = useState(false);
-  const [filter, setFilter] = useState<FilterOption>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedVersionId, setSelectedVersionId] = useState<Id<"versions"> | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editMode, setEditMode] = useState(false);
 

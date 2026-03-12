@@ -1,4 +1,9 @@
-import { ApplicationMenu, BrowserWindow, BrowserView, Updater } from "electrobun/bun";
+import {
+  ApplicationMenu,
+  BrowserWindow,
+  BrowserView,
+  Updater,
+} from "electrobun/bun";
 import Electrobun from "electrobun/bun";
 import type { RPCSchema } from "electrobun/bun";
 
@@ -36,7 +41,11 @@ async function getMainViewUrl(): Promise<string> {
       console.log("Vite dev server not running. Start it with 'pnpm dev:app'.");
     }
   }
-  return "views://mainview/index.html";
+
+  return "https://bproductive.burdych.net";
+
+  // FULL APP BUNDLED WITH APP TO ITSELF
+  // return "views://mainview/index.html";
 }
 
 async function checkForUpdates() {
@@ -61,7 +70,6 @@ const url = await getMainViewUrl();
 const mainWindow = new BrowserWindow({
   title: "Be Productive",
   url,
-  rpc: mainRPC,
   frame: {
     width: 1024,
     height: 920,

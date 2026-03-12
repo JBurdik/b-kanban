@@ -18,8 +18,8 @@ export default {
     },
     watchIgnore: ["dist/**"],
     mac: {
-      codesign: false,
-      notarize: false,
+      codesign: true,
+      notarize: true,
     },
   },
   release: {

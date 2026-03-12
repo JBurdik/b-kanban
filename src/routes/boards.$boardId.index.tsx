@@ -36,12 +36,11 @@ function BoardPage() {
   const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const { data: authSession } = useSession();
   const { mode: cardOpenMode } = useCardOpenMode();
-  const { filter, setFilter, viewMode, setViewMode, selectedVersionId, setSelectedVersionId } = useBoardFilters(boardId);
+  const { filter, setFilter, viewMode, setViewMode, selectedVersionId, setSelectedVersionId, searchQuery, setSearchQuery } = useBoardFilters(boardId);
   const [showMembers, setShowMembers] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [showVersionManager, setShowVersionManager] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editMode, setEditMode] = useState(false);
 
@@ -410,6 +409,7 @@ function BoardPage() {
             columns={board.columns || []}
             onCardClick={handleCardClick}
             onSearchChange={setSearchQuery}
+            searchQuery={searchQuery}
             versions={boardVersions || []}
             selectedVersionId={selectedVersionId}
             onVersionChange={setSelectedVersionId}

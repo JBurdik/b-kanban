@@ -42,6 +42,7 @@ interface Props {
   columns: ColumnWithCards[];
   onCardClick: (card: Card) => void;
   onSearchChange: (query: string) => void;
+  searchQuery?: string;
   // Filter props
   versions?: Version[];
   selectedVersionId?: Id<"versions"> | null;
@@ -57,6 +58,7 @@ export function SpotlightSearch({
   columns,
   onCardClick,
   onSearchChange,
+  searchQuery: externalSearchQuery = "",
   versions = [],
   selectedVersionId = null,
   onVersionChange,
@@ -242,15 +244,13 @@ export function SpotlightSearch({
 
   const open = useCallback(() => {
     setIsOpen(true);
-    setQuery("");
+    setQuery(externalSearchQuery);
     setSelectedIndex(0);
-  }, []);
+  }, [externalSearchQuery]);
 
   const close = useCallback(() => {
     setIsOpen(false);
-    setQuery("");
-    onSearchChange("");
-  }, [onSearchChange]);
+  }, []);
 
   const selectItem = useCallback(
     (item: ResultItem) => {
@@ -322,27 +322,44 @@ export function SpotlightSearch({
   }, [query, isCommandMode, onSearchChange]);
 
   // Active filters indicator
-  const activeFilterCount = (selectedVersionId ? 1 : 0) + (currentFilter !== "all" ? 1 : 0);
+  const activeFilterCount = (selectedVersionId ? 1 : 0) + (currentFilter !== "all" ? 1 : 0) + (externalSearchQuery ? 1 : 0);
 
   if (!isOpen) {
     return (
-      <button
-        onClick={open}
-        className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg border border-dark-border rounded-lg text-sm text-dark-muted hover:text-dark-text hover:border-dark-hover transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <span className="hidden sm:inline">Search...</span>
-        {activeFilterCount > 0 && (
-          <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium bg-accent text-white rounded-full">
-            {activeFilterCount}
-          </span>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={open}
+          className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg border border-dark-border rounded-lg text-sm text-dark-muted hover:text-dark-text hover:border-dark-hover transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {externalSearchQuery ? (
+            <span className="hidden sm:inline text-dark-text truncate max-w-[120px]">{externalSearchQuery}</span>
+          ) : (
+            <span className="hidden sm:inline">Search...</span>
+          )}
+          {activeFilterCount > 0 && (
+            <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium bg-accent text-white rounded-full">
+              {activeFilterCount}
+            </span>
+          )}
+          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-dark-muted bg-dark-surface border border-dark-border rounded ml-2">
+            {modKey}K
+          </kbd>
+        </button>
+        {externalSearchQuery && (
+          <button
+            onClick={() => onSearchChange("")}
+            className="flex items-center justify-center w-6 h-6 text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded transition-colors"
+            title="Clear search"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         )}
-        <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-dark-muted bg-dark-surface border border-dark-border rounded ml-2">
-          {modKey}K
-        </kbd>
-      </button>
+      </div>
     );
   }
 
@@ -393,6 +410,20 @@ export function SpotlightSearch({
                 className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-accent/20 text-accent rounded-full hover:bg-accent/30 transition-colors"
               >
                 {versions.find((v) => v._id === selectedVersionId)?.name || "Version"}
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            {externalSearchQuery && (
+              <button
+                onClick={() => {
+                  onSearchChange("");
+                  setQuery("");
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-accent/20 text-accent rounded-full hover:bg-accent/30 transition-colors"
+              >
+                Search: {externalSearchQuery}
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>

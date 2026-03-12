@@ -8,6 +8,7 @@ interface BoardFilters {
   filter: FilterOption;
   viewMode: ViewMode;
   selectedVersionId: string | null;
+  searchQuery: string;
 }
 
 const STORAGE_KEY = "board-filters";
@@ -44,12 +45,17 @@ export function useBoardFilters(boardId: string) {
     return (stored as Id<"versions">) ?? null;
   });
 
+  const [searchQuery, setSearchQueryState] = useState<string>(() => {
+    return getStoredFilters()[boardId]?.searchQuery ?? "";
+  });
+
   // Reset state when boardId changes (re-read from localStorage)
   useEffect(() => {
     const stored = getStoredFilters()[boardId];
     setFilterState(stored?.filter ?? "all");
     setViewModeState(stored?.viewMode ?? "board");
     setSelectedVersionIdState((stored?.selectedVersionId as Id<"versions">) ?? null);
+    setSearchQueryState(stored?.searchQuery ?? "");
   }, [boardId]);
 
   // Persist on change
@@ -59,9 +65,10 @@ export function useBoardFilters(boardId: string) {
       filter,
       viewMode,
       selectedVersionId,
+      searchQuery,
     };
     saveFilters(all);
-  }, [boardId, filter, viewMode, selectedVersionId]);
+  }, [boardId, filter, viewMode, selectedVersionId, searchQuery]);
 
   const setFilter = useCallback((f: FilterOption) => setFilterState(f), []);
   const setViewMode = useCallback((v: ViewMode) => setViewModeState(v), []);
@@ -69,6 +76,7 @@ export function useBoardFilters(boardId: string) {
     (v: Id<"versions"> | null) => setSelectedVersionIdState(v),
     []
   );
+  const setSearchQuery = useCallback((q: string) => setSearchQueryState(q), []);
 
   return {
     filter,
@@ -77,5 +85,7 @@ export function useBoardFilters(boardId: string) {
     setViewMode,
     selectedVersionId,
     setSelectedVersionId,
+    searchQuery,
+    setSearchQuery,
   };
 }

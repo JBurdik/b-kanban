@@ -1,8 +1,29 @@
-import { BrowserWindow, Updater } from "electrobun/bun";
+import { ApplicationMenu, BrowserWindow, BrowserView, Updater } from "electrobun/bun";
 import Electrobun from "electrobun/bun";
+import type { RPCSchema } from "electrobun/bun";
 
 const DEV_SERVER_URL = "http://localhost:5173";
 const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
+ApplicationMenu.setApplicationMenu([
+  {
+    submenu: [{ label: "Quit", role: "quit" }],
+  },
+  {
+    label: "Edit",
+    submenu: [
+      { role: "undo" },
+      { role: "redo" },
+      { type: "separator" },
+      { role: "cut" },
+      { role: "copy" },
+      { role: "paste" },
+      { role: "pasteAndMatchStyle" },
+      { role: "delete" },
+      { role: "selectAll" },
+    ],
+  },
+]);
 
 async function getMainViewUrl(): Promise<string> {
   const channel = await Updater.localInfo.channel();
@@ -12,9 +33,7 @@ async function getMainViewUrl(): Promise<string> {
       console.log(`HMR enabled: Using Vite dev server at ${DEV_SERVER_URL}`);
       return DEV_SERVER_URL;
     } catch {
-      console.log(
-        "Vite dev server not running. Start it with 'pnpm dev:app'.",
-      );
+      console.log("Vite dev server not running. Start it with 'pnpm dev:app'.");
     }
   }
   return "views://mainview/index.html";
@@ -42,9 +61,10 @@ const url = await getMainViewUrl();
 const mainWindow = new BrowserWindow({
   title: "Be Productive",
   url,
+  rpc: mainRPC,
   frame: {
-    width: 900,
-    height: 700,
+    width: 1024,
+    height: 920,
     x: 200,
     y: 200,
   },

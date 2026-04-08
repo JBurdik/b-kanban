@@ -140,7 +140,7 @@ export function KanbanColumn({
           <button
             {...attributes}
             {...listeners}
-            className="p-1 -ml-1 mr-1 text-dark-muted hover:text-dark-text cursor-grab active:cursor-grabbing touch-none"
+            className="p-1 -ml-1 mr-1 text-dark-muted hover:text-dark-text cursor-grab active:cursor-grabbing"
             title="Drag to reorder"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

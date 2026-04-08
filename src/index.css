@@ -140,6 +140,15 @@ html, body, #root {
   }
 }
 
+/* Press-and-hold visual feedback for touch drag activation */
+@media (pointer: coarse) {
+  .card-focusable:active {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    transform: scale(1.02);
+    box-shadow: 0 0 0 2px var(--color-accent, oklch(0.637 0.237 25.331));
+  }
+}
+
 @layer utilities {
   .scroll-shadow {
     background:

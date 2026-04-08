@@ -3,7 +3,8 @@ import {
   pointerWithin,
   rectIntersection,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -57,8 +58,13 @@ export function useKanbanDnd({ initialColumns, canDrag, canReorderColumns = fals
 
   // Only enable sensors if user can drag
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: canDrag ? 5 : 9999 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: canDrag
+        ? { delay: 250, tolerance: 5 }
+        : { delay: 99999, tolerance: 0 },
     }),
     useSensor(KeyboardSensor)
   );

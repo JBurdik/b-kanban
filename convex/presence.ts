@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { requireAuth } from "./lib/rbac";
+import { getOptionalAuth } from "./lib/rbac";
 
 /**
  * Send a heartbeat to indicate the user is still viewing the board.
@@ -12,7 +12,8 @@ export const heartbeat = mutation({
     activeCardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return;
     const userId = authUser._id as unknown as Id<"users">;
     const now = Date.now();
 
@@ -48,7 +49,8 @@ export const leave = mutation({
     boardId: v.id("boards"),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return;
     const userId = authUser._id as unknown as Id<"users">;
 
     const existing = await ctx.db

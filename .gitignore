@@ -37,3 +37,4 @@ npm-debug.log*
 # Electrobun
 build/
 artifacts/
+backups/

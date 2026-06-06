@@ -305,8 +305,29 @@ export const update = mutation({
     boardId: v.id("boards"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const membership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!membership || membership.role === "member") {
+      throw new Error("Only owners and admins can edit the board");
+    }
+
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
     if (args.description !== undefined) updates.description = args.description;

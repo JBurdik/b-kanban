@@ -38,16 +38,9 @@ npm-debug.log*
 build/
 artifacts/
 
-# Capacitor (native build artifacts; commit the ios/ and android/ projects themselves)
-ios/App/Pods/
-ios/App/build/
-ios/DerivedData/
-android/.gradle/
-android/app/build/
-android/build/
-android/captures/
-android/local.properties
-android/.idea/
+# Capacitor native projects (regenerated via `cap add` + `cap sync` + asset gen)
+ios/
+android/
 *.keystore
 !debug.keystore
 backups/

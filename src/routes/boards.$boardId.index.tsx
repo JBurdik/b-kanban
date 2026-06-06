@@ -226,7 +226,6 @@ function BoardPage() {
     );
   }
 
-  const isOwner = board.userRole === "owner";
   const canEditBoardName = board.userRole === "owner" || board.userRole === "admin";
 
   // Transform members data for the component
@@ -240,9 +239,11 @@ function BoardPage() {
     })) || [];
 
   const handleUpdateName = async (name: string) => {
+    if (!userEmail) return;
     await updateBoard({
       boardId: boardId as Id<"boards">,
       name,
+      userEmail,
     });
   };
 
@@ -321,7 +322,7 @@ function BoardPage() {
                   handleUpdateName(e.target.value);
                 }
               }}
-              className="bg-transparent border-none text-base sm:text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-accent rounded px-2 -mx-2 min-w-0 flex-1 truncate"
+              className="bg-transparent border-none text-base sm:text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-accent rounded px-2 -mx-2 min-w-0 max-w-full truncate [field-sizing:content]"
             />
           ) : (
             <h1 className="text-base sm:text-lg font-semibold truncate min-w-0">

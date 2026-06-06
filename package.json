@@ -14,10 +14,17 @@
     "dev:desktop:hmr": "concurrently \"pnpm dev:app\" \"pnpm dev:desktop\"",
     "build:desktop": "vite build --mode production && electrobun build",
     "build:desktop:prod": "vite build --mode production && electrobun build --env=stable",
-    "build:desktop:release": "vite build --mode production && electrobun build --env=stable --codesign --notarize"
+    "build:desktop:release": "vite build --mode production && electrobun build --env=stable --codesign --notarize",
+    "build:mobile": "vite build --mode production && cap sync",
+    "mobile:sync": "cap sync",
+    "mobile:ios": "cap open ios",
+    "mobile:android": "cap open android",
+    "dev:ios": "cap run ios --live-reload --host=localhost --port=5173",
+    "dev:android": "cap run android --live-reload --host=10.0.2.2 --port=5173"
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-alpha.9",
+    "@capacitor/core": "^8.4.0",
     "@convex-dev/better-auth": "^0.10.9",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -50,9 +57,11 @@
     "turndown": "^7.2.2"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
     "@tanstack/router-devtools": "^1.93.1",
     "@tanstack/router-plugin": "^1.93.1",
-    "electrobun": "^1.15.1",
     "@tiptap/core": "^2.10.4",
     "@types/marked": "^6.0.0",
     "@types/node": "^22.0.0",
@@ -62,13 +71,13 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.2.1",
+    "electrobun": "^1.15.1",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
     "vite": "^6.0.5"
   },
-  "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd"
-  ,
+  "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"

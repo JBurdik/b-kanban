@@ -15,6 +15,7 @@ const allowedOrigins = [
   "https://tauri.localhost", // Tauri v2 desktop app (https)
   "http://tauri.localhost", // Tauri v2 desktop app (http)
   "views://mainview", // Electrobun desktop app
+  "capacitor://localhost", // Capacitor iOS app (Android uses http://localhost, above)
   process.env.SITE_URL,
 ].filter((origin): origin is string => !!origin);
 

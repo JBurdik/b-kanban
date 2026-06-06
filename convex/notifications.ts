@@ -184,6 +184,7 @@ export const create = internalMutation({
         n.type === args.type &&
         n.cardId === args.cardId &&
         n.fromUserId === args.fromUserId &&
+        n.message === args.message &&
         Date.now() - n.createdAt < 60000, // Within last minute
     );
 
@@ -223,6 +224,7 @@ export const create = internalMutation({
           n.type === args.type &&
           n.cardId === args.cardId &&
           n.fromUserId === args.fromUserId &&
+          n.message === args.message &&
           Date.now() - n.createdAt < 60000,
       );
 

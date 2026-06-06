@@ -52,6 +52,8 @@ interface Props {
   // Action callbacks
   onOpenLabelManager?: () => void;
   onOpenVersionManager?: () => void;
+  /** Increment to open the spotlight imperatively (e.g. from the mobile bar). */
+  openToken?: number;
 }
 
 export function SpotlightSearch({
@@ -66,6 +68,7 @@ export function SpotlightSearch({
   onFilterChange,
   onOpenLabelManager,
   onOpenVersionManager,
+  openToken,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -287,6 +290,11 @@ export function SpotlightSearch({
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [isOpen]);
+
+  // Open imperatively when openToken changes (mobile bar "Find").
+  useEffect(() => {
+    if (openToken) open();
+  }, [openToken, open]);
 
   // Keyboard navigation inside spotlight
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -27,6 +27,8 @@ const trustedOrigins = [
   "tauri://localhost", // Tauri v1 desktop app
   "https://tauri.localhost", // Tauri v2 desktop app (https)
   "http://tauri.localhost", // Tauri v2 desktop app (http)
+  "views://mainview", // Electrobun desktop app
+  "capacitor://localhost", // Capacitor iOS app (Android uses http://localhost, above)
   siteUrl,
   // Add any additional origins from TRUSTED_ORIGINS env var (comma-separated)
   ...(process.env.TRUSTED_ORIGINS?.split(",").map((o) => o.trim()) || []),

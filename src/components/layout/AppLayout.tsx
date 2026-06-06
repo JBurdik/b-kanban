@@ -58,22 +58,24 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}
       >
         {/* Top Bar */}
-        <div className="h-14 border-b border-dark-border flex items-center justify-between px-4 sticky top-0 bg-dark-bg z-30">
-          {/* Left: Mobile menu button */}
-          <div className="lg:hidden">
-            <MobileMenuButton onClick={toggleMobile} />
-          </div>
-          <div className="hidden lg:block" />
+        <div className="pt-safe border-b border-dark-border sticky top-0 bg-dark-bg z-30">
+          <div className="h-14 flex items-center justify-between px-4">
+            {/* Left: Mobile menu button */}
+            <div className="lg:hidden">
+              <MobileMenuButton onClick={toggleMobile} />
+            </div>
+            <div className="hidden lg:block" />
 
-          {/* Right: Notifications and User */}
-          <div className="flex items-center gap-2">
-            <NotificationBell userEmail={userEmail} />
-            <UserDropdown
-              userName={userName}
-              userEmail={userEmail}
-              userImage={userImage ?? undefined}
-              userId={userId}
-            />
+            {/* Right: Notifications and User */}
+            <div className="flex items-center gap-2">
+              <NotificationBell userEmail={userEmail} />
+              <UserDropdown
+                userName={userName}
+                userEmail={userEmail}
+                userImage={userImage ?? undefined}
+                userId={userId}
+              />
+            </div>
           </div>
         </div>
 

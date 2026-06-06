@@ -113,6 +113,8 @@ export interface Board {
   iconType?: BoardIconType;
   iconEmoji?: string;
   iconUrl?: string | null;
+  badgeText?: string;
+  badgeColor?: string;
   columns?: Column[] | ColumnWithCards[];
   members?: BoardMember[];
   userRole?: BoardRole;

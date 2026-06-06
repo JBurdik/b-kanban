@@ -184,9 +184,9 @@ function WebhooksPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col -mt-14">
+    <div className="h-screen flex flex-col -mt-topbar">
       {/* Top bar */}
-      <div className="h-14 flex items-center justify-between px-4 border-b border-dark-border bg-dark-bg sticky top-0 z-30">
+      <div className="h-topbar pt-safe flex items-center justify-between px-4 border-b border-dark-border bg-dark-bg sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <Link
             to="/boards/$boardId"

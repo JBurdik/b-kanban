@@ -25,7 +25,9 @@ import { UserDropdown } from "@/components/UserDropdown";
 import { usePresence } from "@/hooks/usePresence";
 import { BoardIcon } from "@/components/BoardIcon";
 import { BoardIconPicker } from "@/components/BoardIconPicker";
+import { BoardBadge, BoardBadgeEditor } from "@/components/BoardBadge";
 import { BulkActionBar } from "@/components/kanban/BulkActionBar";
+import { MobileBoardBar } from "@/components/kanban/MobileBoardBar";
 
 export const Route = createFileRoute("/boards/$boardId/")({
   component: BoardPage,
@@ -39,10 +41,12 @@ function BoardPage() {
   const { filter, setFilter, viewMode, setViewMode, selectedVersionId, setSelectedVersionId, searchQuery, setSearchQuery } = useBoardFilters(boardId);
   const [showMembers, setShowMembers] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [showBadgeEditor, setShowBadgeEditor] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [showVersionManager, setShowVersionManager] = useState(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [searchToken, setSearchToken] = useState(0);
 
   // Bulk selection
   const {
@@ -162,6 +166,14 @@ function BoardPage() {
     [createCard, userEmail]
   );
 
+  // Mobile bottom-bar add-card: create with a real title at top of chosen column.
+  const handleMobileCreateCard = useCallback(
+    async (columnId: Id<"columns">, title: string) => {
+      await createCard({ columnId, title, position: 0, userEmail });
+    },
+    [createCard, userEmail]
+  );
+
   // Keyboard navigation for board
   const { focusedCardId } = useKeyboardNavigation({
     columns: board?.columns || [],
@@ -215,6 +227,7 @@ function BoardPage() {
   }
 
   const isOwner = board.userRole === "owner";
+  const canEditBoardName = board.userRole === "owner" || board.userRole === "admin";
 
   // Transform members data for the component
   const membersForModal =
@@ -234,11 +247,12 @@ function BoardPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col -mt-14">
+    <div className="h-screen flex flex-col -mt-topbar">
       {/* Top bar with board name - replaces global top bar for this page */}
-      <div className="h-14 flex items-center justify-between px-4 border-b border-dark-border bg-dark-bg sticky top-0 z-30">
+      <div className="pt-safe border-b border-dark-border bg-dark-bg sticky top-0 z-30">
+        <div className="h-14 flex items-center justify-between gap-2 px-3 sm:px-4">
         {/* Left: Back + Board icon + Board name */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <Link to="/boards" className="p-1.5 rounded-lg text-dark-muted hover:text-dark-text hover:bg-dark-hover transition-colors">
             <svg
               className="w-5 h-5"
@@ -298,7 +312,7 @@ function BoardPage() {
             )}
           </div>
 
-          {isOwner ? (
+          {canEditBoardName ? (
             <input
               type="text"
               defaultValue={board.name}
@@ -307,24 +321,57 @@ function BoardPage() {
                   handleUpdateName(e.target.value);
                 }
               }}
-              className="bg-transparent border-none text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-accent rounded px-2 -mx-2"
+              className="bg-transparent border-none text-base sm:text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-accent rounded px-2 -mx-2 min-w-0 flex-1 truncate"
             />
           ) : (
-            <h1 className="text-lg font-semibold">{board.name}</h1>
+            <h1 className="text-base sm:text-lg font-semibold truncate min-w-0">
+              {board.name}
+            </h1>
           )}
+          {/* Configurable board badge (owners/admins can edit) */}
+          {board.userRole === "owner" || board.userRole === "admin" ? (
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setShowBadgeEditor(!showBadgeEditor)}
+                title="Edit board badge"
+                className="flex items-center rounded hover:opacity-80 transition-opacity"
+              >
+                {board.badgeText ? (
+                  <BoardBadge text={board.badgeText} color={board.badgeColor} />
+                ) : (
+                  <span className="text-xs px-2 py-0.5 rounded-full border border-dashed border-dark-border text-dark-muted hover:text-dark-text">
+                    + Badge
+                  </span>
+                )}
+              </button>
+              {showBadgeEditor && (
+                <BoardBadgeEditor
+                  boardId={boardId as Id<"boards">}
+                  currentText={board.badgeText}
+                  currentColor={board.badgeColor}
+                  onClose={() => setShowBadgeEditor(false)}
+                />
+              )}
+            </div>
+          ) : (
+            <BoardBadge text={board.badgeText} color={board.badgeColor} />
+          )}
+
           {board.userRole && board.userRole !== "owner" && (
-            <span className="text-xs px-2 py-1 bg-dark-surface text-dark-muted rounded">
+            <span className="hidden sm:inline-block flex-shrink-0 text-xs px-2 py-1 bg-dark-surface text-dark-muted rounded">
               {board.userRole === "admin" ? "Admin" : "Member"}
             </span>
           )}
         </div>
 
         {/* Right: Notifications + User */}
-        <div className="flex items-center gap-2">
-          <PresenceBar
-            onlineUsers={onlineUsers}
-            currentUserId={currentUser?.id}
-          />
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="hidden sm:block">
+            <PresenceBar
+              onlineUsers={onlineUsers}
+              currentUserId={currentUser?.id}
+            />
+          </div>
           <NotificationBell userEmail={userEmail} />
           <UserDropdown
             userName={userName}
@@ -333,11 +380,12 @@ function BoardPage() {
             userId={userId}
           />
         </div>
+        </div>
       </div>
 
-      {/* Secondary toolbar: View toggle, Filters, Members */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-dark-border bg-dark-surface/50">
-        <div className="flex items-center gap-3">
+      {/* Secondary toolbar: View toggle, Filters, Members (desktop only — mobile uses bottom bar) */}
+      <div className="hidden sm:flex items-center gap-3 px-3 sm:px-4 py-2 border-b border-dark-border bg-dark-surface/50 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {/* View toggle */}
           <div className="flex items-center bg-dark-bg rounded-lg p-1 border border-dark-border">
             <button
@@ -417,10 +465,11 @@ function BoardPage() {
             onFilterChange={setFilter}
             onOpenLabelManager={(board.userRole === "owner" || board.userRole === "admin") ? () => setShowLabelManager(true) : undefined}
             onOpenVersionManager={(board.userRole === "owner" || board.userRole === "admin") ? () => setShowVersionManager(true) : undefined}
+            openToken={searchToken}
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Labels button (for admin/owner) */}
           {(board.userRole === "owner" || board.userRole === "admin") && (
             <button
@@ -513,7 +562,7 @@ function BoardPage() {
       </div>
 
       {/* Board content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden pb-bottombar sm:pb-0">
         {viewMode === "board" ? (
           <KanbanBoard
             board={board}
@@ -590,6 +639,28 @@ function BoardPage() {
           boardId={boardId as Id<"boards">}
         />
       )}
+
+      {/* Mobile bottom tab bar */}
+      <MobileBoardBar
+        boardId={boardId}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        filter={filter}
+        onFilterChange={setFilter}
+        taskCounts={taskCounts}
+        versions={boardVersions || []}
+        selectedVersionId={selectedVersionId}
+        onVersionChange={setSelectedVersionId}
+        columns={board.columns || []}
+        onCreateCard={handleMobileCreateCard}
+        onSearch={() => setSearchToken((t) => t + 1)}
+        canEdit={board.userRole === "owner" || board.userRole === "admin" || board.userRole === "member"}
+        canManage={board.userRole === "owner" || board.userRole === "admin"}
+        memberCount={board.members?.length || 0}
+        onOpenLabels={() => setShowLabelManager(true)}
+        onOpenVersions={() => setShowVersionManager(true)}
+        onOpenMembers={() => setShowMembers(true)}
+      />
     </div>
   );
 }

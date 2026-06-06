@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
 import type { Id } from "convex/_generated/dataModel";
+import { SelectPopover } from "./SelectPopover";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface VersionItem {
   _id: Id<"versions">;
@@ -18,10 +20,12 @@ interface Props {
 export function VersionSelect({ value, onChange, versions, size = "md" }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const selected = versions.find((v) => v._id === value);
 
   useEffect(() => {
+    if (isMobile) return;
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -29,7 +33,7 @@ export function VersionSelect({ value, onChange, versions, size = "md" }: Props)
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isMobile]);
 
   return (
     <div ref={containerRef} className="relative">
@@ -75,8 +79,12 @@ export function VersionSelect({ value, onChange, versions, size = "md" }: Props)
         </div>
       </button>
 
-      {isOpen && (
-        <div className="absolute z-50 mt-1 bg-dark-surface border border-dark-border rounded-lg shadow-xl overflow-hidden min-w-[140px]">
+      <SelectPopover
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Version"
+        desktopClassName="absolute z-50 mt-1 bg-dark-surface border border-dark-border rounded-lg shadow-xl overflow-hidden min-w-[140px]"
+      >
           <div className="max-h-48 overflow-y-auto py-1">
             {/* No version option */}
             <button
@@ -126,8 +134,7 @@ export function VersionSelect({ value, onChange, versions, size = "md" }: Props)
               <div className="px-3 py-2 text-sm text-dark-muted">No versions created yet</div>
             )}
           </div>
-        </div>
-      )}
+      </SelectPopover>
     </div>
   );
 }

@@ -89,7 +89,7 @@ function NotificationsPage() {
       </div>
 
       {/* Filter chips — sticky */}
-      <div className="sticky top-14 z-20 bg-dark-bg py-3 -mx-4 px-4 border-b border-dark-border mb-4">
+      <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 bg-dark-bg py-3 -mx-4 px-4 border-b border-dark-border mb-4">
         <div className="flex items-center gap-2 overflow-x-auto">
           {filterOptions.map((filter) => (
             <button

@@ -350,3 +350,72 @@ html, body, #root {
 .animate-slide-in-right {
   animation: slide-in-right 0.3s ease-out;
 }
+
+/* ---- iOS / Capacitor safe-area helpers ---- */
+/* Plain classes (not @apply) so Tailwind purge never drops them. */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+/* Sticky top bar that grows to include the notch/status-bar inset. */
+.h-topbar {
+  height: calc(3.5rem + env(safe-area-inset-top));
+}
+/* Cancels exactly one .h-topbar above it (used to overlap the global bar). */
+.-mt-topbar {
+  margin-top: calc(-3.5rem - env(safe-area-inset-top));
+}
+/* Reserve space for the mobile bottom tab bar (mobile only). */
+@media (max-width: 639px) {
+  .pb-bottombar {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Bottom-sheet / mobile bar animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+.animate-slide-up {
+  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Horizontal scroll without a visible scrollbar (mobile toolbars). */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide native tap highlight on touch for a more app-like feel. */
+@media (hover: none) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}

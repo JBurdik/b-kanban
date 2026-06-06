@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import clsx from "clsx";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -63,6 +64,48 @@ export function KanbanBoard({
 }: Props) {
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
+
+  // Mobile: track which full-width column is in view for the page dots.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeCol, setActiveCol] = useState(0);
+  const rafRef = useRef<number | null>(null);
+
+  const updateActiveCol = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const children = Array.from(el.children) as HTMLElement[];
+    let nearest = 0;
+    let min = Infinity;
+    children.forEach((c, i) => {
+      const d = Math.abs(c.offsetLeft - el.scrollLeft);
+      if (d < min) {
+        min = d;
+        nearest = i;
+      }
+    });
+    setActiveCol(nearest);
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      updateActiveCol();
+    });
+  }, [updateActiveCol]);
+
+  const scrollToCol = useCallback((index: number) => {
+    const el = scrollRef.current;
+    const child = el?.children[index] as HTMLElement | undefined;
+    if (!el || !child) return;
+    el.scrollTo({ left: child.offsetLeft - 12, behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   const userRole = board.userRole;
   const canDrag = canEdit(userRole);
@@ -142,7 +185,12 @@ export function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 p-4 h-full overflow-x-auto">
+      <div className="relative h-full">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex gap-3 sm:gap-4 p-3 sm:p-4 pb-safe h-full overflow-x-auto snap-x snap-mandatory sm:snap-none scroll-pl-3"
+      >
         <SortableContext
           items={columns.map((c) => c._id)}
           strategy={horizontalListSortingStrategy}
@@ -168,6 +216,26 @@ export function KanbanBoard({
         {canAddColumn && (
           <AddColumnButton onClick={() => setShowAddColumn(true)} />
         )}
+      </div>
+
+      {/* Mobile page dots — one per column */}
+      {columns.length > 1 && (
+        <div className="sm:hidden absolute inset-x-0 bottom-2 flex justify-center pointer-events-none">
+          <div className="flex items-center gap-1.5 max-w-[80vw] overflow-x-auto no-scrollbar px-3 py-1.5 rounded-full bg-dark-surface/80 backdrop-blur border border-dark-border pointer-events-auto">
+            {columns.map((column, i) => (
+              <button
+                key={column._id}
+                onClick={() => scrollToCol(i)}
+                aria-label={`Go to ${column.name}`}
+                className={clsx(
+                  "h-2 rounded-full transition-all flex-shrink-0",
+                  i === activeCol ? "w-5 bg-accent" : "w-2 bg-dark-border"
+                )}
+              />
+            ))}
+          </div>
+        </div>
+      )}
       </div>
 
       {showAddColumn && (

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
 import type { CardType } from "@/lib/types";
+import { SelectPopover } from "./SelectPopover";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface Props {
   value?: CardType;
@@ -37,10 +39,12 @@ const TYPE_OPTIONS: { value: CardType; label: string; icon: React.ReactNode; cla
 export function CardTypeSelector({ value, onChange, size = "md" }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const selected = TYPE_OPTIONS.find((o) => o.value === value) || TYPE_OPTIONS[0];
 
   useEffect(() => {
+    if (isMobile) return;
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -48,7 +52,7 @@ export function CardTypeSelector({ value, onChange, size = "md" }: Props) {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isMobile]);
 
   return (
     <div ref={containerRef} className="relative">
@@ -73,8 +77,12 @@ export function CardTypeSelector({ value, onChange, size = "md" }: Props) {
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="absolute z-50 mt-1 bg-dark-surface border border-dark-border rounded-lg shadow-xl overflow-hidden min-w-[120px]">
+      <SelectPopover
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Type"
+        desktopClassName="absolute z-50 mt-1 bg-dark-surface border border-dark-border rounded-lg shadow-xl overflow-hidden min-w-[120px]"
+      >
           {TYPE_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -99,8 +107,7 @@ export function CardTypeSelector({ value, onChange, size = "md" }: Props) {
               )}
             </button>
           ))}
-        </div>
-      )}
+      </SelectPopover>
     </div>
   );
 }

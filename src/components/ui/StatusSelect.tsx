@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
 import type { Id } from "convex/_generated/dataModel";
 import type { Column } from "@/lib/types";
+import { SelectPopover } from "./SelectPopover";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface Props {
   value: Id<"columns">;
@@ -42,12 +44,14 @@ export function StatusSelect({
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const selectedColumn = columns.find((c) => c._id === value);
   const selectedColor = selectedColumn ? getStatusColor(selectedColumn.name) : null;
 
-  // Close on click outside
+  // Close on click outside (skip on mobile — the bottom sheet owns dismissal)
   useEffect(() => {
+    if (isMobile) return;
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -56,7 +60,7 @@ export function StatusSelect({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isMobile]);
 
   // Close on escape
   useEffect(() => {
@@ -115,15 +119,17 @@ export function StatusSelect({
         </svg>
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div
-          className={clsx(
-            "absolute z-50 w-full mt-1 py-1",
-            "bg-dark-surface border border-dark-border rounded-lg shadow-xl",
-            "max-h-60 overflow-y-auto"
-          )}
-        >
+      {/* Dropdown / mobile bottom sheet */}
+      <SelectPopover
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Status"
+        desktopClassName={clsx(
+          "absolute z-50 w-full mt-1 py-1",
+          "bg-dark-surface border border-dark-border rounded-lg shadow-xl",
+          "max-h-60 overflow-y-auto"
+        )}
+      >
           {columns.length === 0 ? (
             <div className="px-3 py-2 text-sm text-dark-muted">No columns</div>
           ) : (
@@ -156,8 +162,7 @@ export function StatusSelect({
               );
             })
           )}
-        </div>
-      )}
+      </SelectPopover>
     </div>
   );
 }

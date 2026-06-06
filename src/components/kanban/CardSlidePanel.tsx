@@ -27,6 +27,7 @@ import { StatusSelect } from "@/components/ui/StatusSelect";
 import { AssigneeSelect } from "@/components/ui/AssigneeSelect";
 import { LabelBadge } from "@/components/ui/LabelBadge";
 import { LabelManager } from "@/components/labels/LabelManager";
+import { LabelSelector } from "@/components/labels/LabelSelector";
 import { Avatar } from "@/components/Avatar";
 
 const MIN_PANEL_WIDTH = 400;
@@ -88,6 +89,17 @@ export function CardSlidePanel({
   const [isSaving, setIsSaving] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // On phones the panel is a full-screen sheet (no fixed px width / resize).
+  const [isNarrow, setIsNarrow] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const onChange = () => setIsNarrow(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   const updateCard = useMutation(api.cards.update);
   const toggleWatch = useMutation(api.cardWatchers.toggle);
@@ -302,15 +314,15 @@ export function CardSlidePanel({
       {/* Panel */}
       <div
         ref={panelRef}
-        style={!isExpanded ? { width: panelWidth } : undefined}
-        className={`fixed bg-dark-surface shadow-2xl z-50 flex flex-col ${
+        style={!isExpanded && !isNarrow ? { width: panelWidth } : undefined}
+        className={`fixed bg-dark-surface shadow-2xl z-50 flex flex-col pb-safe sm:pb-0 ${
           isExpanded
-            ? "inset-2 sm:inset-4 md:inset-y-6 md:inset-x-[5%] lg:inset-y-8 lg:inset-x-[10%] xl:inset-x-[15%] rounded-xl border border-dark-border transition-all duration-300"
-            : "inset-y-0 right-0 border-l border-dark-border animate-slide-in-right"
+            ? "inset-0 sm:inset-4 md:inset-y-6 md:inset-x-[5%] lg:inset-y-8 lg:inset-x-[10%] xl:inset-x-[15%] sm:rounded-xl sm:border border-dark-border transition-all duration-300"
+            : "inset-0 sm:inset-y-0 sm:left-auto sm:right-0 sm:border-l border-dark-border animate-slide-up sm:animate-slide-in-right"
         }`}
       >
-        {/* Resize handle - only when not expanded */}
-        {!isExpanded && (
+        {/* Resize handle - only when not expanded (desktop side-panel only) */}
+        {!isExpanded && !isNarrow && (
           <div
             onMouseDown={handleResizeStart}
             className={`absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize group z-10 ${
@@ -323,7 +335,7 @@ export function CardSlidePanel({
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-dark-border">
+        <div className="flex items-center justify-between px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-dark-border">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span className="text-sm text-dark-muted font-mono">
@@ -407,10 +419,10 @@ export function CardSlidePanel({
                 </span>
               )}
             </button>
-            {/* Expand/Collapse button */}
+            {/* Expand/Collapse button — hidden on mobile (panel is already full-screen) */}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-2 rounded-lg hover:bg-dark-hover text-dark-muted hover:text-dark-text transition-colors"
+              className="hidden sm:block p-2 rounded-lg hover:bg-dark-hover text-dark-muted hover:text-dark-text transition-colors"
               title={isExpanded ? "Collapse" : "Expand"}
             >
               {isExpanded ? (
@@ -465,7 +477,7 @@ export function CardSlidePanel({
         </div>
 
         {/* Metadata Bar - always visible with status, assignee, priority */}
-        <div className="px-4 py-3 border-b border-dark-border bg-dark-bg/30 flex flex-wrap items-center gap-4">
+        <div className="px-4 py-3 border-b border-dark-border bg-dark-bg/30 flex flex-nowrap overflow-x-auto sm:overflow-visible no-scrollbar sm:flex-wrap items-center gap-3 sm:gap-4 [&>div]:flex-shrink-0">
           {/* Status */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-dark-muted uppercase font-medium">Status</span>
@@ -557,6 +569,28 @@ export function CardSlidePanel({
               )}
             </div>
           )}
+
+          {/* Labels */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-dark-muted uppercase font-medium">Labels</span>
+            {canEdit ? (
+              <LabelSelector
+                boardId={board._id}
+                cardId={card._id}
+                currentLabels={card.labels || []}
+                userEmail={userEmail}
+                onOpenManager={() => setShowLabelManager(true)}
+              />
+            ) : card.labels && card.labels.length > 0 ? (
+              <div className="flex items-center gap-1">
+                {card.labels.map((label) => (
+                  <LabelBadge key={label._id} label={label} size="sm" />
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-dark-muted px-2 py-0.5">None</span>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -608,7 +642,7 @@ export function CardSlidePanel({
           ) : (
             <div
               className={`flex-1 overflow-y-auto ${
-                isExpanded ? "flex" : ""
+                isExpanded ? "flex flex-col lg:flex-row" : ""
               }`}
             >
               {/* Main content area */}
@@ -701,7 +735,7 @@ export function CardSlidePanel({
 
               {/* Side panel with details - only in expanded view */}
               {isExpanded && (
-                <div className="w-80 border-l border-dark-border p-6 space-y-6 bg-dark-bg/50">
+                <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-dark-border p-6 space-y-6 bg-dark-bg/50">
                   {/* Status */}
                   <div>
                     <h3 className="text-xs font-medium text-dark-muted uppercase tracking-wide mb-2">
@@ -724,18 +758,28 @@ export function CardSlidePanel({
                   </div>
 
                   {/* Labels */}
-                  {card.labels && card.labels.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-dark-muted uppercase tracking-wide mb-2">
-                        Labels
-                      </h3>
+                  <div>
+                    <h3 className="text-xs font-medium text-dark-muted uppercase tracking-wide mb-2">
+                      Labels
+                    </h3>
+                    {canEdit ? (
+                      <LabelSelector
+                        boardId={board._id}
+                        cardId={card._id}
+                        currentLabels={card.labels || []}
+                        userEmail={userEmail}
+                        onOpenManager={() => setShowLabelManager(true)}
+                      />
+                    ) : card.labels && card.labels.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {card.labels.map((label) => (
                           <LabelBadge key={label._id} label={label} size="sm" />
                         ))}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-sm text-dark-muted italic">No labels</p>
+                    )}
+                  </div>
 
                   {/* Assignee */}
                   <div>

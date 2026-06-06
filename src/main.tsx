@@ -8,11 +8,12 @@ import {
 import { routeTree } from "./routeTree.gen";
 import { ConvexProvider } from "./components/ConvexProvider";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { isNative } from "./lib/platform";
 import "./index.css";
 
-// Use hash-based routing for Electrobun desktop app (views:// protocol)
-const isDesktop = window.location.protocol === "views:";
-const history = isDesktop ? createHashHistory() : undefined;
+// Use hash-based routing in native shells (Electrobun desktop + Capacitor mobile),
+// which have no server to handle deep links.
+const history = isNative ? createHashHistory() : undefined;
 
 const router = createRouter({
   routeTree,

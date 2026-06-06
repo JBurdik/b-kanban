@@ -4,6 +4,8 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import type { Label } from "@/lib/types";
 import { LabelBadge } from "@/components/ui/LabelBadge";
+import { SelectPopover } from "@/components/ui/SelectPopover";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface Props {
   boardId: Id<"boards">;
@@ -16,13 +18,15 @@ interface Props {
 export function LabelSelector({ boardId, cardId, currentLabels, userEmail, onOpenManager }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const allLabels = useQuery(api.labels.list, { boardId, userEmail });
   const addLabel = useMutation(api.labels.addToCard);
   const removeLabel = useMutation(api.labels.removeFromCard);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (skip on mobile — the sheet owns dismissal)
   useEffect(() => {
+    if (isMobile) return;
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -30,7 +34,7 @@ export function LabelSelector({ boardId, cardId, currentLabels, userEmail, onOpe
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isMobile]);
 
   const currentLabelIds = new Set(currentLabels.map((l) => l._id));
 
@@ -75,9 +79,13 @@ export function LabelSelector({ boardId, cardId, currentLabels, userEmail, onOpe
         </div>
       )}
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute z-50 left-0 mt-1 w-64 bg-dark-surface border border-dark-border rounded-lg shadow-xl overflow-hidden">
+      {/* Dropdown / mobile bottom sheet */}
+      <SelectPopover
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Labels"
+        desktopClassName="absolute z-50 left-0 mt-1 w-64 bg-dark-surface border border-dark-border rounded-lg shadow-xl overflow-hidden"
+      >
           <div className="p-2 border-b border-dark-border">
             <span className="text-xs font-medium text-dark-muted uppercase tracking-wide">
               Labels
@@ -131,8 +139,7 @@ export function LabelSelector({ boardId, cardId, currentLabels, userEmail, onOpe
               </button>
             </div>
           )}
-        </div>
-      )}
+      </SelectPopover>
     </div>
   );
 }

@@ -97,9 +97,9 @@ export function TableView({
   }, [cards, board.columns]);
 
   return (
-    <div className="h-full overflow-auto p-4">
-      <div className="bg-dark-surface rounded-lg border border-dark-border overflow-hidden">
-        <table className="w-full">
+    <div className="h-full overflow-y-auto p-4">
+      <div className="bg-dark-surface rounded-lg border border-dark-border overflow-x-auto">
+        <table className="w-full min-w-[680px]">
           <thead>
             <tr className="border-b border-dark-border bg-dark-bg/50">
               <th className="px-4 py-3 text-left text-xs font-medium text-dark-muted uppercase tracking-wide w-16">

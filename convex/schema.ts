@@ -67,6 +67,9 @@ export default defineSchema({
     iconType: v.optional(v.union(v.literal("emoji"), v.literal("image"))),
     iconEmoji: v.optional(v.string()),
     iconStorageId: v.optional(v.id("_storage")),
+    // Configurable badge shown next to board title (admins/owners can edit)
+    badgeText: v.optional(v.string()),
+    badgeColor: v.optional(v.string()), // palette key, e.g. "blue"
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),

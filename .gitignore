@@ -37,4 +37,17 @@ npm-debug.log*
 # Electrobun
 build/
 artifacts/
+
+# Capacitor (native build artifacts; commit the ios/ and android/ projects themselves)
+ios/App/Pods/
+ios/App/build/
+ios/DerivedData/
+android/.gradle/
+android/app/build/
+android/build/
+android/captures/
+android/local.properties
+android/.idea/
+*.keystore
+!debug.keystore
 backups/

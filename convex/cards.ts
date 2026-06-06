@@ -4,6 +4,41 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
 
+/** Strip HTML tags + collapse whitespace to plain text */
+function htmlToText(html?: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function truncate(s: string, max = 60): string {
+  return s.length > max ? `${s.slice(0, max)}…` : s;
+}
+
+/** Word-level diff of two descriptions → short human summary */
+function describeContentDiff(oldHtml?: string, newHtml?: string): string {
+  const oldWords = htmlToText(oldHtml).split(" ").filter(Boolean);
+  const newWords = htmlToText(newHtml).split(" ").filter(Boolean);
+
+  const oldSet = new Set(oldWords);
+  const newSet = new Set(newWords);
+  const added = newWords.filter((w) => !oldSet.has(w));
+  const removed = oldWords.filter((w) => !newSet.has(w));
+
+  const parts: string[] = [];
+  if (added.length) parts.push(`+${truncate(added.join(" "))}`);
+  if (removed.length) parts.push(`−${truncate(removed.join(" "))}`);
+
+  if (!parts.length) return "description edited";
+  return `description: ${parts.join(" / ")}`;
+}
+
 /**
  * Get a single card by ID
  */
@@ -310,21 +345,50 @@ export const update = mutation({
 
         // Notification for card update to assignee (if different from updater)
         if (card.assigneeId && card.assigneeId !== currentUser._id) {
-          // Only notify if something meaningful changed
-          const hasChanges =
-            args.title !== undefined ||
-            args.content !== undefined ||
-            args.priority !== undefined ||
-            args.columnId !== undefined ||
-            args.dueDate !== undefined;
+          // Build a human-readable list of what actually changed
+          const changes: string[] = [];
 
-          if (hasChanges) {
+          if (args.title !== undefined && args.title !== card.title) {
+            changes.push(`renamed to "${args.title}"`);
+          }
+          if (args.columnId !== undefined && args.columnId !== card.columnId) {
+            const newColumn = await ctx.db.get(args.columnId);
+            changes.push(`moved to ${newColumn ? newColumn.name : "another column"}`);
+          }
+          if (args.priority !== undefined) {
+            const oldP = card.priority ?? "none";
+            const newP = args.priority ?? "none";
+            if (oldP !== newP) changes.push(`priority ${oldP} → ${newP}`);
+          }
+          if (args.type !== undefined) {
+            const oldT = card.type ?? "none";
+            const newT = args.type ?? "none";
+            if (oldT !== newT) changes.push(`type ${oldT} → ${newT}`);
+          }
+          if (args.dueDate !== undefined && args.dueDate !== card.dueDate) {
+            changes.push(
+              args.dueDate
+                ? `due date set to ${new Date(args.dueDate).toLocaleDateString()}`
+                : "due date cleared",
+            );
+          }
+          if (args.effort !== undefined && args.effort !== card.effort) {
+            changes.push(`effort ${card.effort ?? "none"} → ${args.effort ?? "none"}`);
+          }
+          if (args.content !== undefined && args.content !== card.content) {
+            const diff = describeContentDiff(card.content, args.content);
+            changes.push(diff);
+          }
+
+          if (changes.length > 0) {
+            const summary = changes.join(", ");
+            const message = `"${card.title}": ${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
             await ctx.scheduler.runAfter(0, internal.notifications.create, {
               userId: card.assigneeId,
               type: "card_updated",
               cardId: args.cardId,
               fromUserId: currentUser._id,
-              message: `"${card.title}" was updated`,
+              message,
             });
           }
         }

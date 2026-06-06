@@ -3,6 +3,8 @@ import clsx from "clsx";
 import type { Id } from "convex/_generated/dataModel";
 import { Avatar } from "@/components/Avatar";
 import type { BoardMember } from "@/lib/types";
+import { SelectPopover } from "./SelectPopover";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface Props {
   value: Id<"users"> | undefined;
@@ -25,6 +27,12 @@ export function AssigneeSelect({
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
+
+  const closeDropdown = () => {
+    setIsOpen(false);
+    setSearch("");
+  };
 
   const selectedMember = members.find((m) => m.userId === value);
 
@@ -36,8 +44,9 @@ export function AssigneeSelect({
         m.user.email.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // Close on click outside
+  // Close on click outside (skip on mobile — the bottom sheet owns dismissal)
   useEffect(() => {
+    if (isMobile) return;
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -47,7 +56,7 @@ export function AssigneeSelect({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isMobile]);
 
   // Close on escape
   useEffect(() => {
@@ -137,15 +146,17 @@ export function AssigneeSelect({
         </div>
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div
-          className={clsx(
-            "absolute z-50 w-full mt-1",
-            "bg-dark-surface border border-dark-border rounded-lg shadow-xl",
-            "overflow-hidden"
-          )}
-        >
+      {/* Dropdown / mobile bottom sheet */}
+      <SelectPopover
+        open={isOpen}
+        onClose={closeDropdown}
+        title="Assignee"
+        desktopClassName={clsx(
+          "absolute z-50 w-full mt-1",
+          "bg-dark-surface border border-dark-border rounded-lg shadow-xl",
+          "overflow-hidden"
+        )}
+      >
           {/* Search input */}
           <div className="p-2 border-b border-dark-border">
             <div className="relative">
@@ -246,8 +257,7 @@ export function AssigneeSelect({
               })
             )}
           </div>
-        </div>
-      )}
+      </SelectPopover>
     </div>
   );
 }

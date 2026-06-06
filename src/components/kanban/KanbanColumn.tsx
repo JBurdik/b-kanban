@@ -120,7 +120,7 @@ export function KanbanColumn({
       <div
         ref={setNodeRef}
         style={style}
-        className="flex-shrink-0 w-72 sm:w-80 lg:w-72 xl:w-80 bg-dark-surface/50 rounded-lg border-2 border-dashed border-dark-border min-h-[200px]"
+        className="flex-shrink-0 snap-start w-[calc(100vw-1.5rem)] sm:w-80 lg:w-72 xl:w-80 bg-dark-surface/50 rounded-lg border-2 border-dashed border-dark-border min-h-[200px]"
       />
     );
   }
@@ -129,7 +129,7 @@ export function KanbanColumn({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex-shrink-0 w-72 sm:w-80 lg:w-72 xl:w-80 bg-dark-surface rounded-lg flex flex-col max-h-full ${
+      className={`flex-shrink-0 snap-start w-[calc(100vw-1.5rem)] sm:w-80 lg:w-72 xl:w-80 bg-dark-surface rounded-lg flex flex-col max-h-full ${
         isOver && !isDragging ? "ring-2 ring-accent" : ""
       } ${isDragging ? "opacity-90 shadow-2xl ring-2 ring-accent" : ""}`}
     >
@@ -200,7 +200,7 @@ export function KanbanColumn({
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+      <div className="flex-1 overflow-y-auto p-2 pb-14 sm:pb-2 space-y-2">
         <SortableContext
           items={cards.map((c) => c._id)}
           strategy={verticalListSortingStrategy}

@@ -24,7 +24,7 @@ export function Sidebar({ isCollapsed, onToggle, userEmail }: SidebarProps) {
   return (
     <aside
       className={clsx(
-        "fixed left-0 top-0 h-screen bg-dark-surface border-r border-dark-border flex flex-col z-40 transition-all duration-300",
+        "fixed left-0 top-0 h-screen bg-dark-surface border-r border-dark-border flex flex-col z-40 transition-all duration-300 pt-safe pb-safe",
         isCollapsed ? "w-16" : "w-64",
       )}
     >

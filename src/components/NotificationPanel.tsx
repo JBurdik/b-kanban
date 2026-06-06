@@ -106,12 +106,12 @@ export function NotificationPanel({ userEmail, onClose }: Props) {
       <div
         ref={panelRef}
         className={clsx(
-          "absolute right-0 top-0 bottom-0 w-[440px] max-w-full bg-dark-surface border-l border-dark-border shadow-2xl flex flex-col transition-transform duration-200 ease-out",
+          "absolute right-0 top-0 bottom-0 w-[440px] max-w-full bg-dark-surface border-l border-dark-border shadow-2xl flex flex-col transition-transform duration-200 ease-out pb-safe",
           isVisible ? "translate-x-0" : "translate-x-full"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-dark-border">
+        <div className="flex items-center justify-between px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))] border-b border-dark-border">
           <h2 className="text-lg font-semibold text-dark-text">Notifications</h2>
           <div className="flex items-center gap-3">
             {hasUnread && (

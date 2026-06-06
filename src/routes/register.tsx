@@ -1,11 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { signUp, storeBearerToken } from "@/lib/auth-client";
-
-// Detect if running in Electrobun desktop app (views:// protocol)
-const isDesktopApp =
-  typeof window !== "undefined" &&
-  window.location.protocol === "views:";
+import { isNative } from "@/lib/platform";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -29,7 +25,7 @@ function RegisterPage() {
         { name, email, password },
         {
           onSuccess: (ctx) => {
-            // Store bearer token for desktop app auth
+            // Store bearer token for native app auth
             const authToken = ctx.response.headers.get("set-auth-token");
             if (authToken) {
               storeBearerToken(authToken);
@@ -40,8 +36,8 @@ function RegisterPage() {
       if (result.error) {
         setError(result.error.message || "Failed to create account");
       } else {
-        if (isDesktopApp) {
-          // In desktop app, reload to pick up the new token in ConvexProvider
+        if (isNative) {
+          // In native shells, reload to pick up the new token in ConvexProvider
           window.location.href = "/boards";
         } else {
           navigate({ to: "/boards" });

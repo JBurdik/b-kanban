@@ -1,11 +1,7 @@
 import { convexClient } from "@convex-dev/better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { fixedCrossDomainClient } from "./fixed-cross-domain-client";
-
-// Detect if running in Electrobun desktop app (views:// protocol)
-const isDesktopApp =
-  typeof window !== "undefined" &&
-  window.location.protocol === "views:";
+import { isNative } from "./platform";
 
 // Storage key for bearer token
 const BEARER_TOKEN_KEY = "better_auth_bearer_token";
@@ -30,8 +26,8 @@ export const storeBearerToken = (token: string | null): void => {
 export const authClient = createAuthClient({
   baseURL: import.meta.env.VITE_CONVEX_SITE_URL as string,
   plugins: [convexClient(), fixedCrossDomainClient()],
-  // Use Bearer auth in desktop app (cookies may not work with views:// protocol)
-  fetchOptions: isDesktopApp
+  // Use Bearer auth in native shells (cookies don't work under views:// or capacitor://)
+  fetchOptions: isNative
     ? {
         auth: {
           type: "Bearer" as const,

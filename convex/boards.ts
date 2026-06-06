@@ -393,6 +393,49 @@ export const remove = mutation({
 });
 
 /**
+ * Set/clear the board badge (admins and owners only)
+ * Empty/undefined text clears the badge.
+ */
+export const setBadge = mutation({
+  args: {
+    boardId: v.id("boards"),
+    text: v.optional(v.string()),
+    color: v.optional(v.string()),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const membership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!membership || membership.role === "member") {
+      throw new Error("Only owners and admins can change the board badge");
+    }
+
+    const text = args.text?.trim();
+    await ctx.db.patch(args.boardId, {
+      badgeText: text ? text : undefined,
+      badgeColor: text ? args.color : undefined,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
  * Generate upload URL for board icon
  */
 export const generateIconUploadUrl = mutation({

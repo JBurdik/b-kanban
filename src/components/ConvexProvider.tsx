@@ -2,11 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { convex } from "@/lib/convex";
 import { authClient } from "@/lib/auth-client";
-
-// Detect if running in Electrobun desktop app (views:// protocol)
-const isDesktopApp =
-  typeof window !== "undefined" &&
-  window.location.protocol === "views:";
+import { isNative } from "@/lib/platform";
 
 // Storage key for bearer token (same as in auth-client.ts)
 const BEARER_TOKEN_KEY = "better_auth_bearer_token";
@@ -16,19 +12,19 @@ interface Props {
 }
 
 export function ConvexProvider({ children }: Props) {
-  // For desktop app, get the initial token from localStorage
+  // In native shells, get the initial token from localStorage
   const [initialToken, setInitialToken] = useState<string | null>(null);
-  const [isReady, setIsReady] = useState(!isDesktopApp);
+  const [isReady, setIsReady] = useState(!isNative);
 
   useEffect(() => {
-    if (isDesktopApp) {
+    if (isNative) {
       const token = localStorage.getItem(BEARER_TOKEN_KEY);
       setInitialToken(token);
       setIsReady(true);
     }
   }, []);
 
-  // Don't render until we've checked for the token in desktop app
+  // Don't render until we've checked for the token in native shells
   if (!isReady) {
     return null;
   }

@@ -172,12 +172,33 @@ export const create = internalMutation({
 
     const boardId = column.boardId;
 
-    // Check for duplicate recent notification (within last minute)
+    // Check for recent notification to dedup/coalesce (within last minute)
     const recentNotifications = await ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(10);
+
+    // For card_updated, autosave fires multiple updateCard mutations as the
+    // user edits, each producing a different diff message. Coalesce them into a
+    // single notification (same card + sender) instead of stacking duplicates.
+    if (args.type === "card_updated") {
+      const recent = recentNotifications.find(
+        (n) =>
+          n.type === "card_updated" &&
+          n.cardId === args.cardId &&
+          n.fromUserId === args.fromUserId &&
+          Date.now() - n.createdAt < 60000,
+      );
+      if (recent) {
+        await ctx.db.patch(recent._id, {
+          message: args.message,
+          read: false,
+          createdAt: Date.now(),
+        });
+        return recent._id;
+      }
+    }
 
     const duplicate = recentNotifications.find(
       (n) =>
@@ -218,6 +239,25 @@ export const create = internalMutation({
         .withIndex("by_user", (q) => q.eq("userId", watcher.userId))
         .order("desc")
         .take(10);
+
+      // Coalesce rapid card_updated edits into a single watcher notification
+      if (args.type === "card_updated") {
+        const recent = recentWatcherNotifs.find(
+          (n) =>
+            n.type === "card_updated" &&
+            n.cardId === args.cardId &&
+            n.fromUserId === args.fromUserId &&
+            Date.now() - n.createdAt < 60000,
+        );
+        if (recent) {
+          await ctx.db.patch(recent._id, {
+            message: args.message,
+            read: false,
+            createdAt: Date.now(),
+          });
+          continue;
+        }
+      }
 
       const watcherDuplicate = recentWatcherNotifs.find(
         (n) =>

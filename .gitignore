@@ -44,3 +44,6 @@ android/
 *.keystore
 !debug.keystore
 backups/
+
+# Generated MCP server bundle (built by pnpm build:mcp)
+src-tauri/resources/bproductive-mcp.mjs

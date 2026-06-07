@@ -1,22 +1,23 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "B Productive",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "identifier": "net.burdych.bproductive",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "vite build --mode production"
+    "beforeDevCommand": "pnpm build:mcp && pnpm dev",
+    "beforeBuildCommand": "pnpm build:mcp && vite build --mode production"
   },
   "app": {
     "windows": [
       {
         "title": "Be Productive",
-        "width": 1024,
-        "height": 920,
-        "x": 200,
-        "y": 200
+        "width": 1600,
+        "height": 900,
+        "minWidth": 800,
+        "minHeight": 600,
+        "center": true
       }
     ],
     "security": {

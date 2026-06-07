@@ -7,6 +7,7 @@ import { signOut, changePassword } from "@/lib/auth-client";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { Avatar } from "@/components/Avatar";
 import { useCardOpenMode } from "@/hooks/useCardOpenMode";
+import { IntegrationsSettings } from "@/components/settings/IntegrationsSettings";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -407,6 +408,9 @@ function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Assistant integrations (MCP + skill) — desktop only */}
+      <IntegrationsSettings email={user?.email} />
 
       {/* Danger Zone */}
       <div className="card border-red-500/50">

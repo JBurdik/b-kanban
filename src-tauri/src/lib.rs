@@ -2,15 +2,23 @@ use tauri::menu::{MenuBuilder, SubmenuBuilder};
 use tauri_plugin_updater::UpdaterExt;
 
 mod codex;
+mod mcp;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             codex::codex_check,
             codex::codex_login,
             codex::codex_send,
+            mcp::mcp_status,
+            mcp::mcp_install,
+            mcp::mcp_uninstall,
+            mcp::mcp_set_active_card,
+            mcp::skill_install,
+            mcp::skill_uninstall,
         ])
         .setup(|app| {
             // Application menu — mirrors the previous Electrobun menu

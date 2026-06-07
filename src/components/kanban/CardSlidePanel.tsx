@@ -70,6 +70,7 @@ export function CardSlidePanel({
 }: Props) {
   // Expose the open card to the Codex assistant so it can edit "this card".
   useRegisterAssistantCard({
+    boardId: board._id,
     slug: card.slug,
     title: card.title,
     description: card.content || "",

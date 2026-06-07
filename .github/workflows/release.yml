@@ -1,6 +1,8 @@
 name: Release Desktop
 
-# Build, codesign, notarize and publish the Tauri app (macOS + Windows).
+# Build and publish the Tauri app for WINDOWS.
+# macOS builds are done locally (`just release`) — Apple codesign/notarize needs
+# local certs, so it's not run in CI.
 # Triggers on a pushed tag like `v0.1.0`, or manually.
 on:
   push:
@@ -13,20 +15,7 @@ permissions:
 
 jobs:
   release:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            args: "--target aarch64-apple-darwin"
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            args: "--target x86_64-apple-darwin"
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            args: "--target x86_64-pc-windows-msvc"
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -42,39 +31,31 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-pc-windows-msvc
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
-          key: ${{ matrix.target }}
+          key: x86_64-pc-windows-msvc
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build, sign, notarize & publish
+      - name: Build & publish (Windows)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Updater signing (minisign) — required on every platform
+          # Updater signing (minisign)
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Apple codesign + notarize (macOS only; ignored on Windows)
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # Frontend build env (Convex prod) — see .env.production
           VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
           VITE_CONVEX_SITE_URL: ${{ secrets.VITE_CONVEX_SITE_URL }}
         with:
-          args: ${{ matrix.args }}
+          args: "--target x86_64-pc-windows-msvc"
           tagName: ${{ github.ref_name }}
           releaseName: "B Productive ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false
-          # tauri-action generates/updates latest.json for the updater across
-          # all matrix platforms when createUpdaterArtifacts is true and the
-          # signing key is present.
+          # tauri-action writes latest.json with the windows-x86_64 entry.
+          # `just release` then appends the macOS entries to the same file.

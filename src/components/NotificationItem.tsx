@@ -64,6 +64,64 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
   ),
 };
 
+/** Render a notification message with colored diff segments (+added / −removed / old → new). */
+function NotificationMessage({ message }: { message: string }) {
+  // Pull off leading `"Card title":` prefix so it renders as a heading
+  const titleMatch = message.match(/^"([^"]*)":\s*/);
+  const title = titleMatch ? titleMatch[1] : null;
+  const rest = titleMatch ? message.slice(titleMatch[0].length) : message;
+
+  // Split on diff markers: +addition, −removal, or `old → new` transitions
+  const TOKEN = /(\+[^/,]+|−[^/,]+|[\w-]+(?: [\w-]+)* → [\w-]+(?: [\w-]+)*)/g;
+  const parts = rest.split(TOKEN).filter((p) => p !== "");
+
+  const body = parts.map((part, i) => {
+        if (part.startsWith("+")) {
+          return (
+            <span key={i} className="rounded bg-green-500/15 px-1 text-green-400">
+              {part}
+            </span>
+          );
+        }
+        if (part.startsWith("−")) {
+          return (
+            <span key={i} className="rounded bg-red-500/15 px-1 text-red-400">
+              {part}
+            </span>
+          );
+        }
+        if (part.includes(" → ")) {
+          const [oldV, newV] = part.split(" → ");
+          return (
+            <span key={i}>
+              <span className="text-red-400 line-through decoration-red-400/40">{oldV}</span>
+              <span className="text-dark-muted px-1">→</span>
+              <span className="text-green-400">{newV}</span>
+            </span>
+          );
+        }
+        // Plain text — bold a leading `label:`
+        const labelMatch = part.match(/^(\s*)([\w ]+:)(.*)$/s);
+        if (labelMatch) {
+          return (
+            <span key={i}>
+              {labelMatch[1]}
+              <span className="font-medium text-dark-text">{labelMatch[2]}</span>
+              {labelMatch[3]}
+            </span>
+          );
+        }
+    return <span key={i}>{part}</span>;
+  });
+
+  return (
+    <div className="text-sm leading-snug">
+      {title && <p className="font-semibold text-dark-text">{title}</p>}
+      <p className={clsx("text-dark-text", title && "mt-0.5")}>{body}</p>
+    </div>
+  );
+}
+
 function getDefaultMessage(type: NotificationType): string {
   switch (type) {
     case "assigned": return "You were assigned to a task";
@@ -123,9 +181,8 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete, onNavig
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-dark-text">
-          {notification.message || getDefaultMessage(notification.type)}
-        </p>
+        <NotificationMessage message={notification.message || getDefaultMessage(notification.type)} />
+
         <div className="flex items-center gap-2 mt-1">
           {notification.card && (
             <>

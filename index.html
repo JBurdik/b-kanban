@@ -32,11 +32,34 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/sw.js").catch(() => {});
+      // The Vite dev server runs on :5173. Registering the service worker there
+      // caches stale bundles and kills HMR, so skip it in dev and actively tear
+      // down any SW + caches left over from a previous prod/build run.
+      (function () {
+        if (!("serviceWorker" in navigator)) return;
+        var isDev = location.port === "5173";
+        if (isDev) {
+          navigator.serviceWorker
+            .getRegistrations()
+            .then(function (rs) {
+              rs.forEach(function (r) {
+                r.unregister();
+              });
+            })
+            .catch(function () {});
+          if (window.caches) {
+            caches.keys().then(function (keys) {
+              keys.forEach(function (k) {
+                caches.delete(k);
+              });
+            });
+          }
+          return;
+        }
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {});
         });
-      }
+      })();
     </script>
   </body>
 </html>

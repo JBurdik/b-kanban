@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "B Productive",
+  "version": "0.1.0",
+  "identifier": "net.burdych.bproductive",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "vite build --mode production"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Be Productive",
+        "width": 1024,
+        "height": 920,
+        "x": 200,
+        "y": 200
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://*.burdych.net wss://*.burdych.net",
+      "devCsp": "default-src 'self'; img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:*; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost https://*.burdych.net wss://*.burdych.net http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "signingIdentity": "Developer ID Application: Jakub Gál (9QY36KZ8JP)",
+      "minimumSystemVersion": "10.15"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/JBurdik/b-kanban/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFDM0E3ODAxOTYzNzc2NkYKUldSdmRqZVdBWGc2SEFKanFjaVJ2QXZkZytnZHFKOUZ3ZjFGZTErc2xnY0VlVndCRUltMkZsdXEK"
+    }
+  }
+}

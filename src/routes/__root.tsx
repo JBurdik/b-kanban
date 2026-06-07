@@ -2,6 +2,8 @@ import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { useSession } from "@/lib/auth-client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { NotificationToast } from "@/components/NotificationToast";
+import { AssistantProvider } from "@/contexts/AssistantContext";
+import { AssistantRoot } from "@/components/assistant/AssistantRoot";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -22,10 +24,13 @@ function RootLayout() {
   // Authenticated: Use sidebar layout
   if (session) {
     return (
-      <AppLayout>
-        <Outlet />
-        <NotificationToast userEmail={session.user.email} />
-      </AppLayout>
+      <AssistantProvider>
+        <AppLayout>
+          <Outlet />
+          <NotificationToast userEmail={session.user.email} />
+        </AppLayout>
+        <AssistantRoot />
+      </AssistantProvider>
     );
   }
 

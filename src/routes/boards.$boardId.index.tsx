@@ -20,6 +20,7 @@ import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
 import { LabelManager } from "@/components/labels/LabelManager";
 import { VersionManager } from "@/components/VersionManager";
 import { NotificationBell } from "@/components/NotificationBell";
+import { useRegisterAssistantBoard } from "@/contexts/AssistantContext";
 import { PresenceBar } from "@/components/kanban/PresenceBar";
 import { UserDropdown } from "@/components/UserDropdown";
 import { usePresence } from "@/hooks/usePresence";
@@ -100,6 +101,27 @@ function BoardPage() {
 
   // Mutation for updating board name
   const updateBoard = useMutation(api.boards.update);
+
+  // Register board context with the Codex assistant (desktop panel).
+  const assistantBoard = useMemo(
+    () =>
+      board
+        ? {
+            name: board.name,
+            columns: (board.columns ?? []).map((col) => ({
+              _id: col._id as string,
+              name: col.name,
+              cards: col.cards.map((c) => ({
+                _id: c._id as string,
+                slug: c.slug,
+                title: c.title,
+              })),
+            })),
+          }
+        : null,
+    [board]
+  );
+  useRegisterAssistantBoard(assistantBoard, userEmail);
 
   const isLoading = board === undefined;
 

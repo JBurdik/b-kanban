@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useCardFormState } from "@/hooks/useCardFormState";
+import { useRegisterAssistantCard } from "@/contexts/AssistantContext";
 import { canEdit as checkCanEdit } from "@/lib/permissions";
 import type {
   Card,
@@ -67,6 +68,13 @@ export function CardSlidePanel({
   defaultExpanded = false,
   onClose,
 }: Props) {
+  // Expose the open card to the Codex assistant so it can edit "this card".
+  useRegisterAssistantCard({
+    slug: card.slug,
+    title: card.title,
+    description: card.content || "",
+  });
+
   // Use the useCardFormState hook for proper multi-user editing
   const { values, setField, getDirtyFields, hasChanges, markSaved } = useCardFormState({
     serverData: {

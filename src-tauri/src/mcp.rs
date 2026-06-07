@@ -95,6 +95,31 @@ fn resolve_node() -> Option<PathBuf> {
             return Some(pb);
         }
     }
+    if cfg!(windows) {
+        for c in [
+            "C:\\Program Files\\nodejs\\node.exe",
+            "C:\\Program Files (x86)\\nodejs\\node.exe",
+        ] {
+            let pb = PathBuf::from(c);
+            if pb.is_file() {
+                return Some(pb);
+            }
+        }
+        if let Ok(out) = std::process::Command::new("cmd")
+            .args(["/C", "where", "node"])
+            .output()
+        {
+            if out.status.success() {
+                if let Some(line) = String::from_utf8_lossy(&out.stdout).lines().next() {
+                    let l = line.trim();
+                    if !l.is_empty() && Path::new(l).is_file() {
+                        return Some(PathBuf::from(l));
+                    }
+                }
+            }
+        }
+        return None;
+    }
     if let Some(h) = home() {
         // Common nvm/fnm/volta locations are version-specific; rely on the shell
         // probe for those. Check the simple cases first.
@@ -135,9 +160,10 @@ fn ensure_server() -> Result<PathBuf, String> {
 }
 
 fn claude_config_path() -> Option<PathBuf> {
-    home().map(|h| {
-        h.join("Library/Application Support/Claude/claude_desktop_config.json")
-    })
+    // Claude Desktop config lives in the OS config dir:
+    //   macOS   → ~/Library/Application Support/Claude
+    //   Windows → %APPDATA%\Claude
+    dirs::config_dir().map(|d| d.join("Claude/claude_desktop_config.json"))
 }
 
 fn codex_config_path() -> Option<PathBuf> {

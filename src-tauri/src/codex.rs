@@ -59,6 +59,31 @@ fn resolve_codex_path() -> Option<PathBuf> {
         }
     }
 
+    if cfg!(windows) {
+        // npm global on Windows installs codex.cmd (+ codex.exe shim).
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            for n in ["npm\\codex.cmd", "npm\\codex.exe"] {
+                let p = PathBuf::from(&appdata).join(n);
+                if p.is_file() {
+                    return Some(p);
+                }
+            }
+        }
+        // Windows GUI apps inherit the user PATH — let `where` resolve it.
+        if let Ok(out) = Command::new("cmd").args(["/C", "where", "codex"]).output() {
+            if out.status.success() {
+                if let Some(line) = String::from_utf8_lossy(&out.stdout).lines().next() {
+                    let l = line.trim();
+                    if !l.is_empty() && Path::new(l).is_file() {
+                        return Some(PathBuf::from(l));
+                    }
+                }
+            }
+        }
+        return None;
+    }
+
+    // Unix: GUI apps don't inherit shell PATH, so probe known dirs + login shell.
     if let Some(home) = dirs::home_dir() {
         let candidates = [
             home.join(".cargo/bin/codex"),
@@ -82,7 +107,6 @@ fn resolve_codex_path() -> Option<PathBuf> {
             return Some(pb);
         }
     }
-
     if let Ok(out) = Command::new("/bin/zsh")
         .args(["-lic", "command -v codex"])
         .output()
@@ -96,6 +120,26 @@ fn resolve_codex_path() -> Option<PathBuf> {
     }
 
     None
+}
+
+/// Build a Command that runs the codex binary with `args`, handling Windows
+/// `.cmd`/`.bat` shims (which must be launched via cmd.exe).
+fn codex_cmd(bin: &Path, args: &[&str]) -> Command {
+    if cfg!(windows) {
+        let ext = bin
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        if matches!(ext.as_str(), "cmd" | "bat" | "ps1" | "") {
+            let mut c = Command::new("cmd");
+            c.arg("/C").arg(bin).args(args);
+            return c;
+        }
+    }
+    let mut c = Command::new(bin);
+    c.args(args);
+    c
 }
 
 fn auth_json_path() -> Option<PathBuf> {
@@ -117,8 +161,7 @@ pub async fn codex_check() -> CodexStatus {
     tauri::async_runtime::spawn_blocking(|| {
         let path = resolve_codex_path();
         let version = path.as_ref().and_then(|p| {
-            Command::new(p)
-                .arg("--version")
+            codex_cmd(p, &["--version"])
                 .output()
                 .ok()
                 .filter(|o| o.status.success())
@@ -148,8 +191,7 @@ pub async fn codex_login(app: tauri::AppHandle) -> Result<(), String> {
     let bin = resolve_codex_path().ok_or("codex_not_installed")?;
 
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
-        let mut child = Command::new(&bin)
-            .arg("login")
+        let mut child = codex_cmd(&bin, &["login"])
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -197,12 +239,12 @@ pub async fn codex_send(
     }
 
     tauri::async_runtime::spawn_blocking(move || -> Result<CodexResult, String> {
-        let mut cmd = Command::new(&bin);
-        cmd.arg("exec");
+        let mut args: Vec<&str> = vec!["exec"];
         if let Some(ref id) = session_id {
-            cmd.arg("resume").arg(id);
+            args.push("resume");
+            args.push(id);
         }
-        cmd.args([
+        args.extend([
             "--json",
             "--skip-git-repo-check",
             "--sandbox",
@@ -211,6 +253,7 @@ pub async fn codex_send(
             "never",
             "-", // read prompt from stdin
         ]);
+        let mut cmd = codex_cmd(&bin, &args);
         cmd.stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());

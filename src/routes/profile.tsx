@@ -8,6 +8,7 @@ import { useConvexUser } from "@/hooks/useConvexUser";
 import { Avatar } from "@/components/Avatar";
 import { useCardOpenMode } from "@/hooks/useCardOpenMode";
 import { IntegrationsSettings } from "@/components/settings/IntegrationsSettings";
+import { McpKeysSettings } from "@/components/settings/McpKeysSettings";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -408,6 +409,9 @@ function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Remote MCP keys (Claude Code over HTTP) — always visible */}
+      <McpKeysSettings />
 
       {/* Assistant integrations (MCP + skill) — desktop only */}
       <IntegrationsSettings email={user?.email} />

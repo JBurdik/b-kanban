@@ -337,6 +337,19 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_board", ["boardId"]),
 
+  // Per-user API keys for the remote MCP server (Claude Code over HTTP).
+  // Only the SHA-256 hash is stored; the plaintext key is shown once at creation.
+  mcpApiKeys: defineTable({
+    userId: v.id("users"),
+    name: v.string(), // user-facing label, e.g. "laptop"
+    keyHash: v.string(), // SHA-256 hex of the full key
+    prefix: v.string(), // first chars for display, e.g. "bprod_a1b2c3"
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_hash", ["keyHash"]),
+
   secrets: defineTable({
     boardId: v.id("boards"),
     name: v.string(), // e.g., "API_KEY", "DATABASE_URL"

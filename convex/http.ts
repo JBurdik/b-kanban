@@ -1,7 +1,13 @@
 import { httpRouter } from "convex/server";
 import { authComponent, createAuth } from "./auth";
+import { mcpHandler } from "./mcpHttp";
 
 const http = httpRouter();
+
+// Remote MCP server (MCP Streamable HTTP). Authenticated by per-user Bearer
+// API key — see convex/mcpKeys.ts and convex/mcpHttp.ts.
+http.route({ path: "/mcp", method: "POST", handler: mcpHandler });
+http.route({ path: "/mcp", method: "OPTIONS", handler: mcpHandler });
 
 // Build allowed origins from environment + defaults
 const allowedOrigins = [

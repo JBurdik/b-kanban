@@ -79,6 +79,18 @@ Role hierarchy: `member < admin < owner`. See `convex/lib/rbac.ts`:
 - **Theme**: CSS variable-based (class dark mode), accent colors — see `tailwind.config.js`
 - **Layout**: Sidebar + main content in `src/components/layout/`
 
+### Remote MCP (Claude Code over HTTP)
+
+A hosted MCP server is served directly by Convex at `<VITE_CONVEX_URL>/mcp` (MCP
+Streamable HTTP, JSON-RPC over POST). See `convex/mcpHttp.ts` (handler + tools)
+and `convex/mcpKeys.ts` (per-user API keys; SHA-256 hash stored, plaintext shown
+once). Tools reuse existing board/card/comment/label functions with the key
+owner's email as identity.
+
+- Users mint/revoke keys in Profile → "Remote MCP" (`src/components/settings/McpKeysSettings.tsx`).
+- Connect: `claude mcp add --transport http bproductive <VITE_CONVEX_URL>/mcp --header "Authorization: Bearer <key>"`.
+- Distinct from the local stdio server in `mcp/server.mjs`, which stays bundled in the desktop app.
+
 ### Environment Variables
 
 Required in `.env.local`:

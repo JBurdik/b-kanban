@@ -23,6 +23,8 @@ import type * as http from "../http.js";
 import type * as invites from "../invites.js";
 import type * as labels from "../labels.js";
 import type * as lib_rbac from "../lib/rbac.js";
+import type * as mcpHttp from "../mcpHttp.js";
+import type * as mcpKeys from "../mcpKeys.js";
 import type * as members from "../members.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
@@ -56,6 +58,8 @@ declare const fullApi: ApiFromModules<{
   invites: typeof invites;
   labels: typeof labels;
   "lib/rbac": typeof lib_rbac;
+  mcpHttp: typeof mcpHttp;
+  mcpKeys: typeof mcpKeys;
   members: typeof members;
   notifications: typeof notifications;
   presence: typeof presence;

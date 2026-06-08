@@ -1,5 +1,5 @@
 services:
-  # Convex Backend (database + serverless functions)
+  # Convex Backend (database + serverless functions) - long-lived, never recreated on app redeploy
   convex:
     image: ghcr.io/get-convex/convex-backend:latest
     ports:
@@ -16,17 +16,25 @@ services:
     volumes:
       - convex-data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3210/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  # Frontend (React app served by Nginx) - also deploys Convex functions on startup
-  app:
+  # One-shot: set env + deploy Convex functions, then exit.
+  # Runs in parallel with `app` so serving never waits on the deploy.
+  # Safe for additive changes (the common case); the backend keeps serving the
+  # old functions to the still-running old `app` until this finishes.
+  migrate:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         - VITE_CONVEX_URL=${CONVEX_URL:-http://localhost:3210}
         - VITE_CONVEX_SITE_URL=${CONVEX_URL:-http://localhost:3210}
-    ports:
-      - "3666:3666"
+    command: ["/app/deploy.sh"]
     environment:
       - CONVEX_SELF_HOSTED_URL=http://convex:3210
       - CONVEX_SELF_HOSTED_ADMIN_KEY=${ADMIN_KEY}
@@ -35,8 +43,52 @@ services:
       - CONVEX_URL=${CONVEX_URL}
       - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
     depends_on:
-      - convex
+      convex:
+        condition: service_healthy
+    restart: "no"
+
+  # Frontend (React app served by Nginx/serve) - static, starts in ~1s, no deploy.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_CONVEX_URL=${CONVEX_URL:-http://localhost:3210}
+        - VITE_CONVEX_SITE_URL=${CONVEX_URL:-http://localhost:3210}
+    command: ["/app/serve.sh"]
+    # Expose instead of host-publish so two replicas can co-exist during a
+    # rolling update (Traefik routes via the docker network). If you are NOT
+    # behind Traefik, swap this for: ports: ["3666:3666"] (loses overlap).
+    expose:
+      - "3666"
+    environment:
+      - CONVEX_URL=${CONVEX_URL}
+    depends_on:
+      convex:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3666/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    # Zero-downtime rolling: start the new container, wait until healthy, THEN
+    # stop the old one. Honored when the stack runs in Swarm mode (Dokploy:
+    # enable "Swarm" / zero-downtime on the compose). Ignored by plain
+    # `docker compose up` - there you still get the much smaller (~1-2s) gap
+    # from the fast static start instead of the old tens-of-seconds deploy wait.
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        order: start-first
+        parallelism: 1
+        failure_action: rollback
+      rollback_config:
+        order: start-first
+      restart_policy:
+        condition: on-failure
 
   # Admin Dashboard
   dashboard:

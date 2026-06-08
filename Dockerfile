@@ -50,8 +50,10 @@ COPY tsconfig.json ./
 # Copy built frontend
 COPY --from=builder /app/dist ./dist
 
-# Startup script: deploy convex functions then serve the app
-RUN cat > /app/start.sh << 'EOF'
+# One-shot deploy script: set env + push Convex functions, then exit.
+# Run as its OWN service (see docker-compose `migrate`), NOT in the web container,
+# so serving the frontend never blocks on the (slow) function deploy = no downtime.
+RUN cat > /app/deploy.sh << 'EOF'
 #!/bin/sh
 set -e
 
@@ -62,17 +64,20 @@ pnpm convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" 2>&1 || echo "env s
 pnpm convex env set TRUSTED_ORIGINS "$TRUSTED_ORIGINS" 2>&1 || echo "env set TRUSTED_ORIGINS failed"
 
 echo "Deploying Convex functions..."
-if pnpm convex deploy --yes; then
-    echo "Convex functions deployed successfully!"
-else
-    echo "Warning: Convex deploy failed, but starting server anyway..."
-fi
+pnpm convex deploy --yes
+echo "Convex functions deployed successfully!"
+EOF
+RUN chmod +x /app/deploy.sh
 
+# Web script: serve static frontend immediately (no deploy = starts in ~1s).
+RUN cat > /app/serve.sh << 'EOF'
+#!/bin/sh
+set -e
 echo "Starting server on port 3666..."
 exec serve -s dist -l 3666
 EOF
-RUN chmod +x /app/start.sh
+RUN chmod +x /app/serve.sh
 
 EXPOSE 3666
 
-CMD ["/app/start.sh"]
+CMD ["/app/serve.sh"]

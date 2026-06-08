@@ -411,7 +411,7 @@ function ProfilePage() {
       </div>
 
       {/* Remote MCP keys (Claude Code over HTTP) — always visible */}
-      <McpKeysSettings />
+      <McpKeysSettings email={user?.email} />
 
       {/* Assistant integrations (MCP + skill) — desktop only */}
       <IntegrationsSettings email={user?.email} />

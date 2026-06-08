@@ -7,10 +7,18 @@
 
 import { v } from "convex/values";
 import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
-import { requireAuth } from "./lib/rbac";
-import type { Id } from "./_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 
 const KEY_PREFIX = "bprod_";
+
+async function getUserByEmail(ctx: QueryCtx | MutationCtx, email: string) {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .first();
+  if (!user) throw new Error("User not found");
+  return user;
+}
 
 /** Hex-encode an ArrayBuffer */
 function toHex(buf: ArrayBuffer): string {
@@ -41,10 +49,10 @@ function randomKey(): string {
  * Returns the plaintext key ONCE — it is not retrievable afterwards.
  */
 export const generate = mutation({
-  args: { name: v.string() },
+  args: { name: v.string(), userEmail: v.string() },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    const userId = user._id;
 
     const key = randomKey();
     const keyHash = await sha256Hex(key);
@@ -64,10 +72,10 @@ export const generate = mutation({
 
 /** List the current user's MCP API keys (never returns the hash/plaintext). */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+  args: { userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await getUserByEmail(ctx, args.userEmail);
+    const userId = user._id;
 
     const keys = await ctx.db
       .query("mcpApiKeys")
@@ -88,10 +96,10 @@ export const list = query({
 
 /** Revoke (delete) one of the current user's keys. */
 export const revoke = mutation({
-  args: { keyId: v.id("mcpApiKeys") },
+  args: { keyId: v.id("mcpApiKeys"), userEmail: v.string() },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    const userId = user._id;
 
     const key = await ctx.db.get(args.keyId);
     if (!key || key.userId !== userId) {

@@ -14,6 +14,42 @@ function installCommand(key: string) {
   return `claude mcp add --transport http bproductive ${MCP_URL} --header "Authorization: Bearer ${key}"`;
 }
 
+// Copyable Claude Code skill. Save as ~/.claude/skills/bprod/SKILL.md
+const SKILL_BODY = `---
+name: bprod
+description: Drive the B Productive kanban board over the bproductive MCP server — read boards/tasks, list your tasks, create/edit tasks, change status, comment. Use when the user mentions a task number/slug (e.g. PROJ-12), a board, "my tasks", or asks to create/move/comment on a card.
+---
+
+# bprod
+
+Act as an assistant over the user's **B Productive** kanban board via the
+\`bproductive\` MCP server tools.
+
+The user can specify:
+- a **task by slug/number** — e.g. "PROJ-12", "look at STAT-7", "move PROJ-3 to Done".
+- a **board** — by name; resolve its boardId with \`list_boards\` first.
+- a **column/status** — by exact name (use \`get_board\` to see available columns).
+- **"my tasks"** — call \`list_my_tasks\`.
+
+## Tools
+- \`list_boards\` — all boards (boardId, name).
+- \`get_board\` — a board's columns + cards (this lists tasks in a board).
+- \`get_card\` — read one task by slug (needs boardId + slug).
+- \`list_my_tasks\` — tasks assigned to you across boards.
+- \`create_card\` — create a task in a column (description is Markdown).
+- \`update_card\` — edit a task by slug (title/description/priority/assignee/due/effort).
+- \`update_card_status\` — move a task to another column (change status) by column name.
+- \`add_comment\` / \`list_comments\` — comment on / read comments of a task.
+- \`list_labels\` / \`add_label\` — labels on a board / attach to a task.
+- \`search_cards\` — find tasks by text in a board.
+
+## Rules
+- Reference tasks by slug (e.g. PROJ-12). If only a number is given, ask which board (or infer from context).
+- Resolve board + column names via \`list_boards\`/\`get_board\` before creating/moving.
+- Descriptions are Markdown.
+- Be concise. Confirm what changed (slug + what).
+`;
+
 export function McpKeysSettings({ email }: { email?: string }) {
   const keys = useQuery(api.mcpKeys.list, email ? { userEmail: email } : "skip");
   const generate = useMutation(api.mcpKeys.generate);
@@ -151,6 +187,29 @@ export function McpKeysSettings({ email }: { email?: string }) {
         Endpoint: <code>{MCP_URL}</code> · After adding, run <code>/mcp</code> in
         Claude Code to confirm the tools loaded.
       </p>
+
+      {/* Copyable /bprod skill */}
+      <div className="mt-5 pt-4 border-t border-dark-border">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-medium text-dark-text">/bprod skill</p>
+          <button
+            onClick={() => copy(SKILL_BODY)}
+            className="text-xs px-3 py-1.5 border border-dark-border text-dark-muted rounded-lg hover:text-dark-text hover:bg-dark-hover transition-colors"
+          >
+            Copy
+          </button>
+        </div>
+        <p className="text-xs text-dark-muted mb-2">
+          Optional slash command for Claude Code. Save to{" "}
+          <code>~/.claude/skills/bprod/SKILL.md</code>, then run{" "}
+          <code>/bprod</code> — e.g. "<code>/bprod move PROJ-12 to Done</code>",
+          "<code>/bprod show my tasks</code>", "
+          <code>/bprod comment on STAT-7</code>".
+        </p>
+        <pre className="text-[11px] bg-dark-bg border border-dark-border rounded-lg px-3 py-2 max-h-48 overflow-auto whitespace-pre-wrap break-words">
+          {SKILL_BODY}
+        </pre>
+      </div>
     </div>
   );
 }

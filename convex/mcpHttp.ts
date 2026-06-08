@@ -18,7 +18,7 @@ const DEFAULT_PROTOCOL = "2025-06-18";
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, Mcp-Session-Id, Mcp-Protocol-Version",
 };
 
@@ -415,6 +415,16 @@ function rpcError(id: unknown, code: number, message: string) {
 export const mcpHandler = httpAction(async (ctx, request) => {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
+  // Browser GET / health check — MCP clients use POST.
+  if (request.method === "GET") {
+    return jsonResponse({
+      ok: true,
+      server: SERVER_INFO,
+      transport: "mcp-streamable-http",
+      hint: "POST JSON-RPC here with an Authorization: Bearer <key> header.",
+    });
   }
 
   // Authenticate via Bearer API key.

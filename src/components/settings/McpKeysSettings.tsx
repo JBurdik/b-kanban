@@ -5,8 +5,10 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 
-const CONVEX_URL = import.meta.env.VITE_CONVEX_URL as string;
-const MCP_URL = `${CONVEX_URL?.replace(/\/$/, "")}/mcp`;
+// HTTP router routes (incl. /mcp) are served on the Convex *site* origin, not
+// the cloud/API origin.
+const SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL as string;
+const MCP_URL = `${SITE_URL?.replace(/\/$/, "")}/mcp`;
 
 function installCommand(key: string) {
   return `claude mcp add --transport http bproductive ${MCP_URL} --header "Authorization: Bearer ${key}"`;

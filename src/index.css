@@ -317,8 +317,9 @@ html, body, #root {
 }
 
 /* Images */
-.rich-content img {
-  @apply my-4 rounded-lg max-w-full h-auto;
+.rich-content img,
+.comment-content img {
+  @apply my-4 rounded-lg max-w-full h-auto cursor-zoom-in;
 }
 
 /* Tables (if used) */

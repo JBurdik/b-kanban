@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { FileUpload } from "./FileUpload";
+import { useImageLightbox } from "../ImageLightbox";
 
 interface Props {
   cardId: Id<"cards">;
@@ -30,7 +30,7 @@ function isImage(mimeType: string): boolean {
 }
 
 export function AttachmentList({ cardId, readOnly = false }: Props) {
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const { open: openLightbox } = useImageLightbox();
 
   const attachments = useQuery(api.attachments.list, { cardId });
   const deleteAttachment = useMutation(api.attachments.remove);
@@ -71,7 +71,14 @@ export function AttachmentList({ cardId, readOnly = false }: Props) {
           {imageAttachments.map((attachment) => (
             <div key={attachment._id} className="relative group">
               <button
-                onClick={() => attachment.url && setLightboxImage(attachment.url)}
+                onClick={() =>
+                  openLightbox(
+                    imageAttachments
+                      .filter((a) => a.url)
+                      .map((a) => ({ src: a.url as string, alt: a.fileName })),
+                    imageAttachments.filter((a) => a.url).indexOf(attachment),
+                  )
+                }
                 className="w-20 h-20 bg-dark-bg rounded-lg overflow-hidden hover:ring-2 hover:ring-accent transition-all flex-shrink-0"
               >
                 {attachment.url && (
@@ -158,29 +165,6 @@ export function AttachmentList({ cardId, readOnly = false }: Props) {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Lightbox for full-size image view */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4"
-          onClick={() => setLightboxImage(null)}
-        >
-          <button
-            onClick={() => setLightboxImage(null)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 p-2"
-          >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <img
-            src={lightboxImage}
-            alt="Full size"
-            className="max-w-full max-h-full object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
         </div>
       )}
     </div>

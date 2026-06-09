@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { ConvexProvider } from "./components/ConvexProvider";
+import { ImageLightboxProvider } from "./components/ImageLightbox";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { isNative } from "./lib/platform";
 import "./index.css";
@@ -31,7 +32,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <ConvexProvider>
-        <RouterProvider router={router} />
+        <ImageLightboxProvider>
+          <RouterProvider router={router} />
+        </ImageLightboxProvider>
       </ConvexProvider>
     </ThemeProvider>
   </StrictMode>

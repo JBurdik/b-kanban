@@ -140,6 +140,34 @@ export function Sidebar({ isCollapsed, onToggle, userEmail }: SidebarProps) {
                         </svg>
                         <span>Documents</span>
                       </Link>
+                      {/* HTML Docs link */}
+                      <Link
+                        to="/boards/$boardId/htmldocs"
+                        params={{ boardId: board._id }}
+                        className={clsx(
+                          "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+                          location.pathname.includes(
+                            `/boards/${board._id}/htmldocs`,
+                          )
+                            ? "bg-accent/10 text-accent"
+                            : "text-dark-muted hover:bg-dark-hover hover:text-dark-text",
+                        )}
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                          />
+                        </svg>
+                        <span>HTML Docs</span>
+                      </Link>
                       {/* Secrets link */}
                       <Link
                         to="/boards/$boardId/secrets"

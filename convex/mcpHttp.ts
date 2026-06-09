@@ -189,6 +189,95 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "list_html_docs",
+    description:
+      "List the HTML documentation files attached to a board (id, title, fileName, size).",
+    inputSchema: {
+      type: "object",
+      properties: { boardId: { type: "string" } },
+      required: ["boardId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_html_doc",
+    description: "Read the raw HTML content of a board documentation file by its id.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string" },
+        docId: { type: "string" },
+      },
+      required: ["boardId", "docId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "upload_html_doc",
+    description:
+      "Upload an HTML documentation file to a board. Pass the full HTML as `html`. To overwrite an existing doc, pass its `docId`.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string" },
+        title: { type: "string", description: "Human-readable title" },
+        html: { type: "string", description: "Full HTML document content" },
+        fileName: { type: "string", description: "Optional file name, e.g. guide.html" },
+        docId: { type: "string", description: "Optional id of an existing doc to overwrite" },
+      },
+      required: ["boardId", "title", "html"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_me",
+    description: "Get the currently authenticated user (id, name, email) for this MCP key.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "assign_card",
+    description:
+      "Assign a card (by slug) to a user by email. Pass an empty string for assigneeEmail to unassign.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string" },
+        slug: { type: "string" },
+        assigneeEmail: { type: "string", description: "Email of user to assign, or empty to unassign" },
+      },
+      required: ["boardId", "slug", "assigneeEmail"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "set_reporter",
+    description:
+      "Set the reporter (creator) of a card (by slug) to a user by email. Pass an empty string to clear.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string" },
+        slug: { type: "string" },
+        reporterEmail: { type: "string", description: "Email of the reporter, or empty to clear" },
+      },
+      required: ["boardId", "slug", "reporterEmail"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "create_board",
+    description: "Create a new kanban board. Returns the new boardId.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string" },
+      },
+      required: ["name"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 type Ctx = Parameters<Parameters<typeof httpAction>[0]>[0];
@@ -384,6 +473,79 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
         }
       }
       return matches;
+    }
+    case "list_html_docs": {
+      const docs = await ctx.runQuery(api.htmlDocs.list, {
+        boardId: args.boardId,
+        userEmail: email,
+      });
+      return (docs ?? []).map((d: any) => ({
+        docId: d._id,
+        title: d.title,
+        fileName: d.fileName,
+        fileSize: d.fileSize,
+        updatedAt: d.updatedAt,
+      }));
+    }
+    case "get_html_doc": {
+      const doc = await ctx.runAction(api.htmlDocs.getContent, {
+        docId: args.docId,
+        userEmail: email,
+      });
+      if (!doc) throw new Error(`HTML doc ${args.docId} not found`);
+      return doc;
+    }
+    case "upload_html_doc": {
+      const docId = await ctx.runAction(api.htmlDocs.createFromHtml, {
+        boardId: args.boardId,
+        title: args.title,
+        html: args.html,
+        fileName: args.fileName,
+        docId: args.docId,
+        userEmail: email,
+      });
+      return { uploaded: true, docId };
+    }
+    case "get_me": {
+      const user = await ctx.runQuery(api.users.getByEmail, { email });
+      if (!user) throw new Error(`No user with email ${email}`);
+      return { id: user.id, name: user.name, email: user.email };
+    }
+    case "assign_card": {
+      const card = await ctx.runQuery(api.cards.getBySlug, {
+        slug: args.slug,
+        boardId: args.boardId,
+      });
+      if (!card) throw new Error(`Card ${args.slug} not found`);
+      await ctx.runMutation(api.cards.update, {
+        cardId: card._id,
+        assigneeId:
+          args.assigneeEmail === "" ? null : await resolveAssignee(ctx, args.assigneeEmail),
+        currentUserEmail: email,
+      });
+      return { assigned: true, slug: args.slug, assignee: args.assigneeEmail || null };
+    }
+    case "set_reporter": {
+      const card = await ctx.runQuery(api.cards.getBySlug, {
+        slug: args.slug,
+        boardId: args.boardId,
+      });
+      if (!card) throw new Error(`Card ${args.slug} not found`);
+      await ctx.runMutation(api.cards.update, {
+        cardId: card._id,
+        reporterId:
+          args.reporterEmail === "" ? null : await resolveAssignee(ctx, args.reporterEmail),
+        currentUserEmail: email,
+      });
+      return { reporterSet: true, slug: args.slug, reporter: args.reporterEmail || null };
+    }
+    case "create_board": {
+      const boardId = await ctx.runMutation(api.boards.create, {
+        name: args.name,
+        description: args.description,
+        userEmail: email,
+      });
+      return { created: true, boardId };
     }
     default:
       throw new Error(`Unknown tool: ${name}`);

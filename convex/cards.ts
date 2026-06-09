@@ -269,6 +269,7 @@ export const update = mutation({
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.null())),
     type: v.optional(v.union(v.literal("task"), v.literal("bug"), v.null())),
     assigneeId: v.optional(v.union(v.id("users"), v.null())),
+    reporterId: v.optional(v.union(v.id("users"), v.null())),
     versionId: v.optional(v.union(v.id("versions"), v.null())),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
@@ -302,6 +303,12 @@ export const update = mutation({
       updates.assigneeId = undefined;
     } else if (args.assigneeId !== undefined) {
       updates.assigneeId = args.assigneeId;
+    }
+    // Handle reporter: null means clear, undefined means don't change
+    if (args.reporterId === null) {
+      updates.reporterId = undefined;
+    } else if (args.reporterId !== undefined) {
+      updates.reporterId = args.reporterId;
     }
     // Handle version: null means clear, undefined means don't change
     if (args.versionId === null) {

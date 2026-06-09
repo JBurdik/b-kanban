@@ -19,6 +19,7 @@ import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as documentLinks from "../documentLinks.js";
 import type * as documents from "../documents.js";
+import type * as htmlDocs from "../htmlDocs.js";
 import type * as http from "../http.js";
 import type * as invites from "../invites.js";
 import type * as labels from "../labels.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   documentLinks: typeof documentLinks;
   documents: typeof documents;
+  htmlDocs: typeof htmlDocs;
   http: typeof http;
   invites: typeof invites;
   labels: typeof labels;

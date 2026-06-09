@@ -22,12 +22,15 @@ import { Route as BoardsBoardIdRouteImport } from './routes/boards.$boardId'
 import { Route as BoardsBoardIdIndexRouteImport } from './routes/boards.$boardId.index'
 import { Route as BoardsBoardIdWebhooksRouteImport } from './routes/boards.$boardId.webhooks'
 import { Route as BoardsBoardIdSecretsRouteImport } from './routes/boards.$boardId.secrets'
+import { Route as BoardsBoardIdHtmldocsRouteImport } from './routes/boards.$boardId.htmldocs'
 import { Route as BoardsBoardIdDocsRouteImport } from './routes/boards.$boardId.docs'
 import { Route as BoardsBoardIdArchiveRouteImport } from './routes/boards.$boardId.archive'
 import { Route as BoardsBoardIdWebhooksIndexRouteImport } from './routes/boards.$boardId.webhooks.index'
 import { Route as BoardsBoardIdSecretsIndexRouteImport } from './routes/boards.$boardId.secrets.index'
+import { Route as BoardsBoardIdHtmldocsIndexRouteImport } from './routes/boards.$boardId.htmldocs.index'
 import { Route as BoardsBoardIdDocsIndexRouteImport } from './routes/boards.$boardId.docs.index'
 import { Route as BoardsBoardIdArchiveIndexRouteImport } from './routes/boards.$boardId.archive.index'
+import { Route as BoardsBoardIdHtmldocsHtmlDocIdRouteImport } from './routes/boards.$boardId.htmldocs.$htmlDocId'
 import { Route as BoardsBoardIdDocsDocIdRouteImport } from './routes/boards.$boardId.docs.$docId'
 import { Route as BoardsBoardIdCardsCardSlugRouteImport } from './routes/boards.$boardId.cards.$cardSlug'
 
@@ -96,6 +99,11 @@ const BoardsBoardIdSecretsRoute = BoardsBoardIdSecretsRouteImport.update({
   path: '/secrets',
   getParentRoute: () => BoardsBoardIdRoute,
 } as any)
+const BoardsBoardIdHtmldocsRoute = BoardsBoardIdHtmldocsRouteImport.update({
+  id: '/htmldocs',
+  path: '/htmldocs',
+  getParentRoute: () => BoardsBoardIdRoute,
+} as any)
 const BoardsBoardIdDocsRoute = BoardsBoardIdDocsRouteImport.update({
   id: '/docs',
   path: '/docs',
@@ -118,6 +126,12 @@ const BoardsBoardIdSecretsIndexRoute =
     path: '/',
     getParentRoute: () => BoardsBoardIdSecretsRoute,
   } as any)
+const BoardsBoardIdHtmldocsIndexRoute =
+  BoardsBoardIdHtmldocsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BoardsBoardIdHtmldocsRoute,
+  } as any)
 const BoardsBoardIdDocsIndexRoute = BoardsBoardIdDocsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -128,6 +142,12 @@ const BoardsBoardIdArchiveIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => BoardsBoardIdArchiveRoute,
+  } as any)
+const BoardsBoardIdHtmldocsHtmlDocIdRoute =
+  BoardsBoardIdHtmldocsHtmlDocIdRouteImport.update({
+    id: '/$htmlDocId',
+    path: '/$htmlDocId',
+    getParentRoute: () => BoardsBoardIdHtmldocsRoute,
   } as any)
 const BoardsBoardIdDocsDocIdRoute = BoardsBoardIdDocsDocIdRouteImport.update({
   id: '/$docId',
@@ -154,13 +174,16 @@ export interface FileRoutesByFullPath {
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveRouteWithChildren
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
+  '/boards/$boardId/htmldocs': typeof BoardsBoardIdHtmldocsRouteWithChildren
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
   '/boards/$boardId/webhooks': typeof BoardsBoardIdWebhooksRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/htmldocs/$htmlDocId': typeof BoardsBoardIdHtmldocsHtmlDocIdRoute
   '/boards/$boardId/archive/': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
+  '/boards/$boardId/htmldocs/': typeof BoardsBoardIdHtmldocsIndexRoute
   '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
   '/boards/$boardId/webhooks/': typeof BoardsBoardIdWebhooksIndexRoute
 }
@@ -176,8 +199,10 @@ export interface FileRoutesByTo {
   '/boards/$boardId': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/htmldocs/$htmlDocId': typeof BoardsBoardIdHtmldocsHtmlDocIdRoute
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsIndexRoute
+  '/boards/$boardId/htmldocs': typeof BoardsBoardIdHtmldocsIndexRoute
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsIndexRoute
   '/boards/$boardId/webhooks': typeof BoardsBoardIdWebhooksIndexRoute
 }
@@ -195,13 +220,16 @@ export interface FileRoutesById {
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveRouteWithChildren
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
+  '/boards/$boardId/htmldocs': typeof BoardsBoardIdHtmldocsRouteWithChildren
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
   '/boards/$boardId/webhooks': typeof BoardsBoardIdWebhooksRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
+  '/boards/$boardId/htmldocs/$htmlDocId': typeof BoardsBoardIdHtmldocsHtmlDocIdRoute
   '/boards/$boardId/archive/': typeof BoardsBoardIdArchiveIndexRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
+  '/boards/$boardId/htmldocs/': typeof BoardsBoardIdHtmldocsIndexRoute
   '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
   '/boards/$boardId/webhooks/': typeof BoardsBoardIdWebhooksIndexRoute
 }
@@ -220,13 +248,16 @@ export interface FileRouteTypes {
     | '/boards/'
     | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
+    | '/boards/$boardId/htmldocs'
     | '/boards/$boardId/secrets'
     | '/boards/$boardId/webhooks'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/htmldocs/$htmlDocId'
     | '/boards/$boardId/archive/'
     | '/boards/$boardId/docs/'
+    | '/boards/$boardId/htmldocs/'
     | '/boards/$boardId/secrets/'
     | '/boards/$boardId/webhooks/'
   fileRoutesByTo: FileRoutesByTo
@@ -242,8 +273,10 @@ export interface FileRouteTypes {
     | '/boards/$boardId'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/htmldocs/$htmlDocId'
     | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
+    | '/boards/$boardId/htmldocs'
     | '/boards/$boardId/secrets'
     | '/boards/$boardId/webhooks'
   id:
@@ -260,13 +293,16 @@ export interface FileRouteTypes {
     | '/boards/'
     | '/boards/$boardId/archive'
     | '/boards/$boardId/docs'
+    | '/boards/$boardId/htmldocs'
     | '/boards/$boardId/secrets'
     | '/boards/$boardId/webhooks'
     | '/boards/$boardId/'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
+    | '/boards/$boardId/htmldocs/$htmlDocId'
     | '/boards/$boardId/archive/'
     | '/boards/$boardId/docs/'
+    | '/boards/$boardId/htmldocs/'
     | '/boards/$boardId/secrets/'
     | '/boards/$boardId/webhooks/'
   fileRoutesById: FileRoutesById
@@ -375,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdSecretsRouteImport
       parentRoute: typeof BoardsBoardIdRoute
     }
+    '/boards/$boardId/htmldocs': {
+      id: '/boards/$boardId/htmldocs'
+      path: '/htmldocs'
+      fullPath: '/boards/$boardId/htmldocs'
+      preLoaderRoute: typeof BoardsBoardIdHtmldocsRouteImport
+      parentRoute: typeof BoardsBoardIdRoute
+    }
     '/boards/$boardId/docs': {
       id: '/boards/$boardId/docs'
       path: '/docs'
@@ -403,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdSecretsIndexRouteImport
       parentRoute: typeof BoardsBoardIdSecretsRoute
     }
+    '/boards/$boardId/htmldocs/': {
+      id: '/boards/$boardId/htmldocs/'
+      path: '/'
+      fullPath: '/boards/$boardId/htmldocs/'
+      preLoaderRoute: typeof BoardsBoardIdHtmldocsIndexRouteImport
+      parentRoute: typeof BoardsBoardIdHtmldocsRoute
+    }
     '/boards/$boardId/docs/': {
       id: '/boards/$boardId/docs/'
       path: '/'
@@ -416,6 +466,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/boards/$boardId/archive/'
       preLoaderRoute: typeof BoardsBoardIdArchiveIndexRouteImport
       parentRoute: typeof BoardsBoardIdArchiveRoute
+    }
+    '/boards/$boardId/htmldocs/$htmlDocId': {
+      id: '/boards/$boardId/htmldocs/$htmlDocId'
+      path: '/$htmlDocId'
+      fullPath: '/boards/$boardId/htmldocs/$htmlDocId'
+      preLoaderRoute: typeof BoardsBoardIdHtmldocsHtmlDocIdRouteImport
+      parentRoute: typeof BoardsBoardIdHtmldocsRoute
     }
     '/boards/$boardId/docs/$docId': {
       id: '/boards/$boardId/docs/$docId'
@@ -458,6 +515,21 @@ const BoardsBoardIdDocsRouteChildren: BoardsBoardIdDocsRouteChildren = {
 const BoardsBoardIdDocsRouteWithChildren =
   BoardsBoardIdDocsRoute._addFileChildren(BoardsBoardIdDocsRouteChildren)
 
+interface BoardsBoardIdHtmldocsRouteChildren {
+  BoardsBoardIdHtmldocsHtmlDocIdRoute: typeof BoardsBoardIdHtmldocsHtmlDocIdRoute
+  BoardsBoardIdHtmldocsIndexRoute: typeof BoardsBoardIdHtmldocsIndexRoute
+}
+
+const BoardsBoardIdHtmldocsRouteChildren: BoardsBoardIdHtmldocsRouteChildren = {
+  BoardsBoardIdHtmldocsHtmlDocIdRoute: BoardsBoardIdHtmldocsHtmlDocIdRoute,
+  BoardsBoardIdHtmldocsIndexRoute: BoardsBoardIdHtmldocsIndexRoute,
+}
+
+const BoardsBoardIdHtmldocsRouteWithChildren =
+  BoardsBoardIdHtmldocsRoute._addFileChildren(
+    BoardsBoardIdHtmldocsRouteChildren,
+  )
+
 interface BoardsBoardIdSecretsRouteChildren {
   BoardsBoardIdSecretsIndexRoute: typeof BoardsBoardIdSecretsIndexRoute
 }
@@ -485,6 +557,7 @@ const BoardsBoardIdWebhooksRouteWithChildren =
 interface BoardsBoardIdRouteChildren {
   BoardsBoardIdArchiveRoute: typeof BoardsBoardIdArchiveRouteWithChildren
   BoardsBoardIdDocsRoute: typeof BoardsBoardIdDocsRouteWithChildren
+  BoardsBoardIdHtmldocsRoute: typeof BoardsBoardIdHtmldocsRouteWithChildren
   BoardsBoardIdSecretsRoute: typeof BoardsBoardIdSecretsRouteWithChildren
   BoardsBoardIdWebhooksRoute: typeof BoardsBoardIdWebhooksRouteWithChildren
   BoardsBoardIdIndexRoute: typeof BoardsBoardIdIndexRoute
@@ -494,6 +567,7 @@ interface BoardsBoardIdRouteChildren {
 const BoardsBoardIdRouteChildren: BoardsBoardIdRouteChildren = {
   BoardsBoardIdArchiveRoute: BoardsBoardIdArchiveRouteWithChildren,
   BoardsBoardIdDocsRoute: BoardsBoardIdDocsRouteWithChildren,
+  BoardsBoardIdHtmldocsRoute: BoardsBoardIdHtmldocsRouteWithChildren,
   BoardsBoardIdSecretsRoute: BoardsBoardIdSecretsRouteWithChildren,
   BoardsBoardIdWebhooksRoute: BoardsBoardIdWebhooksRouteWithChildren,
   BoardsBoardIdIndexRoute: BoardsBoardIdIndexRoute,

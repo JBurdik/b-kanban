@@ -210,6 +210,21 @@ export default defineSchema({
     .index("by_board", ["boardId"])
     .index("by_board_updated", ["boardId", "updatedAt"]),
 
+  // HTML documentation files per board (raw HTML stored in Convex file storage,
+  // rendered in a sandboxed iframe). Uploadable via UI or the remote MCP server.
+  htmlDocs: defineTable({
+    boardId: v.id("boards"),
+    title: v.string(),
+    fileName: v.string(),
+    storageId: v.id("_storage"),
+    fileSize: v.number(),
+    createdById: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_board", ["boardId"])
+    .index("by_board_updated", ["boardId", "updatedAt"]),
+
   // Card-Document links (many-to-many)
   documentLinks: defineTable({
     cardId: v.id("cards"),

@@ -1,7 +1,7 @@
 {
   "name": "bproductive",
   "private": true,
-  "version": "0.3.3",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"pnpm dev:convex\" \"pnpm dev:app\"",

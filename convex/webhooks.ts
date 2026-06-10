@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { requireAuth, requireBoardAccess } from "./lib/rbac";
+import { internal } from "./_generated/api";
 
 /**
  * Create a new webhook
@@ -189,6 +190,23 @@ export const updateWebhookStatus = internalMutation({
     await ctx.db.patch(args.webhookId, {
       lastTriggeredAt: args.lastTriggeredAt,
       lastStatus: args.lastStatus,
+    });
+  },
+});
+
+export const test = mutation({
+  args: { webhookId: v.id("webhooks") },
+  handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    await ctx.runQuery(internal.webhooks.verifyWebhookAccess, {
+      webhookId: args.webhookId,
+      userId,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.webhookActions.testAction, {
+      webhookId: args.webhookId,
     });
   },
 });

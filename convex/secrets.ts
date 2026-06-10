@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { requireAuth } from "./lib/rbac";
+import { requireAuth, getOptionalAuth } from "./lib/rbac";
 
 type BoardRole = "owner" | "admin" | "member";
 const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
@@ -15,7 +15,8 @@ export const list = query({
     boardId: v.id("boards"),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     // Check board access
@@ -69,7 +70,8 @@ export const get = query({
     secretId: v.id("secrets"),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     const secret = await ctx.db.get(args.secretId);

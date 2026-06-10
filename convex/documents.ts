@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess } from "./lib/rbac";
+import { requireAuth, getOptionalAuth, requireBoardAccess } from "./lib/rbac";
 
 /**
  * List all documents for a board
@@ -9,7 +9,8 @@ import { requireAuth, requireBoardAccess } from "./lib/rbac";
 export const list = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     await requireBoardAccess(ctx, userId, args.boardId, "member");
@@ -50,7 +51,8 @@ export const list = query({
 export const get = query({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     const document = await ctx.db.get(args.documentId);
@@ -195,7 +197,8 @@ export const search = query({
     query: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     await requireBoardAccess(ctx, userId, args.boardId, "member");

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess } from "./lib/rbac";
+import { requireAuth, getOptionalAuth, requireBoardAccess } from "./lib/rbac";
 
 // Helper to get board ID from card
 async function getBoardIdFromCard(ctx: QueryCtx | MutationCtx, cardId: Id<"cards">) {
@@ -19,7 +19,8 @@ async function getBoardIdFromCard(ctx: QueryCtx | MutationCtx, cardId: Id<"cards
 export const listByCard = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
@@ -55,7 +56,8 @@ export const listByCard = query({
 export const listByDocument = query({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     const document = await ctx.db.get(args.documentId);

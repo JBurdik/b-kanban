@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth } from "./lib/rbac";
+import { requireAuth, getOptionalAuth } from "./lib/rbac";
 
 /**
  * Generate slug prefix from board name
@@ -24,7 +24,8 @@ function generateSlugPrefix(name: string): string {
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     const memberships = await ctx.db
@@ -70,7 +71,8 @@ export const list = query({
 export const get = query({
   args: { boardId: v.id("boards"), userEmail: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     const board = await ctx.db.get(args.boardId);

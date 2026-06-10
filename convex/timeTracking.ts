@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { requireAuth } from "./lib/rbac";
+import { requireAuth, getOptionalAuth } from "./lib/rbac";
 
 // ============================================
 // Helper Functions
@@ -23,7 +23,8 @@ function getStartOfDay(timestamp?: number): number {
 export const getActiveTimer = query({
   args: {},
   handler: async (ctx) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     const timer = await ctx.db
@@ -61,7 +62,8 @@ export const getActiveTimer = query({
 export const getTodayEntries = query({
   args: {},
   handler: async (ctx) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     const todayStart = getStartOfDay();
@@ -113,7 +115,8 @@ export const getEntriesByDateRange = query({
     boardId: v.optional(v.id("boards")),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     let entries;
@@ -176,7 +179,8 @@ export const getMonthlySummary = query({
     month: v.number(), // 1-12
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     // Calculate month start and end

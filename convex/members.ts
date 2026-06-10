@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireAuth, requireBoardAccess } from "./lib/rbac";
+import { requireAuth, getOptionalAuth, requireBoardAccess } from "./lib/rbac";
 import type { Id } from "./_generated/dataModel";
 
 /**
@@ -10,7 +10,8 @@ import type { Id } from "./_generated/dataModel";
 export const list = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
     await requireBoardAccess(ctx, userId, args.boardId, "member");
 
@@ -173,7 +174,8 @@ export const search = query({
     query: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
     await requireBoardAccess(ctx, userId, args.boardId, "member");
 

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
+import { requireAuth, getOptionalAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
 
 /**
  * List comments for a card (authenticated — verifies board access)
@@ -10,7 +10,8 @@ import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac"
 export const list = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);

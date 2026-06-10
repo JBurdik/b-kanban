@@ -54,7 +54,8 @@ export const me = query({
 export const get = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
 
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
@@ -74,7 +75,8 @@ export const get = query({
 export const searchByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
 
     // Search for users whose email contains the search term
     const allUsers = await ctx.db.query("users").collect();

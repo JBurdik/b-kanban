@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
+import { requireAuth, getOptionalAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
 
 /** Strip HTML tags + collapse whitespace to plain text */
 function htmlToText(html?: string): string {
@@ -45,7 +45,8 @@ function describeContentDiff(oldHtml?: string, newHtml?: string): string {
 export const get = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     const card = await ctx.db.get(args.cardId);
@@ -109,7 +110,8 @@ export const getBySlug = query({
     boardId: v.id("boards"),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     await requireBoardAccess(ctx, userId, args.boardId, "member");
@@ -578,7 +580,8 @@ export const permanentDelete = mutation({
 export const listArchived = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
     await requireBoardAccess(ctx, userId, args.boardId, "member");
 
@@ -718,7 +721,8 @@ export const getMyTasks = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     // Get user's board memberships

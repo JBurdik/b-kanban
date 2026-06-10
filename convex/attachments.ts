@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
+import { requireAuth, getOptionalAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
 
 /**
  * Get attachments for a card
@@ -9,7 +9,8 @@ import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac"
 export const list = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return [];
 
     const attachments = await ctx.db
       .query("attachments")

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation, QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess, checkBoardAccess, getBoardIdFromCard } from "./lib/rbac";
+import { requireAuth, getOptionalAuth, requireBoardAccess, checkBoardAccess, getBoardIdFromCard } from "./lib/rbac";
 
 /**
  * Helper to get app user ID from email (used by internal MCP variants)
@@ -22,10 +22,12 @@ async function getUserByEmail(
 export const list = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await getOptionalAuth(ctx);
+    if (!user) return [];
+    const userId = user._id as unknown as Id<"users">;
 
     // Check board access
-    const { hasAccess } = await checkBoardAccess(ctx, user._id, args.boardId, "member");
+    const { hasAccess } = await checkBoardAccess(ctx, userId, args.boardId, "member");
     if (!hasAccess) {
       return [];
     }
@@ -45,12 +47,14 @@ export const list = query({
 export const getForCard = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await getOptionalAuth(ctx);
+    if (!user) return [];
+    const userId = user._id as unknown as Id<"users">;
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) return [];
 
-    const { hasAccess } = await checkBoardAccess(ctx, user._id, boardId, "member");
+    const { hasAccess } = await checkBoardAccess(ctx, userId, boardId, "member");
     if (!hasAccess) {
       return [];
     }

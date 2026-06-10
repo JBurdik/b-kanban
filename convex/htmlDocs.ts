@@ -9,7 +9,7 @@ import {
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth } from "./lib/rbac";
+import { requireAuth, getOptionalAuth } from "./lib/rbac";
 
 type Ctx = QueryCtx | MutationCtx;
 
@@ -42,9 +42,11 @@ async function hasBoardAccess(
 export const list = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await getOptionalAuth(ctx);
+    if (!user) return [];
+    const userId = user._id as unknown as Id<"users">;
 
-    const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
+    const hasAccess = await hasBoardAccess(ctx, args.boardId, userId);
     if (!hasAccess) return [];
 
     const docs = await ctx.db
@@ -121,9 +123,11 @@ export const get = query({
     const doc = await ctx.db.get(args.docId);
     if (!doc) return null;
 
-    const user = await requireAuth(ctx);
+    const user = await getOptionalAuth(ctx);
+    if (!user) return null;
+    const userId = user._id as unknown as Id<"users">;
 
-    const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
+    const hasAccess = await hasBoardAccess(ctx, doc.boardId, userId);
     if (!hasAccess) return null;
 
     const creator = await ctx.db.get(doc.createdById);

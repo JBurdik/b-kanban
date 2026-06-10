@@ -44,6 +44,10 @@ export function KanbanColumn({
   isSelected,
   onSelectionToggle,
 }: Props) {
+  const isMobileDevice =
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(column.name);
   const [showAddCard, setShowAddCard] = useState(false);
@@ -136,7 +140,7 @@ export function KanbanColumn({
       {/* Column header */}
       <div className="flex items-center justify-between p-3 border-b border-dark-border">
         {/* Drag handle for admins */}
-        {canManageColumns && (
+        {canManageColumns && !isMobileDevice && (
           <button
             {...attributes}
             {...listeners}

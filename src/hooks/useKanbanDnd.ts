@@ -56,15 +56,20 @@ export function useKanbanDnd({ initialColumns, canDrag, canReorderColumns = fals
     columnsRef.current = columns;
   }, [columns]);
 
-  // Only enable sensors if user can drag
+  // Detect touch/mobile device — disable DnD entirely on mobile to prevent
+  // tap interception (TouchSensor delay causes "double-tap to open" bug)
+  const isMobileDevice =
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
   const sensors = useSensors(
     useSensor(MouseSensor, {
-      activationConstraint: { distance: canDrag ? 5 : 9999 },
+      activationConstraint: {
+        distance: canDrag && !isMobileDevice ? 5 : 9999,
+      },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: canDrag
-        ? { delay: 250, tolerance: 5 }
-        : { delay: 99999, tolerance: 0 },
+      activationConstraint: { delay: 99999, tolerance: 0 },
     }),
     useSensor(KeyboardSensor)
   );

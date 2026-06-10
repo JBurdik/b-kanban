@@ -39,6 +39,10 @@ export function KanbanCard({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const isMobileDevice =
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
   const {
     attributes,
     listeners,
@@ -81,7 +85,7 @@ export function KanbanCard({
         ref={setNodeRef}
         style={style}
         {...attributes}
-        {...listeners}
+        {...(isMobileDevice ? {} : listeners)}
         tabIndex={0}
         onClick={(e) => {
           if (isDragging) return;

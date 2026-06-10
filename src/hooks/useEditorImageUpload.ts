@@ -7,25 +7,20 @@ import { useSession } from "@/lib/auth-client";
  * Hook that provides an image upload handler for the rich text editor.
  * Uploads images to Convex storage and returns the URL.
  *
- * @param providedUserEmail - Optional email to use instead of getting from session
+ * @param _providedUserEmail - Ignored, kept for API compatibility
  */
-export function useEditorImageUpload(providedUserEmail?: string) {
+export function useEditorImageUpload(_providedUserEmail?: string) {
   const { data: session } = useSession();
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
   const getImageUrl = useMutation(api.attachments.getImageUrl);
 
-  // Use provided email or fall back to session
-  const userEmail = providedUserEmail || session?.user?.email;
+  const isLoggedIn = !!session?.user;
 
   const handleImageUpload = useCallback(
     async (file: File): Promise<string | null> => {
-      if (!userEmail) {
-        return null;
-      }
-
       try {
         // 1. Get upload URL from Convex
-        const uploadUrl = await generateUploadUrl({ userEmail });
+        const uploadUrl = await generateUploadUrl({});
 
         // 2. Upload the file to Convex storage
         const response = await fetch(uploadUrl, {
@@ -43,7 +38,7 @@ export function useEditorImageUpload(providedUserEmail?: string) {
         const { storageId } = await response.json();
 
         // 3. Get the permanent URL for the uploaded image
-        const { url } = await getImageUrl({ storageId, userEmail });
+        const { url } = await getImageUrl({ storageId });
 
         return url;
       } catch (error) {
@@ -51,11 +46,11 @@ export function useEditorImageUpload(providedUserEmail?: string) {
         return null;
       }
     },
-    [userEmail, generateUploadUrl, getImageUrl]
+    [generateUploadUrl, getImageUrl]
   );
 
   return {
-    onImageUpload: userEmail ? handleImageUpload : undefined,
-    isLoggedIn: !!userEmail,
+    onImageUpload: isLoggedIn ? handleImageUpload : undefined,
+    isLoggedIn,
   };
 }

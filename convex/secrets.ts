@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { getOptionalAuth, requireAuth } from "./lib/rbac";
 
 type BoardRole = "owner" | "admin" | "member";
 const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
@@ -11,19 +12,9 @@ const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
 export const list = query({
   args: {
     boardId: v.id("boards"),
-    userEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!args.userEmail) {
-      return [];
-    }
-
-    // Look up user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
-      .first();
-
+    const user = await getOptionalAuth(ctx);
     if (!user) {
       return [];
     }
@@ -77,18 +68,9 @@ export const list = query({
 export const get = query({
   args: {
     secretId: v.id("secrets"),
-    userEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!args.userEmail) {
-      throw new Error("Unauthorized");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
-      .first();
-
+    const user = await getOptionalAuth(ctx);
     if (!user) {
       throw new Error("Unauthorized");
     }
@@ -134,17 +116,9 @@ export const create = mutation({
     visibility: v.union(v.literal("public"), v.literal("hidden")),
     description: v.optional(v.string()),
     groupId: v.optional(v.id("secretGroups")),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const user = await requireAuth(ctx);
 
     // Check board access (admin or owner)
     const member = await ctx.db
@@ -206,17 +180,9 @@ export const update = mutation({
     visibility: v.optional(v.union(v.literal("public"), v.literal("hidden"))),
     description: v.optional(v.string()),
     groupId: v.optional(v.union(v.id("secretGroups"), v.null())),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const user = await requireAuth(ctx);
 
     const secret = await ctx.db.get(args.secretId);
     if (!secret) {
@@ -276,17 +242,9 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     secretId: v.id("secrets"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const user = await requireAuth(ctx);
 
     const secret = await ctx.db.get(args.secretId);
     if (!secret) {

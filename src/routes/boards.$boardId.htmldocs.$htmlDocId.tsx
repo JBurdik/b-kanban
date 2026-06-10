@@ -17,29 +17,25 @@ function HtmlDocViewerPage() {
 
   const doc = useQuery(
     api.htmlDocs.get,
-    userEmail ? { docId: htmlDocId as Id<"htmlDocs">, userEmail } : "skip",
+    userEmail ? { docId: htmlDocId as Id<"htmlDocs"> } : "skip",
   );
 
   const renameDoc = useMutation(api.htmlDocs.rename);
   const deleteDoc = useMutation(api.htmlDocs.remove);
 
   const handleRename = async () => {
-    if (!userEmail || !newTitle.trim()) return;
+    if (!newTitle.trim()) return;
     await renameDoc({
       docId: htmlDocId as Id<"htmlDocs">,
       title: newTitle.trim(),
-      userEmail,
     });
     setIsRenaming(false);
   };
 
   const handleDelete = async () => {
-    if (
-      !userEmail ||
-      !window.confirm("Are you sure you want to delete this HTML doc?")
-    )
+    if (!window.confirm("Are you sure you want to delete this HTML doc?"))
       return;
-    await deleteDoc({ docId: htmlDocId as Id<"htmlDocs">, userEmail });
+    await deleteDoc({ docId: htmlDocId as Id<"htmlDocs"> });
     window.location.href = `/boards/${boardId}/htmldocs`;
   };
 

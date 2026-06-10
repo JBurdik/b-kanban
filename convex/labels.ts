@@ -1,33 +1,14 @@
 import { v } from "convex/values";
-import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { requireBoardAccess, checkBoardAccess, getBoardIdFromCard } from "./lib/rbac";
-
-/**
- * Helper to get app user ID from email
- */
-async function getUserByEmail(
-  ctx: QueryCtx | MutationCtx,
-  email: string
-): Promise<{ _id: Id<"users"> } | null> {
-  return await ctx.db
-    .query("users")
-    .withIndex("by_email", (q) => q.eq("email", email))
-    .first();
-}
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
+import { requireBoardAccess, checkBoardAccess, getBoardIdFromCard, getOptionalAuth, requireAuth } from "./lib/rbac";
 
 /**
  * Get all labels for a board
  */
 export const list = query({
-  args: { boardId: v.id("boards"), userEmail: v.optional(v.string()) },
+  args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    // If no userEmail provided, return empty array (not authenticated)
-    if (!args.userEmail) {
-      return [];
-    }
-
-    const user = await getUserByEmail(ctx, args.userEmail);
+    const user = await getOptionalAuth(ctx);
     if (!user) {
       return [];
     }
@@ -51,13 +32,9 @@ export const list = query({
  * Get labels attached to a specific card
  */
 export const getForCard = query({
-  args: { cardId: v.id("cards"), userEmail: v.optional(v.string()) },
+  args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    if (!args.userEmail) {
-      return [];
-    }
-
-    const user = await getUserByEmail(ctx, args.userEmail);
+    const user = await getOptionalAuth(ctx);
     if (!user) {
       return [];
     }
@@ -96,11 +73,9 @@ export const create = mutation({
     color: v.string(),
     textColor: v.string(),
     applyToCardBg: v.boolean(),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     await requireBoardAccess(ctx, user._id, args.boardId, "admin");
 
@@ -127,11 +102,9 @@ export const update = mutation({
     color: v.optional(v.string()),
     textColor: v.optional(v.string()),
     applyToCardBg: v.optional(v.boolean()),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const label = await ctx.db.get(args.labelId);
     if (!label) throw new Error("Label not found");
@@ -154,10 +127,9 @@ export const update = mutation({
  * Remove a label and all card-label associations (admin/owner only)
  */
 export const remove = mutation({
-  args: { labelId: v.id("labels"), userEmail: v.string() },
+  args: { labelId: v.id("labels") },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const label = await ctx.db.get(args.labelId);
     if (!label) throw new Error("Label not found");
@@ -188,11 +160,9 @@ export const addToCard = mutation({
   args: {
     cardId: v.id("cards"),
     labelId: v.id("labels"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
@@ -233,11 +203,9 @@ export const removeFromCard = mutation({
   args: {
     cardId: v.id("cards"),
     labelId: v.id("labels"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
@@ -265,13 +233,11 @@ export const bulkAddToCards = mutation({
   args: {
     cardIds: v.array(v.id("cards")),
     labelId: v.id("labels"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
@@ -305,13 +271,11 @@ export const bulkRemoveFromCards = mutation({
   args: {
     cardIds: v.array(v.id("cards")),
     labelId: v.id("labels"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
@@ -330,5 +294,81 @@ export const bulkRemoveFromCards = mutation({
     }
 
     return { success: true };
+  },
+});
+
+/**
+ * Internal: List labels for a board for a user identified by email (used by MCP after Bearer auth)
+ */
+export const listByEmail = internalQuery({
+  args: { boardId: v.id("boards"), userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) return [];
+
+    const membership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+    if (!membership) return [];
+
+    const labels = await ctx.db
+      .query("labels")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    return labels;
+  },
+});
+
+/**
+ * Internal: Add a label to a card for a user identified by email (used by MCP after Bearer auth)
+ */
+export const addToCardByEmail = internalMutation({
+  args: {
+    cardId: v.id("cards"),
+    labelId: v.id("labels"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    // Verify label belongs to the same board as the card
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
+
+    const column = await ctx.db.get(card.columnId);
+    if (!column) throw new Error("Column not found");
+
+    const label = await ctx.db.get(args.labelId);
+    if (!label || label.boardId !== column.boardId) {
+      throw new Error("Label not found or doesn't belong to this board");
+    }
+
+    // Check if already attached
+    const existing = await ctx.db
+      .query("cardLabels")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .filter((q) => q.eq(q.field("labelId"), args.labelId))
+      .first();
+
+    if (existing) return existing._id;
+
+    const cardLabelId = await ctx.db.insert("cardLabels", {
+      cardId: args.cardId,
+      labelId: args.labelId,
+      createdAt: Date.now(),
+    });
+
+    return cardLabelId;
   },
 });

@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useSession } from "@/lib/auth-client";
 import { Avatar } from "@/components/Avatar";
 import { CommentEditor } from "./CommentEditor";
 import { CommentReactions } from "./CommentReactions";
@@ -10,7 +11,6 @@ import { extractMentionedUserIds } from "@/utils/mentions";
 interface Props {
   cardId: Id<"cards">;
   boardId: Id<"boards">;
-  userEmail?: string;
   readOnly?: boolean;
 }
 
@@ -33,7 +33,9 @@ function isHtmlContent(content: string): boolean {
   return content.startsWith("<") && content.includes(">");
 }
 
-export function CommentList({ cardId, boardId, userEmail, readOnly = false }: Props) {
+export function CommentList({ cardId, boardId, readOnly = false }: Props) {
+  const { data: session } = useSession();
+  const userEmail = session?.user?.email;
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<Id<"comments"> | null>(null);
@@ -64,7 +66,7 @@ export function CommentList({ cardId, boardId, userEmail, readOnly = false }: Pr
   };
 
   const handleSubmit = async () => {
-    if (!hasContent(newComment) || !userEmail) return;
+    if (!hasContent(newComment)) return;
 
     setIsSubmitting(true);
     try {
@@ -74,7 +76,6 @@ export function CommentList({ cardId, boardId, userEmail, readOnly = false }: Pr
       await createComment({
         cardId,
         content: newComment,
-        authorEmail: userEmail,
         mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
       });
       setNewComment("");

@@ -24,9 +24,9 @@ export function TimeTracker({ userEmail, mode = "full" }: TimeTrackerProps) {
     start,
     stop,
     discard,
-  } = useActiveTimer(userEmail);
+  } = useActiveTimer();
 
-  const todayData = useQuery(api.timeTracking.getTodayEntries, { userEmail });
+  const todayData = useQuery(api.timeTracking.getTodayEntries, {});
 
   const isCompact = mode === "compact";
 

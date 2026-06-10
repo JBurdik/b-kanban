@@ -1,18 +1,11 @@
 import { v } from "convex/values";
-import { query, mutation, action } from "./_generated/server";
+import { query, mutation, action, internalQuery, internalMutation, internalAction } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { getOptionalAuth, requireAuth } from "./lib/rbac";
 
 type Ctx = QueryCtx | MutationCtx;
-
-// Helper to get user by email
-async function getUserByEmail(ctx: Ctx, email: string) {
-  return await ctx.db
-    .query("users")
-    .withIndex("by_email", (q) => q.eq("email", email))
-    .first();
-}
 
 // Helper to check board membership
 async function hasBoardAccess(
@@ -33,9 +26,9 @@ async function hasBoardAccess(
  * List all HTML docs for a board (most recent first).
  */
 export const list = query({
-  args: { boardId: v.id("boards"), userEmail: v.string() },
+  args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
+    const user = await getOptionalAuth(ctx);
     if (!user) return [];
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
@@ -72,12 +65,12 @@ export const list = query({
  * rendering directly in a sandboxed iframe via the `src` attribute.
  */
 export const get = query({
-  args: { docId: v.id("htmlDocs"), userEmail: v.string() },
+  args: { docId: v.id("htmlDocs") },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) return null;
 
-    const user = await getUserByEmail(ctx, args.userEmail);
+    const user = await getOptionalAuth(ctx);
     if (!user) return null;
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
@@ -105,10 +98,9 @@ export const get = query({
  * Generate an upload URL for the UI file-upload flow.
  */
 export const generateUploadUrl = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("Unauthorized");
+  args: {},
+  handler: async (ctx, _args) => {
+    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -123,11 +115,9 @@ export const create = mutation({
     fileName: v.string(),
     storageId: v.id("_storage"),
     fileSize: v.number(),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
     if (!hasAccess) {
@@ -160,14 +150,12 @@ export const replaceContent = mutation({
     fileSize: v.number(),
     title: v.optional(v.string()),
     fileName: v.optional(v.string()),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) {
@@ -197,14 +185,12 @@ export const rename = mutation({
   args: {
     docId: v.id("htmlDocs"),
     title: v.string(),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -221,13 +207,12 @@ export const rename = mutation({
  * Delete an HTML doc and its stored blob.
  */
 export const remove = mutation({
-  args: { docId: v.id("htmlDocs"), userEmail: v.string() },
+  args: { docId: v.id("htmlDocs") },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -252,7 +237,6 @@ export const createFromHtml = action({
     fileName: v.optional(v.string()),
     html: v.string(),
     docId: v.optional(v.id("htmlDocs")),
-    userEmail: v.string(),
   },
   handler: async (ctx, args): Promise<Id<"htmlDocs">> => {
     const blob = new Blob([args.html], { type: "text/html" });
@@ -269,7 +253,6 @@ export const createFromHtml = action({
         fileSize: blob.size,
         title: args.title,
         fileName,
-        userEmail: args.userEmail,
       });
     }
 
@@ -279,7 +262,6 @@ export const createFromHtml = action({
       fileName,
       storageId,
       fileSize: blob.size,
-      userEmail: args.userEmail,
     });
   },
 });
@@ -289,14 +271,13 @@ export const createFromHtml = action({
  * tool so an agent can read documentation it (or someone else) uploaded.
  */
 export const getContent = action({
-  args: { docId: v.id("htmlDocs"), userEmail: v.string() },
+  args: { docId: v.id("htmlDocs") },
   handler: async (
     ctx,
     args,
   ): Promise<{ title: string; fileName: string; html: string } | null> => {
     const doc = await ctx.runQuery(api.htmlDocs.get, {
       docId: args.docId,
-      userEmail: args.userEmail,
     });
     if (!doc) return null;
 
@@ -305,5 +286,199 @@ export const getContent = action({
     const html = await blob.text();
 
     return { title: doc.title, fileName: doc.fileName, html };
+  },
+});
+
+/**
+ * Internal: List HTML docs for a board for a user identified by email (used by MCP after Bearer auth)
+ */
+export const listByEmail = internalQuery({
+  args: { boardId: v.id("boards"), userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) return [];
+
+    const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
+    if (!hasAccess) return [];
+
+    const docs = await ctx.db
+      .query("htmlDocs")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    docs.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    return await Promise.all(
+      docs.map(async (doc) => {
+        const creator = await ctx.db.get(doc.createdById);
+        return {
+          ...doc,
+          creator: creator
+            ? {
+                id: creator._id,
+                name: creator.name,
+                email: creator.email,
+                image: creator.image,
+              }
+            : null,
+        };
+      }),
+    );
+  },
+});
+
+/**
+ * Internal mutation: insert an htmlDoc record after blob has been stored.
+ * Used by internalAction createFromHtml below.
+ */
+export const createInternal = internalMutation({
+  args: {
+    boardId: v.id("boards"),
+    title: v.string(),
+    fileName: v.string(),
+    storageId: v.id("_storage"),
+    fileSize: v.number(),
+    createdById: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    return await ctx.db.insert("htmlDocs", {
+      boardId: args.boardId,
+      title: args.title,
+      fileName: args.fileName,
+      storageId: args.storageId,
+      fileSize: args.fileSize,
+      createdById: args.createdById,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+/**
+ * Internal mutation: replace content of an existing htmlDoc.
+ * Used by internalAction createFromHtml below.
+ */
+export const replaceContentInternal = internalMutation({
+  args: {
+    docId: v.id("htmlDocs"),
+    storageId: v.id("_storage"),
+    fileSize: v.number(),
+    title: v.optional(v.string()),
+    fileName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.docId);
+    if (!doc) throw new Error("Document not found");
+
+    await ctx.storage.delete(doc.storageId);
+
+    const updates: Record<string, unknown> = {
+      storageId: args.storageId,
+      fileSize: args.fileSize,
+      updatedAt: Date.now(),
+    };
+    if (args.title !== undefined) updates.title = args.title;
+    if (args.fileName !== undefined) updates.fileName = args.fileName;
+
+    await ctx.db.patch(args.docId, updates);
+    return args.docId;
+  },
+});
+
+/**
+ * Internal: Read the raw HTML content of a doc — used by MCP get_html_doc.
+ * Accepts userEmail for audit/identity (already verified by Bearer auth in mcpHttp.ts).
+ */
+export const getContentInternal = internalAction({
+  args: { docId: v.id("htmlDocs"), userEmail: v.optional(v.string()) },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ title: string; fileName: string; html: string } | null> => {
+    const doc = await ctx.runQuery(internal.htmlDocs.getDocInternal, {
+      docId: args.docId,
+    });
+    if (!doc) return null;
+
+    const blob = await ctx.storage.get(doc.storageId);
+    if (!blob) return null;
+    const html = await blob.text();
+
+    return { title: doc.title, fileName: doc.fileName, html };
+  },
+});
+
+/**
+ * Internal query: get a raw htmlDoc record by id (no auth check).
+ */
+export const getDocInternal = internalQuery({
+  args: { docId: v.id("htmlDocs") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.docId);
+  },
+});
+
+/**
+ * Internal: Create (or overwrite) an HTML doc from a raw HTML string.
+ * Used by MCP upload_html_doc. userEmail identifies the creator.
+ */
+export const createFromHtmlInternal = internalAction({
+  args: {
+    boardId: v.id("boards"),
+    title: v.string(),
+    fileName: v.optional(v.string()),
+    html: v.string(),
+    docId: v.optional(v.id("htmlDocs")),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args): Promise<Id<"htmlDocs">> => {
+    const blob = new Blob([args.html], { type: "text/html" });
+    const storageId = await ctx.storage.store(blob);
+
+    const fileName =
+      args.fileName ??
+      `${args.title.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase()}.html`;
+
+    if (args.docId) {
+      return await ctx.runMutation(internal.htmlDocs.replaceContentInternal, {
+        docId: args.docId,
+        storageId,
+        fileSize: blob.size,
+        title: args.title,
+        fileName,
+      });
+    }
+
+    // Resolve user by email for createdById
+    const user = await ctx.runQuery(internal.htmlDocs.getUserByEmail, {
+      email: args.userEmail,
+    });
+    if (!user) throw new Error(`User not found: ${args.userEmail}`);
+
+    return await ctx.runMutation(internal.htmlDocs.createInternal, {
+      boardId: args.boardId,
+      title: args.title,
+      fileName,
+      storageId,
+      fileSize: blob.size,
+      createdById: user._id,
+    });
+  },
+});
+
+/**
+ * Internal query: look up a user by email (used by createFromHtml action).
+ */
+export const getUserByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
   },
 });

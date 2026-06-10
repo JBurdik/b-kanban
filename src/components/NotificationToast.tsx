@@ -35,7 +35,7 @@ export function NotificationToast({ userEmail }: Props) {
 
   const notifications = useQuery(
     api.notifications.list,
-    userEmail ? { userEmail, limit: 5, unreadOnly: true } : "skip"
+    userEmail ? { limit: 5, unreadOnly: true } : "skip"
   );
 
   // Detect new notifications and show toasts

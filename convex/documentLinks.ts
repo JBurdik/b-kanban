@@ -2,15 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-
-// Helper to get user by email
-async function getUserByEmail(ctx: QueryCtx | MutationCtx, email: string) {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_email", (q) => q.eq("email", email))
-    .first();
-  return user;
-}
+import { requireAuth } from "./lib/rbac";
 
 // Helper to get board ID from card
 async function getBoardIdFromCard(ctx: QueryCtx | MutationCtx, cardId: Id<"cards">) {
@@ -102,11 +94,9 @@ export const link = mutation({
   args: {
     cardId: v.id("cards"),
     documentId: v.id("documents"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     // Verify the card exists and user has access
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
@@ -155,11 +145,9 @@ export const unlink = mutation({
   args: {
     cardId: v.id("cards"),
     documentId: v.id("documents"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     // Verify user has access to the card's board
     const boardId = await getBoardIdFromCard(ctx, args.cardId);

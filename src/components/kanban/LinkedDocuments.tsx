@@ -7,11 +7,10 @@ import { Link } from "@tanstack/react-router";
 interface Props {
   cardId: Id<"cards">;
   boardId: Id<"boards">;
-  userEmail?: string;
   canEdit: boolean;
 }
 
-export function LinkedDocuments({ cardId, boardId, userEmail, canEdit }: Props) {
+export function LinkedDocuments({ cardId, boardId, canEdit }: Props) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -19,8 +18,8 @@ export function LinkedDocuments({ cardId, boardId, userEmail, canEdit }: Props) 
 
   const searchResults = useQuery(
     api.documents.search,
-    isSearching && userEmail && searchQuery.length > 0
-      ? { boardId, query: searchQuery, userEmail }
+    isSearching && searchQuery.length > 0
+      ? { boardId, query: searchQuery }
       : "skip"
   );
 
@@ -28,14 +27,8 @@ export function LinkedDocuments({ cardId, boardId, userEmail, canEdit }: Props) 
   const unlinkDocument = useMutation(api.documentLinks.unlink);
 
   const handleLink = async (documentId: Id<"documents">) => {
-    if (!userEmail) return;
-
     try {
-      await linkDocument({
-        cardId,
-        documentId,
-        userEmail,
-      });
+      await linkDocument({ cardId, documentId });
       setIsSearching(false);
       setSearchQuery("");
     } catch (error) {
@@ -44,14 +37,8 @@ export function LinkedDocuments({ cardId, boardId, userEmail, canEdit }: Props) 
   };
 
   const handleUnlink = async (documentId: Id<"documents">) => {
-    if (!userEmail) return;
-
     try {
-      await unlinkDocument({
-        cardId,
-        documentId,
-        userEmail,
-      });
+      await unlinkDocument({ cardId, documentId });
     } catch (error) {
       console.error("Failed to unlink document:", error);
     }

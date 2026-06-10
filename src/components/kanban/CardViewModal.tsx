@@ -23,12 +23,11 @@ interface Props {
   boardId: Id<"boards">;
   columns: KanbanColumnWithCards[];
   members?: BoardMember[];
-  userEmail?: string;
   userRole?: BoardRole;
   onClose: () => void;
 }
 
-export function CardViewModal({ card, boardId, columns, members = [], userEmail, userRole, onClose }: Props) {
+export function CardViewModal({ card, boardId, columns, members = [], userRole, onClose }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentColumnId, setCurrentColumnId] = useState(card.columnId);
@@ -50,7 +49,7 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
     setCurrentColumnId(newColumnId);
     setIsUpdating(true);
     try {
-      await updateCard({ cardId: card._id, columnId: newColumnId, currentUserEmail: userEmail });
+      await updateCard({ cardId: card._id, columnId: newColumnId });
     } finally {
       setIsUpdating(false);
     }
@@ -75,7 +74,6 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
         boardId={boardId}
         columns={columns}
         members={members}
-        userEmail={userEmail}
         onClose={() => setIsEditing(false)}
       />
     );
@@ -311,7 +309,7 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
               </svg>
               <span className="text-sm font-medium text-dark-muted uppercase tracking-wide">Comments</span>
             </div>
-            <CommentList cardId={card._id} boardId={boardId} userEmail={userEmail} readOnly={!canEdit} />
+            <CommentList cardId={card._id} boardId={boardId} readOnly={!canEdit} />
           </div>
         </div>
       </div>

@@ -1,32 +1,26 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
-import { authComponent } from "../auth";
 
 export type BoardRole = "owner" | "admin" | "member";
 
-// Role hierarchy for permission checks
 const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
 
-/**
- * Get current authenticated user from context or throw
- */
+// Reads JWT claims directly — no adapter.js, no memory spike.
+// identity.subject = betterAuth user _id = Convex _id in our "users" table.
+async function getUserFromIdentity(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) return null;
+  return ctx.db.get(identity.subject as Id<"users">);
+}
+
 export async function requireAuth(ctx: QueryCtx | MutationCtx) {
-  const user = await authComponent.getAuthUser(ctx);
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
+  const user = await getUserFromIdentity(ctx);
+  if (!user) throw new Error("Unauthorized");
   return user;
 }
 
-/**
- * Get current user or null (for optional auth)
- */
 export async function getOptionalAuth(ctx: QueryCtx | MutationCtx) {
-  try {
-    return await authComponent.getAuthUser(ctx);
-  } catch {
-    return null;
-  }
+  return getUserFromIdentity(ctx);
 }
 
 /**

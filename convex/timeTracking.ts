@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { getOptionalAuth, requireAuth } from "./lib/rbac";
 
 // ============================================
 // Helper Functions
@@ -19,13 +20,9 @@ function getStartOfDay(timestamp?: number): number {
  * Get the user's currently active timer (if any)
  */
 export const getActiveTimer = query({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await getOptionalAuth(ctx);
     if (!user) return null;
 
     const timer = await ctx.db
@@ -61,13 +58,9 @@ export const getActiveTimer = query({
  * Get today's time entries for the current user
  */
 export const getTodayEntries = query({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await getOptionalAuth(ctx);
     if (!user) return { entries: [], totalMs: 0 };
 
     const todayStart = getStartOfDay();
@@ -114,17 +107,12 @@ export const getTodayEntries = query({
  */
 export const getEntriesByDateRange = query({
   args: {
-    userEmail: v.string(),
     startDate: v.number(),
     endDate: v.number(),
     boardId: v.optional(v.id("boards")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
+    const user = await getOptionalAuth(ctx);
     if (!user) return [];
 
     let entries;
@@ -183,16 +171,11 @@ export const getEntriesByDateRange = query({
  */
 export const getMonthlySummary = query({
   args: {
-    userEmail: v.string(),
     year: v.number(),
     month: v.number(), // 1-12
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
+    const user = await getOptionalAuth(ctx);
     if (!user) return { totalMs: 0, byBoard: [], entries: [] };
 
     // Calculate month start and end
@@ -246,17 +229,11 @@ export const getMonthlySummary = query({
  */
 export const startTimer = mutation({
   args: {
-    userEmail: v.string(),
     description: v.string(),
     cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     // Check for existing timer and stop it
     const existingTimer = await ctx.db
@@ -312,14 +289,9 @@ export const startTimer = mutation({
  * Stop the active timer and create a time entry
  */
 export const stopTimer = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await requireAuth(ctx);
 
     const timer = await ctx.db
       .query("activeTimers")
@@ -353,14 +325,9 @@ export const stopTimer = mutation({
  * Discard the active timer without saving
  */
 export const discardTimer = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await requireAuth(ctx);
 
     const timer = await ctx.db
       .query("activeTimers")
@@ -380,17 +347,11 @@ export const discardTimer = mutation({
  */
 export const updateTimer = mutation({
   args: {
-    userEmail: v.string(),
     description: v.optional(v.string()),
     cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const timer = await ctx.db
       .query("activeTimers")
@@ -432,7 +393,6 @@ export const updateTimer = mutation({
  */
 export const addManualEntry = mutation({
   args: {
-    userEmail: v.string(),
     description: v.string(),
     hours: v.number(),
     minutes: v.number(),
@@ -440,12 +400,7 @@ export const addManualEntry = mutation({
     cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     // Convert hours + minutes to milliseconds
     const durationMs = (args.hours * 60 + args.minutes) * 60 * 1000;

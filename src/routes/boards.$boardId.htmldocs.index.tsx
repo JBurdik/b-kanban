@@ -18,7 +18,7 @@ function HtmlDocsListPage() {
 
   const docs = useQuery(
     api.htmlDocs.list,
-    userEmail ? { boardId: boardId as Id<"boards">, userEmail } : "skip",
+    userEmail ? { boardId: boardId as Id<"boards"> } : "skip",
   );
 
   const generateUploadUrl = useMutation(api.htmlDocs.generateUploadUrl);
@@ -37,7 +37,7 @@ function HtmlDocsListPage() {
   }
 
   const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !userEmail) return;
+    if (!files || files.length === 0) return;
     setError(null);
     setIsUploading(true);
     try {
@@ -47,7 +47,7 @@ function HtmlDocsListPage() {
         if (!isHtml) {
           throw new Error(`"${file.name}" is not an HTML file`);
         }
-        const uploadUrl = await generateUploadUrl({ userEmail });
+        const uploadUrl = await generateUploadUrl({});
         const res = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": "text/html" },
@@ -62,7 +62,6 @@ function HtmlDocsListPage() {
           fileName: file.name,
           storageId,
           fileSize: file.size,
-          userEmail,
         });
       }
     } catch (e) {

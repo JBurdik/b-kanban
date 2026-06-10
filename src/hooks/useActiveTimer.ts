@@ -3,11 +3,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 
-export function useActiveTimer(userEmail: string | undefined) {
-  const activeTimer = useQuery(
-    api.timeTracking.getActiveTimer,
-    userEmail ? { userEmail } : "skip"
-  );
+export function useActiveTimer() {
+  const activeTimer = useQuery(api.timeTracking.getActiveTimer, {});
 
   const startTimerMutation = useMutation(api.timeTracking.startTimer);
   const stopTimerMutation = useMutation(api.timeTracking.stopTimer);
@@ -35,28 +32,23 @@ export function useActiveTimer(userEmail: string | undefined) {
   }, [activeTimer]);
 
   const start = async (description: string, cardId?: Id<"cards">) => {
-    if (!userEmail) return;
-    await startTimerMutation({ userEmail, description, cardId });
+    await startTimerMutation({ description, cardId });
   };
 
   const stop = async () => {
-    if (!userEmail) return;
-    await stopTimerMutation({ userEmail });
+    await stopTimerMutation({});
   };
 
   const discard = async () => {
-    if (!userEmail) return;
-    await discardTimerMutation({ userEmail });
+    await discardTimerMutation({});
   };
 
   const updateDescription = async (description: string) => {
-    if (!userEmail) return;
-    await updateTimerMutation({ userEmail, description });
+    await updateTimerMutation({ description });
   };
 
   const updateCard = async (cardId: Id<"cards"> | undefined) => {
-    if (!userEmail) return;
-    await updateTimerMutation({ userEmail, cardId });
+    await updateTimerMutation({ cardId });
   };
 
   return {

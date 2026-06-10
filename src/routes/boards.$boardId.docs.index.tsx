@@ -17,7 +17,7 @@ function DocumentsListPage() {
 
   const documents = useQuery(
     api.documents.list,
-    userEmail ? { boardId: boardId as Id<"boards">, userEmail } : "skip"
+    userEmail ? { boardId: boardId as Id<"boards"> } : "skip"
   );
 
   const createDocument = useMutation(api.documents.create);
@@ -35,13 +35,12 @@ function DocumentsListPage() {
   }
 
   const handleCreate = async () => {
-    if (!newTitle.trim() || !userEmail) return;
+    if (!newTitle.trim()) return;
 
     try {
       const docId = await createDocument({
         boardId: boardId as Id<"boards">,
         title: newTitle.trim(),
-        userEmail,
       });
       setNewTitle("");
       setIsCreating(false);

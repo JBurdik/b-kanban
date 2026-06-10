@@ -19,7 +19,6 @@ function SecretsPage() {
 
   const board = useQuery(api.boards.get, {
     boardId: boardId as Id<"boards">,
-    userEmail,
   });
 
   const currentUser = useQuery(
@@ -91,7 +90,7 @@ function SecretsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <NotificationBell userEmail={userEmail} />
+          <NotificationBell />
           <UserDropdown
             userName={userName}
             userEmail={userEmail}
@@ -107,7 +106,6 @@ function SecretsPage() {
           <SecretsList
             boardId={boardId as Id<"boards">}
             canManage={canManage}
-            userEmail={userEmail}
           />
         </div>
       </div>

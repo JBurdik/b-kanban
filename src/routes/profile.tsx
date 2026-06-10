@@ -71,10 +71,10 @@ function ProfilePage() {
   }
 
   const handleNameSave = async () => {
-    if (name.trim() && name !== user?.name && userId) {
+    if (name.trim() && name !== user?.name) {
       setIsUpdatingName(true);
       try {
-        await updateProfile({ userId, name: name.trim() });
+        await updateProfile({ name: name.trim() });
       } finally {
         setIsUpdatingName(false);
       }
@@ -83,8 +83,7 @@ function ProfilePage() {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    const userEmail = user?.email;
-    if (!file || !userEmail) return;
+    if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
@@ -101,7 +100,7 @@ function ProfilePage() {
     setIsUploadingAvatar(true);
     try {
       // Get upload URL
-      const uploadUrl = await generateAvatarUploadUrl({ userEmail });
+      const uploadUrl = await generateAvatarUploadUrl({});
 
       // Upload file
       const response = await fetch(uploadUrl, {
@@ -117,7 +116,7 @@ function ProfilePage() {
       const { storageId } = await response.json();
 
       // Save avatar reference
-      await saveAvatar({ userEmail, storageId });
+      await saveAvatar({ storageId });
     } catch (err) {
       console.error("Failed to upload avatar:", err);
       alert("Failed to upload avatar. Please try again.");
@@ -131,12 +130,10 @@ function ProfilePage() {
   };
 
   const handleRemoveAvatar = async () => {
-    const userEmail = user?.email;
-    if (!userEmail) return;
     if (!confirm("Remove your custom avatar?")) return;
 
     try {
-      await removeAvatar({ userEmail });
+      await removeAvatar({});
     } catch (err) {
       console.error("Failed to remove avatar:", err);
     }
@@ -178,7 +175,6 @@ function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!userId) return;
     if (
       confirm(
         "Are you sure you want to delete your account? This action cannot be undone.",
@@ -191,7 +187,7 @@ function ProfilePage() {
       ) {
         setIsDeletingAccount(true);
         try {
-          await deleteAccountMutation({ userId });
+          await deleteAccountMutation({});
           await signOut();
           navigate({ to: "/login" });
         } catch (err) {

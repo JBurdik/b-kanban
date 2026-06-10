@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useSession } from "@/lib/auth-client";
 import { BoardIcon } from "./BoardIcon";
 
 // Popular emojis for board icons
@@ -38,7 +37,6 @@ export function BoardIconPicker({
   boardName,
   onClose,
 }: BoardIconPickerProps) {
-  const { data: session } = useSession();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -74,14 +72,8 @@ export function BoardIconPicker({
   }, [onClose]);
 
   const handleEmojiSelect = async (emoji: string) => {
-    if (!session?.user?.email) return;
-
     try {
-      await setEmojiIcon({
-        boardId,
-        emoji,
-        userEmail: session.user.email,
-      });
+      await setEmojiIcon({ boardId, emoji });
       onClose();
     } catch (error) {
       console.error("Failed to set emoji icon:", error);
@@ -92,7 +84,7 @@ export function BoardIconPicker({
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (!file || !session?.user?.email) return;
+    if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
@@ -110,10 +102,7 @@ export function BoardIconPicker({
 
     try {
       // Get upload URL
-      const uploadUrl = await generateUploadUrl({
-        boardId,
-        userEmail: session.user.email,
-      });
+      const uploadUrl = await generateUploadUrl({ boardId });
 
       // Upload file
       const result = await fetch(uploadUrl, {
@@ -129,11 +118,7 @@ export function BoardIconPicker({
       const { storageId } = await result.json();
 
       // Save icon
-      await saveIcon({
-        boardId,
-        storageId,
-        userEmail: session.user.email,
-      });
+      await saveIcon({ boardId, storageId });
 
       onClose();
     } catch (error) {
@@ -148,13 +133,8 @@ export function BoardIconPicker({
   };
 
   const handleRemoveIcon = async () => {
-    if (!session?.user?.email) return;
-
     try {
-      await removeIcon({
-        boardId,
-        userEmail: session.user.email,
-      });
+      await removeIcon({ boardId });
       onClose();
     } catch (error) {
       console.error("Failed to remove icon:", error);

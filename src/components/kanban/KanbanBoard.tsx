@@ -34,7 +34,6 @@ interface Props {
   filter?: FilterOption;
   searchQuery?: string;
   currentUserId?: string;
-  userEmail?: string;
   versionFilter?: Id<"versions"> | null;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
@@ -54,7 +53,6 @@ export function KanbanBoard({
   filter = "all",
   searchQuery = "",
   currentUserId,
-  userEmail,
   versionFilter,
   onCardClick,
   onCardDoubleClick,
@@ -203,7 +201,6 @@ export function KanbanBoard({
               canEdit={canDrag}
               canManageColumns={canAddColumn}
               isDraggingColumn={!!activeColumn}
-              userEmail={userEmail}
               onCardClick={onCardClick}
               onCardDoubleClick={onCardDoubleClick}
               focusedCardId={focusedCardId}

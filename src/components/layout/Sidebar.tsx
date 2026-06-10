@@ -15,7 +15,7 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed, onToggle, userEmail }: SidebarProps) {
   const location = useLocation();
-  const boards = useQuery(api.boards.list, userEmail ? { userEmail } : "skip");
+  const boards = useQuery(api.boards.list, userEmail ? {} : "skip");
 
   const isActive = (path: string) => location.pathname === path;
   const isBoardActive = (boardId: string) =>

@@ -62,7 +62,7 @@ function NotificationsPage() {
   const notifications = useQuery(
     api.notifications.list,
     userEmail
-      ? { userEmail, limit, ...(activeFilter !== "all" ? { type: activeFilter } : {}) }
+      ? { limit, ...(activeFilter !== "all" ? { type: activeFilter } : {}) }
       : "skip",
   );
 
@@ -80,7 +80,7 @@ function NotificationsPage() {
         <h1 className="text-2xl font-bold text-dark-text">Notifications</h1>
         {hasUnread && (
           <button
-            onClick={() => userEmail && markAllAsRead({ userEmail })}
+            onClick={() => markAllAsRead({})}
             className="text-sm text-accent hover:text-accent/80 transition-colors"
           >
             Mark all as read

@@ -11,12 +11,11 @@ export const Route = createFileRoute("/boards/$boardId/cards/$cardSlug")({
 
 function CardDetailRoute() {
   const { boardId, cardSlug } = Route.useParams();
-  const { userEmail, isLoading: userLoading, session } = useConvexUser();
+  const { isLoading: userLoading, session } = useConvexUser();
 
   // Get board data for context
   const board = useQuery(api.boards.get, {
     boardId: boardId as Id<"boards">,
-    userEmail,
   });
 
   // Get card by slug
@@ -70,7 +69,6 @@ function CardDetailRoute() {
       key={card._id}
       card={card}
       board={board}
-      userEmail={userEmail}
     />
   );
 }

@@ -22,7 +22,7 @@ function DocumentEditorPage() {
 
   const document = useQuery(
     api.documents.get,
-    userEmail ? { documentId: docId as Id<"documents">, userEmail } : "skip",
+    userEmail ? { documentId: docId as Id<"documents"> } : "skip",
   );
 
   const updateDocument = useMutation(api.documents.update);
@@ -39,15 +39,13 @@ function DocumentEditorPage() {
 
   const handleSave = useCallback(
     async (data: { title: string; content: string }) => {
-      if (!userEmail) return;
       await updateDocument({
         documentId: docId as Id<"documents">,
         title: data.title,
         content: data.content,
-        userEmail,
       });
     },
-    [updateDocument, docId, userEmail],
+    [updateDocument, docId],
   );
 
   const { isSaving, hasChanges } = useAutoSave({
@@ -61,16 +59,12 @@ function DocumentEditorPage() {
   });
 
   const handleDelete = async () => {
-    if (
-      !userEmail ||
-      !window.confirm("Are you sure you want to delete this document?")
-    )
+    if (!window.confirm("Are you sure you want to delete this document?"))
       return;
 
     try {
       await deleteDocument({
         documentId: docId as Id<"documents">,
-        userEmail,
       });
       window.location.href = `/boards/${boardId}/docs`;
     } catch (error) {

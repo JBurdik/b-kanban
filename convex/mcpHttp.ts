@@ -488,7 +488,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       }));
     }
     case "get_html_doc": {
-      const doc = await ctx.runAction(internal.htmlDocs.getContent, {
+      const doc = await ctx.runAction(internal.htmlDocs.getContentInternal, {
         docId: args.docId,
         userEmail: email,
       });
@@ -496,7 +496,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return doc;
     }
     case "upload_html_doc": {
-      const docId = await ctx.runAction(internal.htmlDocs.createFromHtml, {
+      const docId = await ctx.runAction(internal.htmlDocs.createFromHtmlInternal, {
         boardId: args.boardId,
         title: args.title,
         html: args.html,
@@ -507,7 +507,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { uploaded: true, docId };
     }
     case "get_me": {
-      const user = await ctx.runQuery(internal.users.getByEmail, { email });
+      const user = await ctx.runQuery(internal.users.getByEmailInternal, { email });
       if (!user) throw new Error(`No user with email ${email}`);
       return { id: user.id, name: user.name, email: user.email };
     }
@@ -554,7 +554,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
 
 async function resolveAssignee(ctx: Ctx, email?: string) {
   if (!email) return undefined;
-  const user = await ctx.runQuery(internal.users.getByEmail, { email });
+  const user = await ctx.runQuery(internal.users.getByEmailInternal, { email });
   if (!user?.id) throw new Error(`No user with email ${email}`);
   return user.id;
 }

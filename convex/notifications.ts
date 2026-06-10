@@ -1,12 +1,12 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
+import { getOptionalAuth, requireAuth } from "./lib/rbac";
 
 /**
  * List notifications for a user
  */
 export const list = query({
   args: {
-    userEmail: v.string(),
     unreadOnly: v.optional(v.boolean()),
     limit: v.optional(v.number()),
     type: v.optional(
@@ -19,12 +19,7 @@ export const list = query({
     ),
   },
   handler: async (ctx, args) => {
-    // Get user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
+    const user = await getOptionalAuth(ctx);
     if (!user) return [];
 
     // Query notifications
@@ -79,13 +74,9 @@ export const list = query({
  * Get unread notification count
  */
 export const unreadCount = query({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await getOptionalAuth(ctx);
     if (!user) return 0;
 
     const unread = await ctx.db
@@ -118,14 +109,9 @@ export const markAsRead = mutation({
  * Mark all notifications as read for a user
  */
 export const markAllAsRead = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await requireAuth(ctx);
 
     const unread = await ctx.db
       .query("notifications")

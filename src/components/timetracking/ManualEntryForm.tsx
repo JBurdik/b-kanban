@@ -30,7 +30,6 @@ export function ManualEntryForm({ userEmail, onSuccess }: ManualEntryFormProps) 
     setIsSubmitting(true);
     try {
       await addEntry({
-        userEmail,
         description: description.trim(),
         hours: hoursNum,
         minutes: minutesNum,

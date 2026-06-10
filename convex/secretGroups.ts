@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { getOptionalAuth, requireAuth } from "./lib/rbac";
 
 type BoardRole = "owner" | "admin" | "member";
 const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
@@ -10,19 +11,9 @@ const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
 export const list = query({
   args: {
     boardId: v.id("boards"),
-    userEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!args.userEmail) {
-      return [];
-    }
-
-    // Look up user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
-      .first();
-
+    const user = await getOptionalAuth(ctx);
     if (!user) {
       return [];
     }
@@ -56,17 +47,9 @@ export const create = mutation({
     boardId: v.id("boards"),
     name: v.string(),
     color: v.optional(v.string()),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const user = await requireAuth(ctx);
 
     // Check board access (admin or owner)
     const member = await ctx.db
@@ -115,17 +98,9 @@ export const update = mutation({
     groupId: v.id("secretGroups"),
     name: v.optional(v.string()),
     color: v.optional(v.string()),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const user = await requireAuth(ctx);
 
     const group = await ctx.db.get(args.groupId);
     if (!group) {
@@ -182,17 +157,9 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     groupId: v.id("secretGroups"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const user = await requireAuth(ctx);
 
     const group = await ctx.db.get(args.groupId);
     if (!group) {

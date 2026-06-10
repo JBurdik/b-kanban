@@ -11,7 +11,7 @@ interface TaskSelectorProps {
 }
 
 export function TaskSelector({
-  userEmail,
+  userEmail: _userEmail,
   value,
   onChange,
   compact = false,
@@ -22,7 +22,6 @@ export function TaskSelector({
 
   // Get user's tasks
   const tasksData = useQuery(api.cards.getMyTasks, {
-    userEmail,
     limit: 50,
   });
 

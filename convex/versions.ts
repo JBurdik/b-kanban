@@ -1,27 +1,14 @@
 import { v } from "convex/values";
-import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { requireBoardAccess, checkBoardAccess } from "./lib/rbac";
-
-async function getUserByEmail(
-  ctx: QueryCtx | MutationCtx,
-  email: string
-): Promise<{ _id: Id<"users"> } | null> {
-  return await ctx.db
-    .query("users")
-    .withIndex("by_email", (q) => q.eq("email", email))
-    .first();
-}
+import { query, mutation } from "./_generated/server";
+import { requireBoardAccess, checkBoardAccess, requireAuth, getOptionalAuth } from "./lib/rbac";
 
 /**
  * List all versions for a board
  */
 export const list = query({
-  args: { boardId: v.id("boards"), userEmail: v.optional(v.string()) },
+  args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    if (!args.userEmail) return [];
-
-    const user = await getUserByEmail(ctx, args.userEmail);
+    const user = await getOptionalAuth(ctx);
     if (!user) return [];
 
     const { hasAccess } = await checkBoardAccess(ctx, user._id, args.boardId, "member");
@@ -42,11 +29,9 @@ export const create = mutation({
     boardId: v.id("boards"),
     name: v.string(),
     color: v.string(),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     await requireBoardAccess(ctx, user._id, args.boardId, "admin");
 
@@ -69,11 +54,9 @@ export const update = mutation({
     name: v.optional(v.string()),
     color: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const version = await ctx.db.get(args.versionId);
     if (!version) throw new Error("Version not found");
@@ -94,10 +77,9 @@ export const update = mutation({
  * Remove a version and clear it from all cards (admin/owner only)
  */
 export const remove = mutation({
-  args: { versionId: v.id("versions"), userEmail: v.string() },
+  args: { versionId: v.id("versions") },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const version = await ctx.db.get(args.versionId);
     if (!version) throw new Error("Version not found");

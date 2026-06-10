@@ -10,9 +10,14 @@ export const Route = createRootRoute({
   component: RootLayout,
 });
 
+// Module-level latch: survives re-renders and brief unmounts.
+// Once Convex authenticates, don't re-block on temporary disconnects.
+let convexEverAuthenticated = false;
+
 function RootLayout() {
   const { data: session, isPending } = useSession();
   const { isLoading: convexAuthLoading, isAuthenticated: convexAuthenticated } = useConvexAuth();
+  if (convexAuthenticated) convexEverAuthenticated = true;
 
   const spinner = (
     <div className="min-h-screen bg-dark-bg flex items-center justify-center">
@@ -23,10 +28,10 @@ function RootLayout() {
   // Wait for better-auth to resolve
   if (isPending) return spinner;
 
-  // Authenticated: wait for Convex auth token to propagate before rendering
-  // queries so they don't fire without a valid token
+  // Authenticated: wait for initial Convex auth token — but don't re-block
+  // after brief disconnects once we've already been authenticated.
   if (session) {
-    if (convexAuthLoading || !convexAuthenticated) return spinner;
+    if (!convexEverAuthenticated && (convexAuthLoading || !convexAuthenticated)) return spinner;
     return (
       <AssistantProvider>
         <AppLayout>

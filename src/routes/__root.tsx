@@ -1,4 +1,5 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { useConvexAuth } from "convex/react";
 import { useSession } from "@/lib/auth-client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { NotificationToast } from "@/components/NotificationToast";
@@ -11,9 +12,10 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const { data: session, isPending } = useSession();
+  const { isLoading: convexAuthLoading } = useConvexAuth();
 
-  // Show loading state
-  if (isPending) {
+  // Show loading state until both better-auth and Convex auth are ready
+  if (isPending || convexAuthLoading) {
     return (
       <div className="min-h-screen bg-dark-bg flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />

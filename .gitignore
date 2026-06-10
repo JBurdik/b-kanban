@@ -38,11 +38,15 @@ npm-debug.log*
 build/
 artifacts/
 
-# Capacitor native projects (regenerated via `cap add` + `cap sync` + asset gen)
-ios/
-android/
+# Tauri mobile: commit the gen/ scaffold (project files, sources, icons), but
+# ignore build artifacts. gen/apple ships its own .gitignore (build/, Externals/,
+# xcuserdata/); these belt-and-suspenders the IPA/app build output + Android.
+src-tauri/gen/apple/build/
+src-tauri/gen/apple/Externals/
+src-tauri/gen/android/app/build/
 *.keystore
 !debug.keystore
+
 backups/
 
 # Generated MCP server bundle (built by pnpm build:mcp)

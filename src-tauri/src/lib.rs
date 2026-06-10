@@ -79,6 +79,7 @@ fn desktop_setup(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 /// The frontend is responsible for calling `install_update_cmd` to apply it.
 #[cfg(desktop)]
 async fn check_and_notify(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
+    use tauri::Emitter;
     use tauri_plugin_updater::UpdaterExt;
 
     if let Some(update) = app.updater()?.check().await? {
@@ -99,6 +100,7 @@ async fn check_for_updates_cmd(app: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 #[cfg(desktop)]
 async fn install_update_cmd(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::Emitter;
     use tauri_plugin_updater::UpdaterExt;
 
     let update = app

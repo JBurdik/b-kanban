@@ -437,7 +437,7 @@ function ProfilePage() {
               {(updateState === "idle" || updateState === "available") && (
                 <button
                   onClick={checkForUpdates}
-                  disabled={isChecking || updateState === "downloading"}
+                  disabled={isChecking}
                   className="px-3 py-1.5 rounded-lg border border-dark-border text-sm text-dark-muted hover:text-dark-text hover:border-dark-hover transition-colors disabled:opacity-50"
                 >
                   {isChecking ? "Checking…" : "Check now"}

@@ -26,7 +26,7 @@ export const storeBearerToken = (token: string | null): void => {
 export const authClient = createAuthClient({
   baseURL: import.meta.env.VITE_CONVEX_SITE_URL as string,
   plugins: [convexClient(), fixedCrossDomainClient()],
-  // Use Bearer auth in native shells (cookies don't work under views:// or capacitor://)
+  // Use Bearer auth in native shells (cookies don't work under tauri:// / views://)
   fetchOptions: isNative
     ? {
         auth: {

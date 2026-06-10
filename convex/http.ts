@@ -18,11 +18,10 @@ const allowedOrigins = [
   "https://bproductive.burdych.net",
   "https://kanban.burdych.net",
   "https://kanban-api.burdych.net",
-  "tauri://localhost", // Tauri v1 desktop app
-  "https://tauri.localhost", // Tauri v2 desktop app (https)
-  "http://tauri.localhost", // Tauri v2 desktop app (http)
-  "views://mainview", // Electrobun desktop app
-  "capacitor://localhost", // Capacitor iOS app (Android uses http://localhost, above)
+  "tauri://localhost", // Tauri v2 desktop (macOS/Linux) + iOS app
+  "https://tauri.localhost", // Tauri v2 desktop app (https, Windows)
+  "http://tauri.localhost", // Tauri v2 desktop (http) + Android app
+  "views://mainview", // Electrobun desktop app (legacy)
   process.env.SITE_URL,
 ].filter((origin): origin is string => !!origin);
 

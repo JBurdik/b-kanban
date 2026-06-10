@@ -12,7 +12,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { isNative } from "./lib/platform";
 import "./index.css";
 
-// Use hash-based routing in native shells (Electrobun desktop + Capacitor mobile),
+// Use hash-based routing in native shells (Tauri desktop + iOS/Android),
 // which have no server to handle deep links.
 const history = isNative ? createHashHistory() : undefined;
 

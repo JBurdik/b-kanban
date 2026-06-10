@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Capability set for iOS/Android (no updater/window-state — desktop-only)",
+  "platforms": ["iOS", "android"],
+  "windows": ["main"],
+  "permissions": ["core:default", "os:default"]
+}

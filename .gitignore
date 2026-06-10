@@ -38,12 +38,9 @@ npm-debug.log*
 build/
 artifacts/
 
-# Tauri mobile: commit the gen/ scaffold (project files, sources, icons), but
-# ignore build artifacts. gen/apple ships its own .gitignore (build/, Externals/,
-# xcuserdata/); these belt-and-suspenders the IPA/app build output + Android.
-src-tauri/gen/apple/build/
-src-tauri/gen/apple/Externals/
-src-tauri/gen/android/app/build/
+# Tauri generated projects (regenerate via `tauri ios init` / `tauri android init`).
+# Signing team + icons live in tauri.conf.json, so gen/ is fully reproducible.
+src-tauri/gen/
 *.keystore
 !debug.keystore
 

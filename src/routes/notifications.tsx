@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
-import { useSession } from "@/lib/auth-client";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import { NotificationItem, type NotificationData, type NotificationType } from "@/components/NotificationItem";
 import clsx from "clsx";
 
@@ -54,15 +54,14 @@ function groupByTime(notifications: NotificationData[]): TimeGroup[] {
 }
 
 function NotificationsPage() {
-  const { data: session } = useSession();
-  const userEmail = session?.user?.email;
+  const sessionToken = useSessionToken();
   const [activeFilter, setActiveFilter] = useState<NotificationType | "all">("all");
   const [limit, setLimit] = useState(50);
 
   const notifications = useQuery(
     api.notifications.list,
-    userEmail
-      ? { limit, ...(activeFilter !== "all" ? { type: activeFilter } : {}) }
+    sessionToken
+      ? { limit, sessionToken, ...(activeFilter !== "all" ? { type: activeFilter } : {}) }
       : "skip",
   );
 
@@ -80,7 +79,7 @@ function NotificationsPage() {
         <h1 className="text-2xl font-bold text-dark-text">Notifications</h1>
         {hasUnread && (
           <button
-            onClick={() => markAllAsRead({})}
+            onClick={() => markAllAsRead({ sessionToken })}
             className="text-sm text-accent hover:text-accent/80 transition-colors"
           >
             Mark all as read
@@ -136,8 +135,8 @@ function NotificationsPage() {
                   <NotificationItem
                     key={notification._id}
                     notification={notification}
-                    onMarkAsRead={(id) => markAsRead({ notificationId: id })}
-                    onDelete={(id) => removeNotification({ notificationId: id })}
+                    onMarkAsRead={(id) => markAsRead({ notificationId: id, sessionToken })}
+                    onDelete={(id) => removeNotification({ notificationId: id, sessionToken })}
                   />
                 ))}
               </div>

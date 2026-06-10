@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LABEL_COLORS } from "@/lib/constants";
 import type { Label } from "@/lib/types";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 interface Props {
   boardId: Id<"boards">;
@@ -23,7 +24,8 @@ export function LabelManager({ boardId, onClose }: Props) {
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [applyToCardBg, setApplyToCardBg] = useState(false);
 
-  const labels = useQuery(api.labels.list, { boardId });
+  const sessionToken = useSessionToken();
+  const labels = useQuery(api.labels.list, sessionToken ? { boardId, sessionToken } : "skip");
   const createLabel = useMutation(api.labels.create);
   const updateLabel = useMutation(api.labels.update);
   const deleteLabel = useMutation(api.labels.remove);
@@ -62,6 +64,7 @@ export function LabelManager({ boardId, onClose }: Props) {
         color: selectedColor.bg,
         textColor: selectedColor.text,
         applyToCardBg,
+        sessionToken,
       });
     } else {
       await createLabel({
@@ -70,6 +73,7 @@ export function LabelManager({ boardId, onClose }: Props) {
         color: selectedColor.bg,
         textColor: selectedColor.text,
         applyToCardBg,
+        sessionToken,
       });
     }
     resetForm();
@@ -77,7 +81,7 @@ export function LabelManager({ boardId, onClose }: Props) {
 
   const handleDelete = async () => {
     if (labelToDelete) {
-      await deleteLabel({ labelId: labelToDelete._id });
+      await deleteLabel({ labelId: labelToDelete._id, sessionToken });
       setLabelToDelete(null);
       resetForm();
     }

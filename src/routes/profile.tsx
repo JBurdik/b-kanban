@@ -15,7 +15,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { user: sessionUser, isLoading, session } = useConvexUser();
+  const { user: sessionUser, sessionToken, isLoading, session } = useConvexUser();
   const userId = sessionUser?.id as Id<"users"> | undefined;
   const navigate = useNavigate();
 
@@ -74,7 +74,7 @@ function ProfilePage() {
     if (name.trim() && name !== user?.name) {
       setIsUpdatingName(true);
       try {
-        await updateProfile({ name: name.trim() });
+        await updateProfile({ name: name.trim(), sessionToken });
       } finally {
         setIsUpdatingName(false);
       }
@@ -100,7 +100,7 @@ function ProfilePage() {
     setIsUploadingAvatar(true);
     try {
       // Get upload URL
-      const uploadUrl = await generateAvatarUploadUrl({});
+      const uploadUrl = await generateAvatarUploadUrl({ sessionToken });
 
       // Upload file
       const response = await fetch(uploadUrl, {
@@ -116,7 +116,7 @@ function ProfilePage() {
       const { storageId } = await response.json();
 
       // Save avatar reference
-      await saveAvatar({ storageId });
+      await saveAvatar({ storageId, sessionToken });
     } catch (err) {
       console.error("Failed to upload avatar:", err);
       alert("Failed to upload avatar. Please try again.");
@@ -133,7 +133,7 @@ function ProfilePage() {
     if (!confirm("Remove your custom avatar?")) return;
 
     try {
-      await removeAvatar({});
+      await removeAvatar({ sessionToken });
     } catch (err) {
       console.error("Failed to remove avatar:", err);
     }
@@ -187,7 +187,7 @@ function ProfilePage() {
       ) {
         setIsDeletingAccount(true);
         try {
-          await deleteAccountMutation({});
+          await deleteAccountMutation({ sessionToken });
           await signOut();
           navigate({ to: "/login" });
         } catch (err) {

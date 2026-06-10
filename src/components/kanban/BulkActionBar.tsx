@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useSessionToken } from "@/hooks/useSessionToken";
 interface Props {
   selectedCardIds: Set<Id<"cards">>;
   selectedCount: number;
@@ -23,8 +24,9 @@ export function BulkActionBar({
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
   const [labelRemoveMode, setLabelRemoveMode] = useState(false);
 
-  const versions = useQuery(api.versions.list, { boardId });
-  const labels = useQuery(api.labels.list, { boardId });
+  const sessionToken = useSessionToken();
+  const versions = useQuery(api.versions.list, sessionToken ? { boardId, sessionToken } : "skip");
+  const labels = useQuery(api.labels.list, sessionToken ? { boardId, sessionToken } : "skip");
 
   const bulkUpdatePriority = useMutation(api.cards.bulkUpdatePriority);
   const bulkArchive = useMutation(api.cards.bulkArchive);
@@ -36,20 +38,20 @@ export function BulkActionBar({
   const cardIds = Array.from(selectedCardIds);
 
   const handlePriority = async (priority: "low" | "medium" | "high") => {
-    await bulkUpdatePriority({ cardIds, priority });
+    await bulkUpdatePriority({ cardIds, priority, sessionToken });
     setShowPriorityDropdown(false);
     onClearSelection();
   };
 
   const handleArchive = async () => {
-    await bulkArchive({ cardIds });
+    await bulkArchive({ cardIds, sessionToken });
     onClearSelection();
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await bulkDelete({ cardIds });
+      await bulkDelete({ cardIds, sessionToken });
       setShowDeleteConfirm(false);
       onClearSelection();
     } finally {
@@ -58,16 +60,16 @@ export function BulkActionBar({
   };
 
   const handleVersion = async (versionId: Id<"versions"> | undefined) => {
-    await bulkSetVersion({ cardIds, versionId });
+    await bulkSetVersion({ cardIds, versionId, sessionToken });
     setShowVersionDropdown(false);
     onClearSelection();
   };
 
   const handleLabelClick = async (labelId: Id<"labels">) => {
     if (labelRemoveMode) {
-      await bulkRemoveLabel({ cardIds, labelId });
+      await bulkRemoveLabel({ cardIds, labelId, sessionToken });
     } else {
-      await bulkAddLabel({ cardIds, labelId });
+      await bulkAddLabel({ cardIds, labelId, sessionToken });
     }
     setShowLabelDropdown(false);
     onClearSelection();

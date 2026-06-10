@@ -2,9 +2,14 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 export function useActiveTimer() {
-  const activeTimer = useQuery(api.timeTracking.getActiveTimer, {});
+  const sessionToken = useSessionToken();
+  const activeTimer = useQuery(
+    api.timeTracking.getActiveTimer,
+    sessionToken ? { sessionToken } : "skip"
+  );
 
   const startTimerMutation = useMutation(api.timeTracking.startTimer);
   const stopTimerMutation = useMutation(api.timeTracking.stopTimer);
@@ -32,23 +37,23 @@ export function useActiveTimer() {
   }, [activeTimer]);
 
   const start = async (description: string, cardId?: Id<"cards">) => {
-    await startTimerMutation({ description, cardId });
+    await startTimerMutation({ description, cardId, sessionToken });
   };
 
   const stop = async () => {
-    await stopTimerMutation({});
+    await stopTimerMutation({ sessionToken });
   };
 
   const discard = async () => {
-    await discardTimerMutation({});
+    await discardTimerMutation({ sessionToken });
   };
 
   const updateDescription = async (description: string) => {
-    await updateTimerMutation({ description });
+    await updateTimerMutation({ description, sessionToken });
   };
 
   const updateCard = async (cardId: Id<"cards"> | undefined) => {
-    await updateTimerMutation({ cardId });
+    await updateTimerMutation({ cardId, sessionToken });
   };
 
   return {

@@ -9,6 +9,7 @@ import { CommentList } from "./CommentList";
 import { Avatar } from "@/components/Avatar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import { canEdit as checkCanEdit } from "@/lib/permissions";
 import { formatDateLong, formatEffort } from "@/utils/formatting";
 import type { Card, Column, BoardMember, BoardRole } from "@/lib/types";
@@ -43,13 +44,14 @@ export function CardViewModal({ card, boardId, columns, members = [], userRole, 
   const canEdit = checkCanEdit(userRole);
   const currentColumn = columns.find((c) => c._id === currentColumnId);
 
+  const sessionToken = useSessionToken();
   const updateCard = useMutation(api.cards.update);
 
   const handleStatusChange = async (newColumnId: Id<"columns">) => {
     setCurrentColumnId(newColumnId);
     setIsUpdating(true);
     try {
-      await updateCard({ cardId: card._id, columnId: newColumnId });
+      await updateCard({ cardId: card._id, columnId: newColumnId, sessionToken });
     } finally {
       setIsUpdating(false);
     }

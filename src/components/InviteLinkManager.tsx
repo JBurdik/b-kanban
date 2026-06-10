@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 interface Props {
   boardId: Id<"boards">;
 }
 
 export function InviteLinkManager({ boardId }: Props) {
+  const sessionToken = useSessionToken();
   const invites = useQuery(api.invites.list, { boardId });
   const createInvite = useMutation(api.invites.create);
   const revokeInvite = useMutation(api.invites.revoke);
@@ -19,7 +21,7 @@ export function InviteLinkManager({ boardId }: Props) {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      await createInvite({ boardId, role });
+      await createInvite({ boardId, role, sessionToken });
     } catch (err) {
       console.error("Failed to create invite:", err);
     } finally {
@@ -29,7 +31,7 @@ export function InviteLinkManager({ boardId }: Props) {
 
   const handleRevoke = async (inviteId: Id<"boardInvites">) => {
     try {
-      await revokeInvite({ inviteId });
+      await revokeInvite({ inviteId, sessionToken });
     } catch (err) {
       console.error("Failed to revoke invite:", err);
     }

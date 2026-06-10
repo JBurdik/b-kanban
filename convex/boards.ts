@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { getOptionalAuth, requireAuth } from "./lib/rbac";
+import { getOptionalAuth, requireAuth, requireBoardAccess, checkBoardAccess } from "./lib/rbac";
 
 /**
  * Generate slug prefix from board name
@@ -22,9 +22,9 @@ function generateSlugPrefix(name: string): string {
  * Get all boards for a user
  */
 export const list = query({
-  args: {},
-  handler: async (ctx, _args) => {
-    const user = await getOptionalAuth(ctx);
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) {
       return [];
     }
@@ -70,14 +70,24 @@ export const list = query({
  * Get single board with all data
  */
 export const get = query({
-  args: { boardId: v.id("boards") },
+  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const board = await ctx.db.get(args.boardId);
     if (!board) throw new Error("Board not found");
 
     // Look up current user to get role
-    const currentUser = await getOptionalAuth(ctx);
+    const currentUser = await getOptionalAuth(ctx, args.sessionToken);
     const currentUserId: Id<"users"> | undefined = currentUser?._id;
+
+    // Only board members may read the board's contents.
+    if (!currentUserId) return null;
+    const { hasAccess } = await checkBoardAccess(
+      ctx,
+      currentUserId,
+      args.boardId,
+      "member",
+    );
+    if (!hasAccess) return null;
 
     const columns = await ctx.db
       .query("columns")
@@ -215,9 +225,10 @@ export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const now = Date.now();
     const slugPrefix = generateSlugPrefix(args.name);
@@ -262,9 +273,10 @@ export const update = mutation({
     boardId: v.id("boards"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const membership = await ctx.db
       .query("boardMembers")
@@ -291,8 +303,11 @@ export const update = mutation({
  * Delete board
  */
 export const remove = mutation({
-  args: { boardId: v.id("boards") },
+  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+    await requireBoardAccess(ctx, user._id, args.boardId, "owner");
+
     const columns = await ctx.db
       .query("columns")
       .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
@@ -371,9 +386,10 @@ export const setBadge = mutation({
     boardId: v.id("boards"),
     text: v.optional(v.string()),
     color: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const membership = await ctx.db
       .query("boardMembers")
@@ -403,9 +419,10 @@ export const setBadge = mutation({
 export const generateIconUploadUrl = mutation({
   args: {
     boardId: v.id("boards"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Check membership (should be owner or admin)
     const membership = await ctx.db
@@ -430,9 +447,10 @@ export const saveIcon = mutation({
   args: {
     boardId: v.id("boards"),
     storageId: v.id("_storage"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Check membership
     const membership = await ctx.db
@@ -475,9 +493,10 @@ export const setEmojiIcon = mutation({
   args: {
     boardId: v.id("boards"),
     emoji: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Check membership
     const membership = await ctx.db
@@ -518,9 +537,10 @@ export const setEmojiIcon = mutation({
 export const removeIcon = mutation({
   args: {
     boardId: v.id("boards"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Check membership
     const membership = await ctx.db

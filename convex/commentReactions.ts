@@ -10,9 +10,10 @@ export const toggle = mutation({
   args: {
     commentId: v.id("comments"),
     emoji: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
 
     // Verify comment exists

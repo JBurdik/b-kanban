@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { Avatar } from "@/components/Avatar";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 interface ArchivedCardListProps {
   boardId: Id<"boards">;
@@ -15,6 +16,7 @@ export function ArchivedCardList({ boardId }: ArchivedCardListProps) {
   const archivedCards = useQuery(api.cards.listArchived, { boardId });
   const restoreCard = useMutation(api.cards.restore);
   const permanentDeleteCard = useMutation(api.cards.permanentDelete);
+  const sessionToken = useSessionToken();
 
   const [cardToDelete, setCardToDelete] = useState<Id<"cards"> | null>(null);
   const [loading, setLoading] = useState<Id<"cards"> | null>(null);
@@ -22,7 +24,7 @@ export function ArchivedCardList({ boardId }: ArchivedCardListProps) {
   const handleRestore = async (cardId: Id<"cards">) => {
     setLoading(cardId);
     try {
-      await restoreCard({ cardId });
+      await restoreCard({ cardId, sessionToken });
     } finally {
       setLoading(null);
     }
@@ -32,7 +34,7 @@ export function ArchivedCardList({ boardId }: ArchivedCardListProps) {
     if (!cardToDelete) return;
     setLoading(cardToDelete);
     try {
-      await permanentDeleteCard({ cardId: cardToDelete });
+      await permanentDeleteCard({ cardId: cardToDelete, sessionToken });
       setCardToDelete(null);
     } finally {
       setLoading(null);

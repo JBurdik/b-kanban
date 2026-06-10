@@ -25,9 +25,10 @@ export const create = mutation({
     role: v.union(v.literal("admin"), v.literal("member")),
     expiresAt: v.optional(v.number()),
     maxUses: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
     await requireBoardAccess(ctx, userId, args.boardId, "admin");
 
@@ -68,9 +69,9 @@ export const list = query({
  * Revoke an invite link
  */
 export const revoke = mutation({
-  args: { inviteId: v.id("boardInvites") },
+  args: { inviteId: v.id("boardInvites"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
     const invite = await ctx.db.get(args.inviteId);
     if (!invite) throw new Error("Invite not found");
@@ -117,9 +118,9 @@ export const getByToken = query({
  * Accept an invite link and join the board
  */
 export const accept = mutation({
-  args: { token: v.string() },
+  args: { token: v.string(), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
 
     const invite = await ctx.db

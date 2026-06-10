@@ -26,9 +26,9 @@ async function hasBoardAccess(
  * List all HTML docs for a board (most recent first).
  */
 export const list = query({
-  args: { boardId: v.id("boards") },
+  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) return [];
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
@@ -65,12 +65,12 @@ export const list = query({
  * rendering directly in a sandboxed iframe via the `src` attribute.
  */
 export const get = query({
-  args: { docId: v.id("htmlDocs") },
+  args: { docId: v.id("htmlDocs"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) return null;
 
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) return null;
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
@@ -98,9 +98,9 @@ export const get = query({
  * Generate an upload URL for the UI file-upload flow.
  */
 export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx, _args) => {
-    await requireAuth(ctx);
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.sessionToken);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -115,9 +115,10 @@ export const create = mutation({
     fileName: v.string(),
     storageId: v.id("_storage"),
     fileSize: v.number(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
     if (!hasAccess) {
@@ -150,12 +151,13 @@ export const replaceContent = mutation({
     fileSize: v.number(),
     title: v.optional(v.string()),
     fileName: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) {
@@ -185,12 +187,13 @@ export const rename = mutation({
   args: {
     docId: v.id("htmlDocs"),
     title: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -207,12 +210,12 @@ export const rename = mutation({
  * Delete an HTML doc and its stored blob.
  */
 export const remove = mutation({
-  args: { docId: v.id("htmlDocs") },
+  args: { docId: v.id("htmlDocs"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");

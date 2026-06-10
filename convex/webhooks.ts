@@ -14,9 +14,10 @@ export const create = mutation({
     type: v.union(v.literal("generic"), v.literal("slack"), v.literal("discord")),
     events: v.array(v.string()),
     secret: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
     await requireBoardAccess(ctx, userId, args.boardId, "admin");
 
@@ -70,9 +71,10 @@ export const update = mutation({
     events: v.optional(v.array(v.string())),
     secret: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
     const webhook = await ctx.db.get(args.webhookId);
     if (!webhook) throw new Error("Webhook not found");
@@ -101,9 +103,9 @@ export const update = mutation({
  * Remove a webhook
  */
 export const remove = mutation({
-  args: { webhookId: v.id("webhooks") },
+  args: { webhookId: v.id("webhooks"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
     const webhook = await ctx.db.get(args.webhookId);
     if (!webhook) throw new Error("Webhook not found");

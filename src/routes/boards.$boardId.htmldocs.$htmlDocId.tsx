@@ -11,13 +11,13 @@ export const Route = createFileRoute("/boards/$boardId/htmldocs/$htmlDocId")({
 
 function HtmlDocViewerPage() {
   const { boardId, htmlDocId } = Route.useParams();
-  const { userEmail, isLoading, session } = useConvexUser();
+  const { sessionToken, isLoading, session } = useConvexUser();
   const [isRenaming, setIsRenaming] = useState(false);
   const [newTitle, setNewTitle] = useState("");
 
   const doc = useQuery(
     api.htmlDocs.get,
-    userEmail ? { docId: htmlDocId as Id<"htmlDocs"> } : "skip",
+    sessionToken ? { docId: htmlDocId as Id<"htmlDocs">, sessionToken } : "skip",
   );
 
   const renameDoc = useMutation(api.htmlDocs.rename);
@@ -28,6 +28,7 @@ function HtmlDocViewerPage() {
     await renameDoc({
       docId: htmlDocId as Id<"htmlDocs">,
       title: newTitle.trim(),
+      sessionToken,
     });
     setIsRenaming(false);
   };
@@ -35,7 +36,7 @@ function HtmlDocViewerPage() {
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this HTML doc?"))
       return;
-    await deleteDoc({ docId: htmlDocId as Id<"htmlDocs"> });
+    await deleteDoc({ docId: htmlDocId as Id<"htmlDocs">, sessionToken });
     window.location.href = `/boards/${boardId}/htmldocs`;
   };
 

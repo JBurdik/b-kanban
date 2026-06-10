@@ -9,6 +9,7 @@ import { SecretFormModal, SecretFormData, parseEnvVars } from "./SecretFormModal
 import { BulkImportModal, BulkSecretData } from "./BulkImportModal";
 import { useBoardPassphrase } from "@/hooks/useBoardPassphrase";
 import { encryptSecret, decryptSecret, verifyPassphrase } from "@/lib/crypto";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import clsx from "clsx";
 
 type SecretGroup = {
@@ -38,8 +39,9 @@ interface SecretsListProps {
 }
 
 export function SecretsList({ boardId, canManage }: SecretsListProps) {
-  const secrets = useQuery(api.secrets.list, { boardId });
-  const groups = useQuery(api.secretGroups.list, { boardId });
+  const sessionToken = useSessionToken();
+  const secrets = useQuery(api.secrets.list, sessionToken ? { boardId, sessionToken } : "skip");
+  const groups = useQuery(api.secretGroups.list, sessionToken ? { boardId, sessionToken } : "skip");
   const createSecret = useMutation(api.secrets.create);
   const updateSecret = useMutation(api.secrets.update);
   const deleteSecret = useMutation(api.secrets.remove);
@@ -179,6 +181,7 @@ export function SecretsList({ boardId, canManage }: SecretsListProps) {
         visibility: data.visibility,
         description: data.description || undefined,
         groupId: data.groupId as Id<"secretGroups"> | undefined,
+        sessionToken,
       });
       setShowSecretModal(false);
     } catch (error) {
@@ -213,6 +216,7 @@ export function SecretsList({ boardId, canManage }: SecretsListProps) {
           salt: encrypted.salt,
           visibility: secret.visibility,
           groupId: secret.groupId as Id<"secretGroups"> | undefined,
+          sessionToken,
         });
       }
       setShowBulkModal(false);
@@ -239,12 +243,14 @@ export function SecretsList({ boardId, canManage }: SecretsListProps) {
         visibility?: "public" | "hidden";
         description?: string;
         groupId?: Id<"secretGroups"> | null;
+        sessionToken?: string;
       } = {
         secretId: editingSecret._id,
         name: data.name,
         visibility: data.visibility,
         description: data.description || undefined,
         groupId: data.groupId as Id<"secretGroups"> | null,
+        sessionToken,
       };
 
       // Only re-encrypt if value was changed
@@ -272,7 +278,7 @@ export function SecretsList({ boardId, canManage }: SecretsListProps) {
     }
 
     try {
-      await deleteSecret({ secretId });
+      await deleteSecret({ secretId, sessionToken });
     } catch (error) {
       console.error("Failed to delete secret:", error);
     }
@@ -310,6 +316,7 @@ export function SecretsList({ boardId, canManage }: SecretsListProps) {
       await createGroup({
         boardId,
         name: newGroupName.trim(),
+        sessionToken,
       });
       setNewGroupName("");
       setShowNewGroupInput(false);
@@ -323,7 +330,7 @@ export function SecretsList({ boardId, canManage }: SecretsListProps) {
   const handleDeleteGroup = async (groupId: Id<"secretGroups">) => {
     if (!confirm("Delete this group? Secrets will be moved to 'Ungrouped'.")) return;
     try {
-      await deleteGroup({ groupId });
+      await deleteGroup({ groupId, sessionToken });
     } catch (error) {
       console.error("Failed to delete group:", error);
     }

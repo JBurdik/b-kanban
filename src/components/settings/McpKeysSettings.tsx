@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 // HTTP router routes (incl. /mcp) are served by the Convex site origin, which
 // the self-hosted deploy proxies under the /http path of the API domain.
@@ -51,7 +52,8 @@ The user can specify:
 `;
 
 export function McpKeysSettings({ email }: { email?: string }) {
-  const keys = useQuery(api.mcpKeys.list, email ? {} : "skip");
+  const sessionToken = useSessionToken();
+  const keys = useQuery(api.mcpKeys.list, sessionToken ? { sessionToken } : "skip");
   const generate = useMutation(api.mcpKeys.generate);
   const revoke = useMutation(api.mcpKeys.revoke);
 
@@ -65,7 +67,7 @@ export function McpKeysSettings({ email }: { email?: string }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await generate({ name: name.trim() || "key" });
+      const res = await generate({ name: name.trim() || "key", sessionToken });
       setNewKey(res.key);
       setName("");
     } catch (e) {
@@ -174,7 +176,7 @@ export function McpKeysSettings({ email }: { email?: string }) {
               </span>
             </div>
             <button
-              onClick={() => email && void revoke({ keyId: k._id })}
+              onClick={() => email && void revoke({ keyId: k._id, sessionToken })}
               className="text-xs px-3 py-1.5 border border-dark-border text-dark-muted rounded-lg hover:text-red-400 hover:bg-red-500/10 transition-colors"
             >
               Revoke

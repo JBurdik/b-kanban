@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireAuth } from "./lib/rbac";
+import { requireAuth, getBoardIdFromCard, checkBoardAccess } from "./lib/rbac";
 
 /**
  * List comments for a card
@@ -47,9 +47,10 @@ export const create = mutation({
     cardId: v.id("cards"),
     content: v.string(),
     mentionedUserIds: v.optional(v.array(v.id("users"))),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const author = await requireAuth(ctx);
+    const author = await requireAuth(ctx, args.sessionToken);
 
     const now = Date.now();
 
@@ -114,10 +115,21 @@ export const update = mutation({
   args: {
     commentId: v.id("comments"),
     content: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+
     const comment = await ctx.db.get(args.commentId);
     if (!comment) throw new Error("Comment not found");
+
+    if (comment.authorId !== user._id) {
+      const boardId = await getBoardIdFromCard(ctx, comment.cardId);
+      const { hasAccess } = boardId
+        ? await checkBoardAccess(ctx, user._id, boardId, "admin")
+        : { hasAccess: false };
+      if (!hasAccess) throw new Error("Access denied");
+    }
 
     await ctx.db.patch(args.commentId, {
       content: args.content,
@@ -132,10 +144,20 @@ export const update = mutation({
  * Delete a comment
  */
 export const remove = mutation({
-  args: { commentId: v.id("comments") },
+  args: { commentId: v.id("comments"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+
     const comment = await ctx.db.get(args.commentId);
     if (!comment) throw new Error("Comment not found");
+
+    if (comment.authorId !== user._id) {
+      const boardId = await getBoardIdFromCard(ctx, comment.cardId);
+      const { hasAccess } = boardId
+        ? await checkBoardAccess(ctx, user._id, boardId, "admin")
+        : { hasAccess: false };
+      if (!hasAccess) throw new Error("Access denied");
+    }
 
     await ctx.db.delete(args.commentId);
 

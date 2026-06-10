@@ -6,9 +6,9 @@ import { requireBoardAccess, checkBoardAccess, getBoardIdFromCard, getOptionalAu
  * Get all labels for a board
  */
 export const list = query({
-  args: { boardId: v.id("boards") },
+  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) {
       return [];
     }
@@ -32,9 +32,9 @@ export const list = query({
  * Get labels attached to a specific card
  */
 export const getForCard = query({
-  args: { cardId: v.id("cards") },
+  args: { cardId: v.id("cards"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) {
       return [];
     }
@@ -73,9 +73,10 @@ export const create = mutation({
     color: v.string(),
     textColor: v.string(),
     applyToCardBg: v.boolean(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     await requireBoardAccess(ctx, user._id, args.boardId, "admin");
 
@@ -102,9 +103,10 @@ export const update = mutation({
     color: v.optional(v.string()),
     textColor: v.optional(v.string()),
     applyToCardBg: v.optional(v.boolean()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const label = await ctx.db.get(args.labelId);
     if (!label) throw new Error("Label not found");
@@ -127,9 +129,9 @@ export const update = mutation({
  * Remove a label and all card-label associations (admin/owner only)
  */
 export const remove = mutation({
-  args: { labelId: v.id("labels") },
+  args: { labelId: v.id("labels"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const label = await ctx.db.get(args.labelId);
     if (!label) throw new Error("Label not found");
@@ -160,9 +162,10 @@ export const addToCard = mutation({
   args: {
     cardId: v.id("cards"),
     labelId: v.id("labels"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
@@ -203,9 +206,10 @@ export const removeFromCard = mutation({
   args: {
     cardId: v.id("cards"),
     labelId: v.id("labels"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
@@ -233,11 +237,12 @@ export const bulkAddToCards = mutation({
   args: {
     cardIds: v.array(v.id("cards")),
     labelId: v.id("labels"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
@@ -271,11 +276,12 @@ export const bulkRemoveFromCards = mutation({
   args: {
     cardIds: v.array(v.id("cards")),
     labelId: v.id("labels"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");

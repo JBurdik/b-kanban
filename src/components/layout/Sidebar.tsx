@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Logo } from "@/components/ui/Logo";
 import { BoardIcon } from "@/components/BoardIcon";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import clsx from "clsx";
 
 const APP_VERSION = "1.0.0";
@@ -13,9 +14,13 @@ interface SidebarProps {
   userEmail?: string;
 }
 
-export function Sidebar({ isCollapsed, onToggle, userEmail }: SidebarProps) {
+export function Sidebar({ isCollapsed, onToggle, userEmail: _userEmail }: SidebarProps) {
   const location = useLocation();
-  const boards = useQuery(api.boards.list, userEmail ? {} : "skip");
+  const { sessionToken } = useConvexUser();
+  const boards = useQuery(
+    api.boards.list,
+    sessionToken ? { sessionToken } : "skip",
+  );
 
   const isActive = (path: string) => location.pathname === path;
   const isBoardActive = (boardId: string) =>

@@ -12,6 +12,7 @@ import { LabelSelector } from "@/components/labels/LabelSelector";
 import { LabelManager } from "@/components/labels/LabelManager";
 import { useCardFormState } from "@/hooks/useCardFormState";
 import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import { AUTO_SAVE_DELAY } from "@/lib/constants";
 import type { Card, Column, BoardMember } from "@/lib/types";
 
@@ -34,6 +35,7 @@ export function CardModal({ card, boardId, columns, members = [], userRole, onCl
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const sessionToken = useSessionToken();
   const updateCard = useMutation(api.cards.update);
   const deleteCard = useMutation(api.cards.remove);
   const { onImageUpload } = useEditorImageUpload();
@@ -74,7 +76,7 @@ export function CardModal({ card, boardId, columns, members = [], userRole, onCl
         await updateCard({
           cardId: card._id,
           ...dirtyFields,
-          
+          sessionToken,
         });
         markSaved();
       } finally {
@@ -87,12 +89,12 @@ export function CardModal({ card, boardId, columns, members = [], userRole, onCl
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [values, hasChanges, getDirtyFields, card._id, updateCard, markSaved]);
+  }, [values, hasChanges, getDirtyFields, card._id, updateCard, markSaved, sessionToken]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteCard({ cardId: card._id });
+      await deleteCard({ cardId: card._id, sessionToken });
       setShowDeleteConfirm(false);
       onClose();
     } finally {

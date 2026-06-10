@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
+import { requireAuth, requireBoardAccess, getBoardIdFromColumn } from "./lib/rbac";
 
 /**
  * Create a new column
@@ -9,8 +10,12 @@ export const create = mutation({
     boardId: v.id("boards"),
     name: v.string(),
     position: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+    await requireBoardAccess(ctx, user._id, args.boardId, "admin");
+
     const now = Date.now();
 
     // Get max position if not provided
@@ -43,8 +48,14 @@ export const update = mutation({
     columnId: v.id("columns"),
     name: v.optional(v.string()),
     position: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+    const boardId = await getBoardIdFromColumn(ctx, args.columnId);
+    if (!boardId) throw new Error("Column not found");
+    await requireBoardAccess(ctx, user._id, boardId, "admin");
+
     const column = await ctx.db.get(args.columnId);
     if (!column) throw new Error("Column not found");
 
@@ -62,8 +73,13 @@ export const update = mutation({
  * Delete a column
  */
 export const remove = mutation({
-  args: { columnId: v.id("columns") },
+  args: { columnId: v.id("columns"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+    const boardId = await getBoardIdFromColumn(ctx, args.columnId);
+    if (!boardId) throw new Error("Column not found");
+    await requireBoardAccess(ctx, user._id, boardId, "admin");
+
     const column = await ctx.db.get(args.columnId);
     if (!column) throw new Error("Column not found");
 
@@ -105,9 +121,15 @@ export const reorder = mutation({
         position: v.number(),
       })
     ),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.items.length === 0) return { success: true };
+
+    const user = await requireAuth(ctx, args.sessionToken);
+    const boardId = await getBoardIdFromColumn(ctx, args.items[0].id);
+    if (!boardId) throw new Error("Column not found");
+    await requireBoardAccess(ctx, user._id, boardId, "admin");
 
     for (const item of args.items) {
       await ctx.db.patch(item.id, { position: item.position, updatedAt: Date.now() });

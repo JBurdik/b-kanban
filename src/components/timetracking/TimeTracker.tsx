@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import { TimerDisplay } from "./TimerDisplay";
 import { ManualEntryForm } from "./ManualEntryForm";
 import { TimeEntryList } from "./TimeEntryList";
@@ -26,7 +27,11 @@ export function TimeTracker({ userEmail, mode = "full" }: TimeTrackerProps) {
     discard,
   } = useActiveTimer();
 
-  const todayData = useQuery(api.timeTracking.getTodayEntries, {});
+  const sessionToken = useSessionToken();
+  const todayData = useQuery(
+    api.timeTracking.getTodayEntries,
+    sessionToken ? { sessionToken } : "skip"
+  );
 
   const isCompact = mode === "compact";
 

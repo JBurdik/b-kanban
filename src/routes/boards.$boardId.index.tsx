@@ -36,7 +36,7 @@ export const Route = createFileRoute("/boards/$boardId/")({
 
 function BoardPage() {
   const { boardId } = Route.useParams();
-  const { userEmail, isLoading: userLoading, session } = useConvexUser();
+  const { userEmail, sessionToken, isLoading: userLoading, session } = useConvexUser();
   const { data: authSession } = useSession();
   const { mode: cardOpenMode } = useCardOpenMode();
   const { filter, setFilter, viewMode, setViewMode, selectedVersionId, setSelectedVersionId, searchQuery, setSearchQuery } = useBoardFilters(boardId);
@@ -71,14 +71,20 @@ function BoardPage() {
   }, [isSelectionMode, clearSelection]);
 
   // Real-time subscription to board data
-  const board = useQuery(api.boards.get, {
-    boardId: boardId as Id<"boards">,
-  });
+  const board = useQuery(
+    api.boards.get,
+    sessionToken
+      ? { boardId: boardId as Id<"boards">, sessionToken }
+      : "skip",
+  );
 
   // Get versions for this board
-  const boardVersions = useQuery(api.versions.list, {
-    boardId: boardId as Id<"boards">,
-  });
+  const boardVersions = useQuery(
+    api.versions.list,
+    sessionToken
+      ? { boardId: boardId as Id<"boards">, sessionToken }
+      : "skip",
+  );
 
   // Get current user for filtering and display
   const currentUser = useQuery(
@@ -166,9 +172,9 @@ function BoardPage() {
   const archiveCard = useMutation(api.cards.remove);
   const handleCardArchive = useCallback(
     (card: Card) => {
-      archiveCard({ cardId: card._id });
+      archiveCard({ cardId: card._id, sessionToken });
     },
-    [archiveCard]
+    [archiveCard, sessionToken]
   );
 
   // New card handler for keyboard shortcut — triggers click on the "+ Add card" button
@@ -180,17 +186,18 @@ function BoardPage() {
         columnId,
         title: "Untitled",
         position: 0,
+        sessionToken,
       });
     },
-    [createCard]
+    [createCard, sessionToken]
   );
 
   // Mobile bottom-bar add-card: create with a real title at top of chosen column.
   const handleMobileCreateCard = useCallback(
     async (columnId: Id<"columns">, title: string) => {
-      await createCard({ columnId, title, position: 0 });
+      await createCard({ columnId, title, position: 0, sessionToken });
     },
-    [createCard]
+    [createCard, sessionToken]
   );
 
   // Keyboard navigation for board

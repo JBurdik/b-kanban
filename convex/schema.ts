@@ -52,6 +52,19 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_identifier", ["identifier"]),
 
+  // Lightweight session mirror. getUserIdentity()/JWT and the betterAuth
+  // component adapter both load adapter.js (~57 MiB) which OOMs the self-hosted
+  // V8 isolate, so they can't be used for per-request auth. Instead the client
+  // calls authMirror.bootstrap once after login: that verifies its session
+  // token against the betterAuth component (infrequent, retried) and writes
+  // { token -> email } here. Per-request auth then does a plain indexed lookup
+  // on this table — no adapter.js, no OOM. See convex/lib/rbac.ts.
+  authSessions: defineTable({
+    token: v.string(),
+    email: v.string(),
+    expiresAt: v.number(),
+  }).index("by_token", ["token"]),
+
   // ============================================
   // Application Tables
   // ============================================

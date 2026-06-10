@@ -23,9 +23,9 @@ async function hasBoardAccess(
  * List all documents for a board
  */
 export const list = query({
-  args: { boardId: v.id("boards") },
+  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) return [];
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
@@ -65,12 +65,12 @@ export const list = query({
  * Get a single document with linked cards
  */
 export const get = query({
-  args: { documentId: v.id("documents") },
+  args: { documentId: v.id("documents"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const document = await ctx.db.get(args.documentId);
     if (!document) return null;
 
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) return null;
 
     const hasAccess = await hasBoardAccess(ctx, document.boardId, user._id);
@@ -123,9 +123,10 @@ export const create = mutation({
     boardId: v.id("boards"),
     title: v.string(),
     content: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -153,12 +154,13 @@ export const update = mutation({
     documentId: v.id("documents"),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const document = await ctx.db.get(args.documentId);
     if (!document) throw new Error("Document not found");
 
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const hasAccess = await hasBoardAccess(ctx, document.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -177,12 +179,12 @@ export const update = mutation({
  * Delete a document and its links
  */
 export const remove = mutation({
-  args: { documentId: v.id("documents") },
+  args: { documentId: v.id("documents"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const document = await ctx.db.get(args.documentId);
     if (!document) throw new Error("Document not found");
 
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const hasAccess = await hasBoardAccess(ctx, document.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -211,9 +213,10 @@ export const search = query({
   args: {
     boardId: v.id("boards"),
     query: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) return [];
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);

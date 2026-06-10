@@ -10,6 +10,7 @@
 
 import type * as attachments from "../attachments.js";
 import type * as auth from "../auth.js";
+import type * as authMirror from "../authMirror.js";
 import type * as boards from "../boards.js";
 import type * as cardWatchers from "../cardWatchers.js";
 import type * as cards from "../cards.js";
@@ -46,6 +47,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   attachments: typeof attachments;
   auth: typeof auth;
+  authMirror: typeof authMirror;
   boards: typeof boards;
   cardWatchers: typeof cardWatchers;
   cards: typeof cards;

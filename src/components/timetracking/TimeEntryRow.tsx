@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { formatDuration, parseHoursMinutes } from "@/lib/timeUtils";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import type { Id } from "convex/_generated/dataModel";
 
 interface TimeEntry {
@@ -26,6 +27,7 @@ export function TimeEntryRow({ entry, compact = false }: TimeEntryRowProps) {
 
   const updateEntry = useMutation(api.timeTracking.updateEntry);
   const deleteEntry = useMutation(api.timeTracking.deleteEntry);
+  const sessionToken = useSessionToken();
 
   const handleStartEdit = () => {
     const { hours, minutes } = parseHoursMinutes(entry.durationMs);
@@ -41,13 +43,14 @@ export function TimeEntryRow({ entry, compact = false }: TimeEntryRowProps) {
       description: editDescription,
       hours: parseInt(editHours) || 0,
       minutes: parseInt(editMinutes) || 0,
+      sessionToken,
     });
     setIsEditing(false);
   };
 
   const handleDelete = async () => {
     if (confirm("Delete this time entry?")) {
-      await deleteEntry({ entryId: entry._id });
+      await deleteEntry({ entryId: entry._id, sessionToken });
     }
   };
 

@@ -9,9 +9,10 @@ import { requireAuth, getBoardIdFromCard, requireBoardAccess } from "./lib/rbac"
 export const toggle = mutation({
   args: {
     cardId: v.id("cards"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");

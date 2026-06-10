@@ -2,6 +2,7 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useCallback } from "react";
 import { useSession } from "@/lib/auth-client";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 /**
  * Hook that provides an image upload handler for the rich text editor.
@@ -11,6 +12,7 @@ import { useSession } from "@/lib/auth-client";
  */
 export function useEditorImageUpload(_providedUserEmail?: string) {
   const { data: session } = useSession();
+  const sessionToken = useSessionToken();
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
   const getImageUrl = useMutation(api.attachments.getImageUrl);
 
@@ -20,7 +22,7 @@ export function useEditorImageUpload(_providedUserEmail?: string) {
     async (file: File): Promise<string | null> => {
       try {
         // 1. Get upload URL from Convex
-        const uploadUrl = await generateUploadUrl({});
+        const uploadUrl = await generateUploadUrl({ sessionToken });
 
         // 2. Upload the file to Convex storage
         const response = await fetch(uploadUrl, {
@@ -38,7 +40,7 @@ export function useEditorImageUpload(_providedUserEmail?: string) {
         const { storageId } = await response.json();
 
         // 3. Get the permanent URL for the uploaded image
-        const { url } = await getImageUrl({ storageId });
+        const { url } = await getImageUrl({ storageId, sessionToken });
 
         return url;
       } catch (error) {
@@ -46,7 +48,7 @@ export function useEditorImageUpload(_providedUserEmail?: string) {
         return null;
       }
     },
-    [generateUploadUrl, getImageUrl]
+    [generateUploadUrl, getImageUrl, sessionToken]
   );
 
   return {

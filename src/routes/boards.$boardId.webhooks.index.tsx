@@ -29,12 +29,13 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
 
 function WebhooksPage() {
   const { boardId } = Route.useParams();
-  const { userEmail, isLoading: userLoading, session } = useConvexUser();
+  const { userEmail, sessionToken, isLoading: userLoading, session } = useConvexUser();
   const { data: authSession } = useSession();
 
-  const board = useQuery(api.boards.get, {
-    boardId: boardId as Id<"boards">,
-  });
+  const board = useQuery(
+    api.boards.get,
+    sessionToken ? { boardId: boardId as Id<"boards">, sessionToken } : "skip"
+  );
 
   const currentUser = useQuery(
     api.users.getByEmail,
@@ -122,6 +123,7 @@ function WebhooksPage() {
         type: formData.type,
         events: formData.events,
         ...(formData.secret ? { secret: formData.secret } : {}),
+        sessionToken,
       });
     } else {
       await createWebhook({
@@ -131,6 +133,7 @@ function WebhooksPage() {
         type: formData.type,
         events: formData.events,
         ...(formData.secret ? { secret: formData.secret } : {}),
+        sessionToken,
       });
     }
 
@@ -138,7 +141,7 @@ function WebhooksPage() {
   };
 
   const handleToggle = async (webhookId: Id<"webhooks">, isActive: boolean) => {
-    await updateWebhook({ webhookId, isActive: !isActive });
+    await updateWebhook({ webhookId, isActive: !isActive, sessionToken });
   };
 
   const handleTest = async (webhookId: Id<"webhooks">) => {
@@ -153,7 +156,7 @@ function WebhooksPage() {
 
   const handleDelete = async (webhookId: Id<"webhooks">) => {
     setDeletingId(webhookId);
-    await removeWebhook({ webhookId });
+    await removeWebhook({ webhookId, sessionToken });
     setDeletingId(null);
   };
 

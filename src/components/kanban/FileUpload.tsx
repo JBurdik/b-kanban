@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 interface Props {
   cardId: Id<"cards">;
@@ -12,13 +13,14 @@ export function FileUpload({ cardId }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sessionToken = useSessionToken();
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
   const saveAttachment = useMutation(api.attachments.saveAttachment);
 
   const uploadFile = async (file: File) => {
     try {
       // Get upload URL from Convex
-      const uploadUrl = await generateUploadUrl({});
+      const uploadUrl = await generateUploadUrl({ sessionToken });
 
       // Upload file to Convex storage
       const result = await fetch(uploadUrl, {
@@ -40,6 +42,7 @@ export function FileUpload({ cardId }: Props) {
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",
+        sessionToken,
       });
     } catch (err) {
       throw err instanceof Error ? err : new Error("Upload failed");

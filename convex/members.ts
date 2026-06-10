@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { requireAuth, requireBoardAccess, isOwner } from "./lib/rbac";
 
 /**
  * Get board members
@@ -48,8 +49,12 @@ export const add = mutation({
     email: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),
     userId: v.optional(v.id("users")), // Current user adding the member
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const currentUser = await requireAuth(ctx, args.sessionToken);
+    await requireBoardAccess(ctx, currentUser._id, args.boardId, "admin");
+
     // Find user by email - create if doesn't exist
     let userToAdd = await ctx.db
       .query("users")
@@ -109,14 +114,29 @@ export const updateRole = mutation({
   args: {
     memberId: v.id("boardMembers"),
     role: v.union(v.literal("admin"), v.literal("member")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const currentUser = await requireAuth(ctx, args.sessionToken);
+
     const memberToUpdate = await ctx.db.get(args.memberId);
     if (!memberToUpdate) throw new Error("Member not found");
+
+    const { role: callerRole } = await requireBoardAccess(
+      ctx,
+      currentUser._id,
+      memberToUpdate.boardId,
+      "admin",
+    );
 
     // Cannot modify owner
     if (memberToUpdate.role === "owner") {
       throw new Error("Cannot modify owner role");
+    }
+
+    // Only an owner may change the role of another admin
+    if (memberToUpdate.role === "admin" && !isOwner(callerRole)) {
+      throw new Error("Access denied");
     }
 
     await ctx.db.patch(args.memberId, { role: args.role });
@@ -129,14 +149,28 @@ export const updateRole = mutation({
  * Remove member from board
  */
 export const remove = mutation({
-  args: { memberId: v.id("boardMembers") },
+  args: { memberId: v.id("boardMembers"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const currentUser = await requireAuth(ctx, args.sessionToken);
+
     const memberToRemove = await ctx.db.get(args.memberId);
     if (!memberToRemove) throw new Error("Member not found");
+
+    const { role: callerRole } = await requireBoardAccess(
+      ctx,
+      currentUser._id,
+      memberToRemove.boardId,
+      "admin",
+    );
 
     // Cannot remove owner
     if (memberToRemove.role === "owner") {
       throw new Error("Cannot remove board owner");
+    }
+
+    // Only an owner may remove another admin
+    if (memberToRemove.role === "admin" && !isOwner(callerRole)) {
+      throw new Error("Access denied");
     }
 
     await ctx.db.delete(args.memberId);
@@ -191,13 +225,17 @@ export const search = query({
 export const leave = mutation({
   args: {
     boardId: v.id("boards"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const currentUser = await requireAuth(ctx, args.sessionToken);
+
+    // A user can only remove their OWN membership; ignore any passed userId.
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", args.userId)
+        q.eq("boardId", args.boardId).eq("userId", currentUser._id)
       )
       .first();
 

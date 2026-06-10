@@ -8,7 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth } from "./lib/rbac";
+import { requireAuth, getOptionalAuth } from "./lib/rbac";
 
 const KEY_PREFIX = "bprod_";
 
@@ -41,9 +41,9 @@ function randomKey(): string {
  * Returns the plaintext key ONCE — it is not retrievable afterwards.
  */
 export const generate = mutation({
-  args: { name: v.string() },
+  args: { name: v.string(), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
 
     const key = randomKey();
@@ -64,9 +64,10 @@ export const generate = mutation({
 
 /** List the current user's MCP API keys (never returns the hash/plaintext). */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const authUser = await requireAuth(ctx);
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const authUser = await getOptionalAuth(ctx, args.sessionToken);
+    if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
     const keys = await ctx.db
@@ -88,9 +89,9 @@ export const list = query({
 
 /** Revoke (delete) one of the current user's keys. */
 export const revoke = mutation({
-  args: { keyId: v.id("mcpApiKeys") },
+  args: { keyId: v.id("mcpApiKeys"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await requireAuth(ctx, args.sessionToken);
     const userId = authUser._id as unknown as Id<"users">;
 
     const key = await ctx.db.get(args.keyId);

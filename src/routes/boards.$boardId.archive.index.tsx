@@ -14,12 +14,13 @@ export const Route = createFileRoute("/boards/$boardId/archive/")({
 
 function ArchivePage() {
   const { boardId } = Route.useParams();
-  const { userEmail, isLoading: userLoading, session } = useConvexUser();
+  const { userEmail, sessionToken, isLoading: userLoading, session } = useConvexUser();
   const { data: authSession } = useSession();
 
-  const board = useQuery(api.boards.get, {
-    boardId: boardId as Id<"boards">,
-  });
+  const board = useQuery(
+    api.boards.get,
+    sessionToken ? { boardId: boardId as Id<"boards">, sessionToken } : "skip"
+  );
 
   const currentUser = useQuery(
     api.users.getByEmail,

@@ -1,26 +1,79 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
-import { Id } from "../_generated/dataModel";
+import { Doc, Id } from "../_generated/dataModel";
 
 export type BoardRole = "owner" | "admin" | "member";
 
 const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
 
-// Reads JWT claims directly — no adapter.js, no memory spike.
-// identity.subject = betterAuth user _id = Convex _id in our "users" table.
-async function getUserFromIdentity(ctx: QueryCtx | MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) return null;
-  return ctx.db.get(identity.subject as Id<"users">);
+// ---------------------------------------------------------------------------
+// Auth on self-hosted Convex.
+//
+// getUserIdentity()/JWT auth does NOT work on this self-hosted backend: the
+// better-auth token endpoint loads adapter.js (~57 MiB) which OOMs the V8
+// isolate ("TooMuchMemoryCarryOver"), so no JWT is ever minted. Querying the
+// betterAuth component directly loads the same adapter.js and OOMs too.
+//
+// So per-request auth must avoid the component entirely. The client passes its
+// betterAuth session token (an unforgeable secret) as the `sessionToken` arg;
+// we resolve it via the `authSessions` mirror table (a plain indexed lookup,
+// no adapter.js). The mirror is populated once per login by
+// authMirror.bootstrap, which is the only place that touches the component.
+// The session token replaces the old forgeable `userEmail` param.
+// ---------------------------------------------------------------------------
+
+// Resolve a betterAuth session token → email via the lightweight mirror.
+async function emailFromSessionToken(
+  ctx: QueryCtx | MutationCtx,
+  sessionToken?: string,
+): Promise<string | null> {
+  if (!sessionToken) return null;
+  const mirror = await ctx.db
+    .query("authSessions")
+    .withIndex("by_token", (q) => q.eq("token", sessionToken))
+    .first();
+  if (!mirror) return null;
+  if (mirror.expiresAt < Date.now()) return null;
+  return mirror.email;
 }
 
-export async function requireAuth(ctx: QueryCtx | MutationCtx) {
-  const user = await getUserFromIdentity(ctx);
-  if (!user) throw new Error("Unauthorized");
-  return user;
+// For QUERIES: resolve the caller's app user, or null when unauthenticated /
+// not bootstrapped yet (caller returns [] / null / 0).
+export async function getOptionalAuth(
+  ctx: QueryCtx | MutationCtx,
+  sessionToken?: string,
+): Promise<Doc<"users"> | null> {
+  const email = await emailFromSessionToken(ctx, sessionToken);
+  if (!email) return null;
+  return ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .first();
 }
 
-export async function getOptionalAuth(ctx: QueryCtx | MutationCtx) {
-  return getUserFromIdentity(ctx);
+// For MUTATIONS: require a valid session. The app-user row is provisioned by
+// authMirror.bootstrap, but provision here too as a safety net.
+export async function requireAuth(
+  ctx: MutationCtx,
+  sessionToken?: string,
+): Promise<Doc<"users">> {
+  const email = await emailFromSessionToken(ctx, sessionToken);
+  if (!email) throw new Error("Unauthorized");
+
+  const existing = await ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .first();
+  if (existing) return existing;
+
+  const now = Date.now();
+  const id = await ctx.db.insert("users", {
+    email,
+    name: email.split("@")[0],
+    emailVerified: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return (await ctx.db.get(id))!;
 }
 
 /**

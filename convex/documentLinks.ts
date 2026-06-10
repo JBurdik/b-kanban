@@ -94,9 +94,10 @@ export const link = mutation({
   args: {
     cardId: v.id("cards"),
     documentId: v.id("documents"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Verify the card exists and user has access
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
@@ -145,9 +146,10 @@ export const unlink = mutation({
   args: {
     cardId: v.id("cards"),
     documentId: v.id("documents"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Verify user has access to the card's board
     const boardId = await getBoardIdFromCard(ctx, args.cardId);

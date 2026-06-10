@@ -17,9 +17,10 @@ export const list = query({
         v.literal("card_updated"),
       )
     ),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) return [];
 
     // Query notifications
@@ -74,9 +75,9 @@ export const list = query({
  * Get unread notification count
  */
 export const unreadCount = query({
-  args: {},
-  handler: async (ctx, _args) => {
-    const user = await getOptionalAuth(ctx);
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) return 0;
 
     const unread = await ctx.db
@@ -94,10 +95,13 @@ export const unreadCount = query({
  * Mark a notification as read
  */
 export const markAsRead = mutation({
-  args: { notificationId: v.id("notifications") },
+  args: { notificationId: v.id("notifications"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) throw new Error("Notification not found");
+    if (notification.userId !== user._id) throw new Error("Access denied");
 
     await ctx.db.patch(args.notificationId, { read: true });
 
@@ -109,9 +113,9 @@ export const markAsRead = mutation({
  * Mark all notifications as read for a user
  */
 export const markAllAsRead = mutation({
-  args: {},
-  handler: async (ctx, _args) => {
-    const user = await requireAuth(ctx);
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const unread = await ctx.db
       .query("notifications")
@@ -276,10 +280,13 @@ export const create = internalMutation({
  * Delete a notification
  */
 export const remove = mutation({
-  args: { notificationId: v.id("notifications") },
+  args: { notificationId: v.id("notifications"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) throw new Error("Notification not found");
+    if (notification.userId !== user._id) throw new Error("Access denied");
 
     await ctx.db.delete(args.notificationId);
 

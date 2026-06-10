@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { NotificationToast } from "@/components/NotificationToast";
 import { AssistantProvider } from "@/contexts/AssistantContext";
 import { AssistantRoot } from "@/components/assistant/AssistantRoot";
+import { useBootstrapSession } from "@/hooks/useBootstrapSession";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -11,6 +12,8 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const { data: session, isPending } = useSession();
+  // Populate the server-side session mirror so Convex auth can resolve us.
+  useBootstrapSession();
 
   // Show loading state
   if (isPending) {

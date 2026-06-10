@@ -11,14 +11,14 @@ export const Route = createFileRoute("/boards/$boardId/htmldocs/")({
 
 function HtmlDocsListPage() {
   const { boardId } = Route.useParams();
-  const { userEmail, isLoading, session } = useConvexUser();
+  const { sessionToken, isLoading, session } = useConvexUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const docs = useQuery(
     api.htmlDocs.list,
-    userEmail ? { boardId: boardId as Id<"boards"> } : "skip",
+    sessionToken ? { boardId: boardId as Id<"boards">, sessionToken } : "skip",
   );
 
   const generateUploadUrl = useMutation(api.htmlDocs.generateUploadUrl);
@@ -47,7 +47,7 @@ function HtmlDocsListPage() {
         if (!isHtml) {
           throw new Error(`"${file.name}" is not an HTML file`);
         }
-        const uploadUrl = await generateUploadUrl({});
+        const uploadUrl = await generateUploadUrl({ sessionToken });
         const res = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": "text/html" },
@@ -62,6 +62,7 @@ function HtmlDocsListPage() {
           fileName: file.name,
           storageId,
           fileSize: file.size,
+          sessionToken,
         });
       }
     } catch (e) {

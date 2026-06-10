@@ -3,6 +3,7 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { FileUpload } from "./FileUpload";
 import { useImageLightbox } from "../ImageLightbox";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 interface Props {
   cardId: Id<"cards">;
@@ -34,10 +35,11 @@ export function AttachmentList({ cardId, readOnly = false }: Props) {
 
   const attachments = useQuery(api.attachments.list, { cardId });
   const deleteAttachment = useMutation(api.attachments.remove);
+  const sessionToken = useSessionToken();
 
   const handleDelete = async (attachmentId: Id<"attachments">, fileName: string) => {
     if (confirm(`Delete ${fileName}?`)) {
-      await deleteAttachment({ attachmentId });
+      await deleteAttachment({ attachmentId, sessionToken });
     }
   };
 

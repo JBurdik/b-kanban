@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useSession } from "@/lib/auth-client";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import { Avatar } from "@/components/Avatar";
 import { CommentEditor } from "./CommentEditor";
 import { CommentReactions } from "./CommentReactions";
@@ -36,6 +37,7 @@ function isHtmlContent(content: string): boolean {
 export function CommentList({ cardId, boardId, readOnly = false }: Props) {
   const { data: session } = useSession();
   const userEmail = session?.user?.email;
+  const sessionToken = useSessionToken();
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<Id<"comments"> | null>(null);
@@ -77,6 +79,7 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
         cardId,
         content: newComment,
         mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
+        sessionToken,
       });
       setNewComment("");
     } catch (err) {
@@ -93,6 +96,7 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
       await updateComment({
         commentId,
         content: editContent,
+        sessionToken,
       });
       setEditingId(null);
       setEditContent("");
@@ -105,7 +109,7 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
     if (!confirm("Delete this comment?")) return;
 
     try {
-      await deleteComment({ commentId });
+      await deleteComment({ commentId, sessionToken });
     } catch (err) {
       console.error("Failed to delete comment:", err);
     }

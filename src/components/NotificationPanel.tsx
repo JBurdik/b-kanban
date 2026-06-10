@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { NotificationItem, type NotificationData, type NotificationType } from "./NotificationItem";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import clsx from "clsx";
 
 interface Props {
@@ -23,10 +24,17 @@ export function NotificationPanel({ onClose }: Props) {
   const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
 
-  const notifications = useQuery(api.notifications.list, {
-    limit: 30,
-    ...(activeFilter !== "all" ? { type: activeFilter } : {}),
-  });
+  const sessionToken = useSessionToken();
+  const notifications = useQuery(
+    api.notifications.list,
+    sessionToken
+      ? {
+          limit: 30,
+          sessionToken,
+          ...(activeFilter !== "all" ? { type: activeFilter } : {}),
+        }
+      : "skip"
+  );
 
   const markAsRead = useMutation(api.notifications.markAsRead);
   const markAllAsRead = useMutation(api.notifications.markAllAsRead);
@@ -114,7 +122,7 @@ export function NotificationPanel({ onClose }: Props) {
           <div className="flex items-center gap-3">
             {hasUnread && (
               <button
-                onClick={() => markAllAsRead({})}
+                onClick={() => markAllAsRead({ sessionToken })}
                 className="text-xs text-accent hover:text-accent/80 transition-colors"
               >
                 Mark all as read
@@ -176,7 +184,7 @@ export function NotificationPanel({ onClose }: Props) {
                 <NotificationItem
                   key={notification._id}
                   notification={notification}
-                  onMarkAsRead={(id) => markAsRead({ notificationId: id })}
+                  onMarkAsRead={(id) => markAsRead({ notificationId: id, sessionToken })}
                   onNavigate={handleClose}
                 />
               ))}

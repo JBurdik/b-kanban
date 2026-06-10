@@ -11,6 +11,7 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { KanbanCard } from "./KanbanCard";
 import { Button } from "@/components/ui/Button";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import type { Card, Column } from "@/lib/types";
 
 interface KanbanColumnWithCards extends Column {
@@ -78,20 +79,21 @@ export function KanbanColumn({
     transition,
   };
 
+  const sessionToken = useSessionToken();
   const updateColumn = useMutation(api.columns.update);
   const deleteColumn = useMutation(api.columns.remove);
   const createCard = useMutation(api.cards.create);
 
   const handleUpdateName = async () => {
     if (name.trim() && name !== column.name) {
-      await updateColumn({ columnId: column._id, name: name.trim() });
+      await updateColumn({ columnId: column._id, name: name.trim(), sessionToken });
     }
     setIsEditing(false);
   };
 
   const handleDelete = async () => {
     if (confirm("Delete this column and all its cards?")) {
-      await deleteColumn({ columnId: column._id });
+      await deleteColumn({ columnId: column._id, sessionToken });
     }
   };
 
@@ -105,6 +107,7 @@ export function KanbanColumn({
         columnId: column._id,
         title: newCardTitle.trim(),
         position: column.cards?.length || 0,
+        sessionToken,
       });
       setShowAddCard(false);
       setNewCardTitle("");

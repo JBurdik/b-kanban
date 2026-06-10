@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 interface Props {
   cardId: Id<"cards">;
@@ -13,13 +14,14 @@ interface Props {
 export function LinkedDocuments({ cardId, boardId, canEdit }: Props) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const sessionToken = useSessionToken();
 
   const linkedDocs = useQuery(api.documentLinks.listByCard, { cardId });
 
   const searchResults = useQuery(
     api.documents.search,
-    isSearching && searchQuery.length > 0
-      ? { boardId, query: searchQuery }
+    isSearching && searchQuery.length > 0 && sessionToken
+      ? { boardId, query: searchQuery, sessionToken }
       : "skip"
   );
 
@@ -28,7 +30,7 @@ export function LinkedDocuments({ cardId, boardId, canEdit }: Props) {
 
   const handleLink = async (documentId: Id<"documents">) => {
     try {
-      await linkDocument({ cardId, documentId });
+      await linkDocument({ cardId, documentId, sessionToken });
       setIsSearching(false);
       setSearchQuery("");
     } catch (error) {
@@ -38,7 +40,7 @@ export function LinkedDocuments({ cardId, boardId, canEdit }: Props) {
 
   const handleUnlink = async (documentId: Id<"documents">) => {
     try {
-      await unlinkDocument({ cardId, documentId });
+      await unlinkDocument({ cardId, documentId, sessionToken });
     } catch (error) {
       console.error("Failed to unlink document:", error);
     }

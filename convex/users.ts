@@ -94,9 +94,10 @@ export const updateProfile = mutation({
   args: {
     name: v.optional(v.string()),
     image: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
@@ -112,9 +113,9 @@ export const updateProfile = mutation({
  * Generate upload URL for avatar image
  */
 export const generateAvatarUploadUrl = mutation({
-  args: {},
-  handler: async (ctx, _args) => {
-    await requireAuth(ctx);
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.sessionToken);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -125,9 +126,10 @@ export const generateAvatarUploadUrl = mutation({
 export const saveAvatar = mutation({
   args: {
     storageId: v.id("_storage"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Delete old avatar if exists
     if (user.image) {
@@ -159,9 +161,9 @@ export const saveAvatar = mutation({
  * Remove custom avatar (revert to generated)
  */
 export const removeAvatar = mutation({
-  args: {},
-  handler: async (ctx, _args) => {
-    const user = await requireAuth(ctx);
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Delete from storage if exists
     if (user.image) {
@@ -190,9 +192,9 @@ export const removeAvatar = mutation({
  * Delete user account
  */
 export const deleteAccount = mutation({
-  args: {},
-  handler: async (ctx, _args) => {
-    const user = await requireAuth(ctx);
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Get all board memberships
     const memberships = await ctx.db

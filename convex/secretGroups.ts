@@ -11,9 +11,10 @@ const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
 export const list = query({
   args: {
     boardId: v.id("boards"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx);
+    const user = await getOptionalAuth(ctx, args.sessionToken);
     if (!user) {
       return [];
     }
@@ -47,9 +48,10 @@ export const create = mutation({
     boardId: v.id("boards"),
     name: v.string(),
     color: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     // Check board access (admin or owner)
     const member = await ctx.db
@@ -98,9 +100,10 @@ export const update = mutation({
     groupId: v.id("secretGroups"),
     name: v.optional(v.string()),
     color: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const group = await ctx.db.get(args.groupId);
     if (!group) {
@@ -157,9 +160,10 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     groupId: v.id("secretGroups"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireAuth(ctx, args.sessionToken);
 
     const group = await ctx.db.get(args.groupId);
     if (!group) {

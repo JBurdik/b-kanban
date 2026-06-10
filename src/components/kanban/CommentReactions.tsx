@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useSessionToken } from "@/hooks/useSessionToken";
 
 const EMOJI_OPTIONS = ["👍", "👎", "❤️", "😄", "🎉", "👀", "✅"];
 
@@ -21,6 +22,7 @@ export function CommentReactions({ commentId, currentUserId }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
+  const sessionToken = useSessionToken();
   const reactions = useQuery(api.commentReactions.listByComment, { commentId });
   const toggleReaction = useMutation(api.commentReactions.toggle);
 
@@ -68,7 +70,7 @@ export function CommentReactions({ commentId, currentUserId }: Props) {
 
   const handleToggle = (emoji: string) => {
     if (!currentUserId) return;
-    toggleReaction({ commentId, emoji });
+    toggleReaction({ commentId, emoji, sessionToken });
     setPickerOpen(false);
   };
 

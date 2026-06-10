@@ -10,9 +10,10 @@ export const heartbeat = mutation({
   args: {
     boardId: v.id("boards"),
     activeCardId: v.optional(v.id("cards")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx);
+    const authUser = await getOptionalAuth(ctx, args.sessionToken);
     if (!authUser) return;
     const userId = authUser._id as unknown as Id<"users">;
     const now = Date.now();
@@ -47,9 +48,10 @@ export const heartbeat = mutation({
 export const leave = mutation({
   args: {
     boardId: v.id("boards"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx);
+    const authUser = await getOptionalAuth(ctx, args.sessionToken);
     if (!authUser) return;
     const userId = authUser._id as unknown as Id<"users">;
 

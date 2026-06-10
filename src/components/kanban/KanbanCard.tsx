@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { stripHtml, formatDate } from "@/utils/formatting";
 import type { Card } from "@/lib/types";
 import { VersionBadge } from "@/components/ui/VersionBadge";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import clsx from "clsx";
 
 interface Props {
@@ -58,6 +59,7 @@ export function KanbanCard({
   };
 
   const deleteCard = useMutation(api.cards.remove);
+  const sessionToken = useSessionToken();
 
   // Find label with applyToCardBg for background styling
   const bgLabel = useMemo(() => {
@@ -72,7 +74,7 @@ export function KanbanCard({
   const handleConfirmDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteCard({ cardId: card._id });
+      await deleteCard({ cardId: card._id, sessionToken });
       setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);

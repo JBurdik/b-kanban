@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useSessionToken } from "@/hooks/useSessionToken";
 import clsx from "clsx";
 
 const VERSION_COLORS = [
@@ -29,31 +30,32 @@ export function VersionManager({ boardId, onClose }: Props) {
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
 
-  const versions = useQuery(api.versions.list, { boardId });
+  const sessionToken = useSessionToken();
+  const versions = useQuery(api.versions.list, sessionToken ? { boardId, sessionToken } : "skip");
   const createVersion = useMutation(api.versions.create);
   const updateVersion = useMutation(api.versions.update);
   const removeVersion = useMutation(api.versions.remove);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
-    await createVersion({ boardId, name: name.trim(), color });
+    await createVersion({ boardId, name: name.trim(), color, sessionToken });
     setName("");
     setColor(VERSION_COLORS[(versions?.length ?? 0) % VERSION_COLORS.length]);
   };
 
   const handleUpdate = async () => {
     if (!editingId || !editName.trim()) return;
-    await updateVersion({ versionId: editingId, name: editName.trim(), color: editColor });
+    await updateVersion({ versionId: editingId, name: editName.trim(), color: editColor, sessionToken });
     setEditingId(null);
   };
 
   const handleDelete = async (versionId: Id<"versions">) => {
     if (!confirm("Delete this version? It will be removed from all cards.")) return;
-    await removeVersion({ versionId });
+    await removeVersion({ versionId, sessionToken });
   };
 
   const handleToggleActive = async (versionId: Id<"versions">, isActive: boolean) => {
-    await updateVersion({ versionId, isActive: !isActive });
+    await updateVersion({ versionId, isActive: !isActive, sessionToken });
   };
 
   return (

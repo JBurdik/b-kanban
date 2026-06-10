@@ -1,6 +1,6 @@
 [package]
 name = "bproductive"
-version = "1.0.0"
+version = "1.0.1"
 description = "B Productive"
 authors = ["Jiří Burdych"]
 edition = "2021"

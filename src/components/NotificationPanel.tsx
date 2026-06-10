@@ -6,7 +6,6 @@ import { NotificationItem, type NotificationData, type NotificationType } from "
 import clsx from "clsx";
 
 interface Props {
-  userEmail: string;
   onClose: () => void;
 }
 
@@ -18,14 +17,13 @@ const filterOptions: { label: string; value: NotificationType | "all" }[] = [
   { label: "Updates", value: "card_updated" },
 ];
 
-export function NotificationPanel({ userEmail, onClose }: Props) {
+export function NotificationPanel({ onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [activeFilter, setActiveFilter] = useState<NotificationType | "all">("all");
   const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
 
   const notifications = useQuery(api.notifications.list, {
-    userEmail,
     limit: 30,
     ...(activeFilter !== "all" ? { type: activeFilter } : {}),
   });
@@ -116,7 +114,7 @@ export function NotificationPanel({ userEmail, onClose }: Props) {
           <div className="flex items-center gap-3">
             {hasUnread && (
               <button
-                onClick={() => markAllAsRead({ userEmail })}
+                onClick={() => markAllAsRead({})}
                 className="text-xs text-accent hover:text-accent/80 transition-colors"
               >
                 Mark all as read

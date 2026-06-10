@@ -75,7 +75,6 @@ export function CardModal({ card, boardId, columns, members = [], userEmail, use
         await updateCard({
           cardId: card._id,
           ...dirtyFields,
-          currentUserEmail: userEmail,
         });
         markSaved();
       } finally {
@@ -88,7 +87,7 @@ export function CardModal({ card, boardId, columns, members = [], userEmail, use
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [values, hasChanges, getDirtyFields, card._id, updateCard, userEmail, markSaved]);
+  }, [values, hasChanges, getDirtyFields, card._id, updateCard, markSaved]);
 
   const handleDelete = async () => {
     setIsDeleting(true);

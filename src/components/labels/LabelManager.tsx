@@ -10,11 +10,10 @@ import type { Label } from "@/lib/types";
 
 interface Props {
   boardId: Id<"boards">;
-  userEmail?: string;
   onClose: () => void;
 }
 
-export function LabelManager({ boardId, userEmail, onClose }: Props) {
+export function LabelManager({ boardId, onClose }: Props) {
   const [editingLabel, setEditingLabel] = useState<Label | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [labelToDelete, setLabelToDelete] = useState<Label | null>(null);
@@ -24,7 +23,7 @@ export function LabelManager({ boardId, userEmail, onClose }: Props) {
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [applyToCardBg, setApplyToCardBg] = useState(false);
 
-  const labels = useQuery(api.labels.list, { boardId, userEmail });
+  const labels = useQuery(api.labels.list, { boardId });
   const createLabel = useMutation(api.labels.create);
   const updateLabel = useMutation(api.labels.update);
   const deleteLabel = useMutation(api.labels.remove);
@@ -56,8 +55,6 @@ export function LabelManager({ boardId, userEmail, onClose }: Props) {
   const handleSave = async () => {
     const selectedColor = LABEL_COLORS[selectedColorIndex];
 
-    if (!userEmail) return;
-
     if (editingLabel) {
       await updateLabel({
         labelId: editingLabel._id,
@@ -65,7 +62,6 @@ export function LabelManager({ boardId, userEmail, onClose }: Props) {
         color: selectedColor.bg,
         textColor: selectedColor.text,
         applyToCardBg,
-        userEmail,
       });
     } else {
       await createLabel({
@@ -74,15 +70,14 @@ export function LabelManager({ boardId, userEmail, onClose }: Props) {
         color: selectedColor.bg,
         textColor: selectedColor.text,
         applyToCardBg,
-        userEmail,
       });
     }
     resetForm();
   };
 
   const handleDelete = async () => {
-    if (labelToDelete && userEmail) {
-      await deleteLabel({ labelId: labelToDelete._id, userEmail });
+    if (labelToDelete) {
+      await deleteLabel({ labelId: labelToDelete._id });
       setLabelToDelete(null);
       resetForm();
     }

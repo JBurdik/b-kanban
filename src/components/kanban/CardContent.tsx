@@ -17,7 +17,6 @@ interface Props {
   title: string;
   content: string;
   canEdit: boolean;
-  userEmail?: string;
   onTitleChange: (title: string) => void;
   onContentChange: (content: string) => void;
   onMentionSearch: (query: string) => Promise<MentionUser[]>;
@@ -30,13 +29,12 @@ export function CardContent({
   title,
   content,
   canEdit,
-  userEmail,
   onTitleChange,
   onContentChange,
   onMentionSearch,
   onBlur,
 }: Props) {
-  const { onImageUpload } = useEditorImageUpload(userEmail);
+  const { onImageUpload } = useEditorImageUpload();
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -86,7 +84,7 @@ export function CardContent({
       {/* Comments */}
       <div>
         <SectionHeader icon="comment">Comments</SectionHeader>
-        <CommentList cardId={cardId} boardId={boardId} userEmail={userEmail} readOnly={!canEdit} />
+        <CommentList cardId={cardId} boardId={boardId} readOnly={!canEdit} />
       </div>
     </div>
   );

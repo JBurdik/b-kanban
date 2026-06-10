@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
@@ -45,8 +45,15 @@ function describeContentDiff(oldHtml?: string, newHtml?: string): string {
 export const get = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
+
+    const column = await ctx.db.get(card.columnId);
+    if (!column) throw new Error("Column not found");
+    await requireBoardAccess(ctx, userId, column.boardId, "member");
 
     // Get assignee info
     let assignee = null;
@@ -102,6 +109,11 @@ export const getBySlug = query({
     boardId: v.id("boards"),
   },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    await requireBoardAccess(ctx, userId, args.boardId, "member");
+
     // Find card by slug
     const card = await ctx.db
       .query("cards")
@@ -186,13 +198,16 @@ export const create = mutation({
     versionId: v.optional(v.id("versions")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
-    userEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const column = await ctx.db.get(args.columnId);
     if (!column) throw new Error("Column not found");
 
     const boardId = column.boardId;
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     // Get board and increment counter
     const board = await ctx.db.get(boardId);
@@ -214,18 +229,6 @@ export const create = mutation({
       position = cards.length;
     }
 
-    // Resolve reporter from email
-    let reporterId: Id<"users"> | undefined;
-    if (args.userEmail) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
-        .first();
-      if (user) {
-        reporterId = user._id;
-      }
-    }
-
     const now = Date.now();
 
     const cardId = await ctx.db.insert("cards", {
@@ -240,7 +243,7 @@ export const create = mutation({
       versionId: args.versionId,
       dueDate: args.dueDate,
       effort: args.effort,
-      reporterId,
+      reporterId: userId,
       createdAt: now,
       updatedAt: now,
     });
@@ -273,11 +276,17 @@ export const update = mutation({
     versionId: v.optional(v.union(v.id("versions"), v.null())),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
-    currentUserEmail: v.optional(v.string()), // For notification triggers
   },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardId);
+    if (!boardId) throw new Error("Board not found");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     const oldAssigneeId = card.assigneeId;
 
@@ -331,74 +340,65 @@ export const update = mutation({
       });
     }
 
-    // Trigger notifications
-    if (args.currentUserEmail) {
-      const currentUser = await ctx.db
-        .query("users")
-        .withIndex("by_email", (q) => q.eq("email", args.currentUserEmail!))
-        .first();
+    // Trigger notifications using the authenticated user
+    // Notification for new assignment
+    if (args.assigneeId && args.assigneeId !== oldAssigneeId) {
+      await ctx.scheduler.runAfter(0, internal.notifications.create, {
+        userId: args.assigneeId,
+        type: "assigned",
+        cardId: args.cardId,
+        fromUserId: userId,
+        message: `You were assigned to "${card.title}"`,
+      });
+    }
 
-      if (currentUser) {
-        // Notification for new assignment
-        if (args.assigneeId && args.assigneeId !== oldAssigneeId) {
-          await ctx.scheduler.runAfter(0, internal.notifications.create, {
-            userId: args.assigneeId,
-            type: "assigned",
-            cardId: args.cardId,
-            fromUserId: currentUser._id,
-            message: `You were assigned to "${card.title}"`,
-          });
-        }
+    // Notification for card update to assignee (if different from updater)
+    if (card.assigneeId && card.assigneeId !== userId) {
+      // Build a human-readable list of what actually changed
+      const changes: string[] = [];
 
-        // Notification for card update to assignee (if different from updater)
-        if (card.assigneeId && card.assigneeId !== currentUser._id) {
-          // Build a human-readable list of what actually changed
-          const changes: string[] = [];
+      if (args.title !== undefined && args.title !== card.title) {
+        changes.push(`renamed to "${args.title}"`);
+      }
+      if (args.columnId !== undefined && args.columnId !== card.columnId) {
+        const newColumn = await ctx.db.get(args.columnId);
+        changes.push(`moved to ${newColumn ? newColumn.name : "another column"}`);
+      }
+      if (args.priority !== undefined) {
+        const oldP = card.priority ?? "none";
+        const newP = args.priority ?? "none";
+        if (oldP !== newP) changes.push(`priority ${oldP} → ${newP}`);
+      }
+      if (args.type !== undefined) {
+        const oldT = card.type ?? "none";
+        const newT = args.type ?? "none";
+        if (oldT !== newT) changes.push(`type ${oldT} → ${newT}`);
+      }
+      if (args.dueDate !== undefined && args.dueDate !== card.dueDate) {
+        changes.push(
+          args.dueDate
+            ? `due date set to ${new Date(args.dueDate).toLocaleDateString()}`
+            : "due date cleared",
+        );
+      }
+      if (args.effort !== undefined && args.effort !== card.effort) {
+        changes.push(`effort ${card.effort ?? "none"} → ${args.effort ?? "none"}`);
+      }
+      if (args.content !== undefined && args.content !== card.content) {
+        const diff = describeContentDiff(card.content, args.content);
+        changes.push(diff);
+      }
 
-          if (args.title !== undefined && args.title !== card.title) {
-            changes.push(`renamed to "${args.title}"`);
-          }
-          if (args.columnId !== undefined && args.columnId !== card.columnId) {
-            const newColumn = await ctx.db.get(args.columnId);
-            changes.push(`moved to ${newColumn ? newColumn.name : "another column"}`);
-          }
-          if (args.priority !== undefined) {
-            const oldP = card.priority ?? "none";
-            const newP = args.priority ?? "none";
-            if (oldP !== newP) changes.push(`priority ${oldP} → ${newP}`);
-          }
-          if (args.type !== undefined) {
-            const oldT = card.type ?? "none";
-            const newT = args.type ?? "none";
-            if (oldT !== newT) changes.push(`type ${oldT} → ${newT}`);
-          }
-          if (args.dueDate !== undefined && args.dueDate !== card.dueDate) {
-            changes.push(
-              args.dueDate
-                ? `due date set to ${new Date(args.dueDate).toLocaleDateString()}`
-                : "due date cleared",
-            );
-          }
-          if (args.effort !== undefined && args.effort !== card.effort) {
-            changes.push(`effort ${card.effort ?? "none"} → ${args.effort ?? "none"}`);
-          }
-          if (args.content !== undefined && args.content !== card.content) {
-            const diff = describeContentDiff(card.content, args.content);
-            changes.push(diff);
-          }
-
-          if (changes.length > 0) {
-            const summary = changes.join(", ");
-            const message = `"${card.title}": ${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
-            await ctx.scheduler.runAfter(0, internal.notifications.create, {
-              userId: card.assigneeId,
-              type: "card_updated",
-              cardId: args.cardId,
-              fromUserId: currentUser._id,
-              message,
-            });
-          }
-        }
+      if (changes.length > 0) {
+        const summary = changes.join(", ");
+        const message = `"${card.title}": ${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
+        await ctx.scheduler.runAfter(0, internal.notifications.create, {
+          userId: card.assigneeId,
+          type: "card_updated",
+          cardId: args.cardId,
+          fromUserId: userId,
+          message,
+        });
       }
     }
 
@@ -412,8 +412,14 @@ export const update = mutation({
 export const remove = mutation({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardId);
+    if (boardId) await requireBoardAccess(ctx, userId, boardId, "member");
 
     await ctx.db.patch(args.cardId, {
       isArchived: true,
@@ -441,9 +447,15 @@ export const remove = mutation({
 export const restore = mutation({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
     if (!card.isArchived) throw new Error("Card is not archived");
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardId);
+    if (boardId) await requireBoardAccess(ctx, userId, boardId, "member");
 
     // Get max position in the original column to place card at the end
     const cardsInColumn = await ctx.db
@@ -473,9 +485,15 @@ export const restore = mutation({
 export const permanentDelete = mutation({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
     if (!card.isArchived) throw new Error("Only archived cards can be permanently deleted");
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardId);
+    if (boardId) await requireBoardAccess(ctx, userId, boardId, "member");
 
     // Delete attachments
     const attachments = await ctx.db
@@ -560,6 +578,10 @@ export const permanentDelete = mutation({
 export const listArchived = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+    await requireBoardAccess(ctx, userId, args.boardId, "member");
+
     // Get all columns for this board
     const columns = await ctx.db
       .query("columns")
@@ -633,8 +655,15 @@ export const move = mutation({
     position: v.number(),
   },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardId);
+    if (!boardId) throw new Error("Board not found");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     await ctx.db.patch(args.cardId, {
       columnId: args.columnId,
@@ -662,6 +691,13 @@ export const reorder = mutation({
   handler: async (ctx, args) => {
     if (args.items.length === 0) return { success: true };
 
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    const boardId = await getBoardIdFromCard(ctx, args.items[0].id);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, userId, boardId, "member");
+
     for (const item of args.items) {
       await ctx.db.patch(item.id, {
         columnId: item.columnId,
@@ -679,22 +715,16 @@ export const reorder = mutation({
  */
 export const getMyTasks = query({
   args: {
-    userEmail: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Get user
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) return { tasks: [], stats: { total: 0, myTasks: 0, unassigned: 0, highPriority: 0 } };
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Get user's board memberships
     const memberships = await ctx.db
       .query("boardMembers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     const boardIds = memberships.map((m) => m.boardId);
@@ -720,7 +750,7 @@ export const getMyTasks = query({
     }
 
     // Calculate stats
-    const myTasks = allCards.filter((c) => c.assigneeId === user._id);
+    const myTasks = allCards.filter((c) => c.assigneeId === userId);
     const unassigned = allCards.filter((c) => !c.assigneeId);
     const highPriority = allCards.filter((c) => c.priority === "high");
 
@@ -933,5 +963,378 @@ export const bulkSetVersion = mutation({
     }
 
     return { success: true };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Internal variants for MCP server (already authenticated via API key)
+// ---------------------------------------------------------------------------
+
+/**
+ * Get a card by slug and board ID — no auth check (MCP already authenticated)
+ */
+export const getBySlugForMcp = internalQuery({
+  args: {
+    boardId: v.id("boards"),
+    slug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const card = await ctx.db
+      .query("cards")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+
+    if (!card) return null;
+
+    const column = await ctx.db.get(card.columnId);
+    if (!column || column.boardId !== args.boardId) return null;
+
+    let assignee = null;
+    if (card.assigneeId) {
+      const assigneeUser = await ctx.db.get(card.assigneeId);
+      if (assigneeUser) {
+        assignee = {
+          id: assigneeUser._id,
+          name: assigneeUser.name,
+          email: assigneeUser.email,
+          image: assigneeUser.image,
+        };
+      }
+    }
+
+    const attachments = await ctx.db
+      .query("attachments")
+      .withIndex("by_card", (q) => q.eq("cardId", card._id))
+      .collect();
+
+    const attachmentsWithUrls = await Promise.all(
+      attachments.map(async (att) => ({
+        ...att,
+        url: await ctx.storage.getUrl(att.storageId),
+      }))
+    );
+
+    const columnInfo = {
+      id: column._id,
+      name: column.name,
+    };
+
+    let reporter = null;
+    if (card.reporterId) {
+      const reporterUser = await ctx.db.get(card.reporterId);
+      if (reporterUser) {
+        reporter = {
+          id: reporterUser._id,
+          name: reporterUser.name,
+          email: reporterUser.email,
+          image: reporterUser.image,
+        };
+      }
+    }
+
+    return {
+      ...card,
+      assignee,
+      reporter,
+      attachments: attachmentsWithUrls,
+      column: columnInfo,
+    };
+  },
+});
+
+/**
+ * Create a card with reporter resolved from email — for MCP server use
+ */
+export const createByEmail = internalMutation({
+  args: {
+    columnId: v.id("columns"),
+    title: v.string(),
+    content: v.optional(v.string()),
+    position: v.optional(v.number()),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+    type: v.optional(v.union(v.literal("task"), v.literal("bug"))),
+    assigneeId: v.optional(v.id("users")),
+    versionId: v.optional(v.id("versions")),
+    dueDate: v.optional(v.number()),
+    effort: v.optional(v.number()),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const column = await ctx.db.get(args.columnId);
+    if (!column) throw new Error("Column not found");
+
+    const boardId = column.boardId;
+
+    const board = await ctx.db.get(boardId);
+    if (!board) throw new Error("Board not found");
+
+    const newCounter = (board.cardCounter || 0) + 1;
+    const slug = `${board.slugPrefix}-${newCounter}`;
+
+    await ctx.db.patch(boardId, { cardCounter: newCounter });
+
+    let position = args.position;
+    if (position === undefined) {
+      const cards = await ctx.db
+        .query("cards")
+        .withIndex("by_column", (q) => q.eq("columnId", args.columnId))
+        .collect();
+      position = cards.length;
+    }
+
+    // Resolve reporter from email
+    let reporterId: Id<"users"> | undefined;
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (user) {
+      reporterId = user._id;
+    }
+
+    const now = Date.now();
+
+    const cardId = await ctx.db.insert("cards", {
+      columnId: args.columnId,
+      slug,
+      title: args.title,
+      content: args.content,
+      position,
+      priority: args.priority ?? "medium",
+      type: args.type ?? "task",
+      assigneeId: args.assigneeId,
+      versionId: args.versionId,
+      dueDate: args.dueDate,
+      effort: args.effort,
+      reporterId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
+      boardId,
+      event: "card.created",
+      data: { cardId, slug, title: args.title, columnId: args.columnId },
+    });
+
+    return cardId;
+  },
+});
+
+/**
+ * Update a card with current user resolved from email — for MCP server use
+ */
+export const updateByEmail = internalMutation({
+  args: {
+    cardId: v.id("cards"),
+    columnId: v.optional(v.id("columns")),
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
+    position: v.optional(v.number()),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.null())),
+    type: v.optional(v.union(v.literal("task"), v.literal("bug"), v.null())),
+    assigneeId: v.optional(v.union(v.id("users"), v.null())),
+    reporterId: v.optional(v.union(v.id("users"), v.null())),
+    versionId: v.optional(v.union(v.id("versions"), v.null())),
+    dueDate: v.optional(v.number()),
+    effort: v.optional(v.number()),
+    currentUserEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
+
+    const oldAssigneeId = card.assigneeId;
+
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
+    if (args.columnId !== undefined) updates.columnId = args.columnId;
+    if (args.title !== undefined) updates.title = args.title;
+    if (args.content !== undefined) updates.content = args.content;
+    if (args.position !== undefined) updates.position = args.position;
+    if (args.priority === null) {
+      updates.priority = undefined;
+    } else if (args.priority !== undefined) {
+      updates.priority = args.priority;
+    }
+    if (args.type === null) {
+      updates.type = undefined;
+    } else if (args.type !== undefined) {
+      updates.type = args.type;
+    }
+    if (args.assigneeId === null) {
+      updates.assigneeId = undefined;
+    } else if (args.assigneeId !== undefined) {
+      updates.assigneeId = args.assigneeId;
+    }
+    if (args.reporterId === null) {
+      updates.reporterId = undefined;
+    } else if (args.reporterId !== undefined) {
+      updates.reporterId = args.reporterId;
+    }
+    if (args.versionId === null) {
+      updates.versionId = undefined;
+    } else if (args.versionId !== undefined) {
+      updates.versionId = args.versionId;
+    }
+    if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
+    if (args.effort !== undefined) updates.effort = args.effort;
+
+    await ctx.db.patch(args.cardId, updates);
+
+    // Dispatch webhook
+    const column = await ctx.db.get(card.columnId);
+    if (column) {
+      await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
+        boardId: column.boardId,
+        event: "card.updated",
+        data: { cardId: args.cardId, title: card.title, updates: Object.keys(updates) },
+      });
+    }
+
+    // Resolve current user from email for notifications
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.currentUserEmail))
+      .first();
+
+    if (currentUser) {
+      if (args.assigneeId && args.assigneeId !== oldAssigneeId) {
+        await ctx.scheduler.runAfter(0, internal.notifications.create, {
+          userId: args.assigneeId,
+          type: "assigned",
+          cardId: args.cardId,
+          fromUserId: currentUser._id,
+          message: `You were assigned to "${card.title}"`,
+        });
+      }
+
+      if (card.assigneeId && card.assigneeId !== currentUser._id) {
+        const changes: string[] = [];
+
+        if (args.title !== undefined && args.title !== card.title) {
+          changes.push(`renamed to "${args.title}"`);
+        }
+        if (args.columnId !== undefined && args.columnId !== card.columnId) {
+          const newColumn = await ctx.db.get(args.columnId);
+          changes.push(`moved to ${newColumn ? newColumn.name : "another column"}`);
+        }
+        if (args.priority !== undefined) {
+          const oldP = card.priority ?? "none";
+          const newP = args.priority ?? "none";
+          if (oldP !== newP) changes.push(`priority ${oldP} → ${newP}`);
+        }
+        if (args.type !== undefined) {
+          const oldT = card.type ?? "none";
+          const newT = args.type ?? "none";
+          if (oldT !== newT) changes.push(`type ${oldT} → ${newT}`);
+        }
+        if (args.dueDate !== undefined && args.dueDate !== card.dueDate) {
+          changes.push(
+            args.dueDate
+              ? `due date set to ${new Date(args.dueDate).toLocaleDateString()}`
+              : "due date cleared",
+          );
+        }
+        if (args.effort !== undefined && args.effort !== card.effort) {
+          changes.push(`effort ${card.effort ?? "none"} → ${args.effort ?? "none"}`);
+        }
+        if (args.content !== undefined && args.content !== card.content) {
+          const diff = describeContentDiff(card.content, args.content);
+          changes.push(diff);
+        }
+
+        if (changes.length > 0) {
+          const summary = changes.join(", ");
+          const message = `"${card.title}": ${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
+          await ctx.scheduler.runAfter(0, internal.notifications.create, {
+            userId: card.assigneeId,
+            type: "card_updated",
+            cardId: args.cardId,
+            fromUserId: currentUser._id,
+            message,
+          });
+        }
+      }
+    }
+
+    return args.cardId;
+  },
+});
+
+/**
+ * Get tasks for a user identified by email — for MCP server use
+ */
+export const getMyTasksByEmail = internalQuery({
+  args: {
+    userEmail: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) return { tasks: [], stats: { total: 0, myTasks: 0, unassigned: 0, highPriority: 0 } };
+
+    const memberships = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const boardIds = memberships.map((m) => m.boardId);
+
+    const allColumns = [];
+    for (const boardId of boardIds) {
+      const columns = await ctx.db
+        .query("columns")
+        .withIndex("by_board", (q) => q.eq("boardId", boardId))
+        .collect();
+      allColumns.push(...columns);
+    }
+
+    const allCards = [];
+    for (const column of allColumns) {
+      const cards = await ctx.db
+        .query("cards")
+        .withIndex("by_column", (q) => q.eq("columnId", column._id))
+        .collect();
+      allCards.push(...cards.map((c) => ({ ...c, column })));
+    }
+
+    const myTasks = allCards.filter((c) => c.assigneeId === user._id);
+    const unassigned = allCards.filter((c) => !c.assigneeId);
+    const highPriority = allCards.filter((c) => c.priority === "high");
+
+    const recentTasks = myTasks
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      .slice(0, args.limit || 5);
+
+    const tasksWithInfo = await Promise.all(
+      recentTasks.map(async (card) => {
+        const board = await ctx.db.get(card.column.boardId);
+        return {
+          _id: card._id,
+          slug: card.slug,
+          title: card.title,
+          priority: card.priority,
+          dueDate: card.dueDate,
+          updatedAt: card.updatedAt,
+          columnName: card.column.name,
+          boardId: card.column.boardId,
+          boardName: board?.name || "Unknown",
+        };
+      })
+    );
+
+    return {
+      tasks: tasksWithInfo,
+      stats: {
+        total: allCards.length,
+        myTasks: myTasks.length,
+        unassigned: unassigned.length,
+        highPriority: highPriority.length,
+      },
+    };
   },
 });

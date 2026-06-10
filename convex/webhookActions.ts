@@ -1,14 +1,40 @@
 "use node";
 
 import { v } from "convex/values";
-import { action, internalAction } from "./_generated/server";
+import { internalAction, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { createHmac } from "crypto";
+import { requireAuth } from "./lib/rbac";
 
 /**
- * Test a webhook by sending a test payload
+ * Public entry point: authenticate the caller, verify board membership, then
+ * schedule the internal test action.  The frontend calls this via
+ * useAction(api.webhookActions.test).
  */
-export const test = action({
+export const test = mutation({
+  args: { webhookId: v.id("webhooks") },
+  handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    // verifyWebhookAccess throws if the webhook is missing or the user is not
+    // a board member, so it doubles as the existence check.
+    await ctx.runQuery(internal.webhooks.verifyWebhookAccess, {
+      webhookId: args.webhookId,
+      userId,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.webhookActions.testAction, {
+      webhookId: args.webhookId,
+    });
+  },
+});
+
+/**
+ * Internal action: send a test payload to the webhook URL.
+ */
+export const testAction = internalAction({
   args: { webhookId: v.id("webhooks") },
   handler: async (ctx, args) => {
     const webhook = await ctx.runQuery(internal.webhooks.getInternal, {

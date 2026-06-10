@@ -34,10 +34,9 @@ interface Board {
 interface Props {
   card: CardWithColumn;
   board: Board;
-  userEmail?: string;
 }
 
-export function CardDetailPage({ card, board, userEmail }: Props) {
+export function CardDetailPage({ card, board }: Props) {
   const [isSaving, setIsSaving] = useState(false);
 
   const updateCard = useMutation(api.cards.update);
@@ -47,7 +46,6 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
   });
   const boardVersions = useQuery(api.versions.list, {
     boardId: board._id,
-    userEmail,
   });
 
   const canEdit = checkCanEdit(board.userRole);
@@ -92,7 +90,6 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
         await updateCard({
           cardId: card._id,
           ...dirtyFields,
-          currentUserEmail: userEmail,
         });
         markSaved();
       } finally {
@@ -105,7 +102,7 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [values, hasChanges, getDirtyFields, card._id, updateCard, userEmail, markSaved]);
+  }, [values, hasChanges, getDirtyFields, card._id, updateCard, markSaved]);
 
   // Mention search callback
   const handleMentionSearch = useCallback(
@@ -158,7 +155,6 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
           title={values.title}
           content={values.content}
           canEdit={canEdit}
-          userEmail={userEmail}
           onTitleChange={(v) => setField("title", v)}
           onContentChange={(v) => setField("content", v)}
           onMentionSearch={handleMentionSearch}
@@ -187,7 +183,6 @@ export function CardDetailPage({ card, board, userEmail }: Props) {
           onEffortChange={(v) => setField("effort", v)}
           cardId={card._id}
           cardTitle={values.title}
-          userEmail={userEmail}
           boardId={board._id}
         />
       </div>

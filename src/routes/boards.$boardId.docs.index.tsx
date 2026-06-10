@@ -11,13 +11,13 @@ export const Route = createFileRoute("/boards/$boardId/docs/")({
 
 function DocumentsListPage() {
   const { boardId } = Route.useParams();
-  const { userEmail, isLoading, session } = useConvexUser();
+  const { isLoading, session } = useConvexUser();
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
 
   const documents = useQuery(
     api.documents.list,
-    userEmail ? { boardId: boardId as Id<"boards">, userEmail } : "skip"
+    { boardId: boardId as Id<"boards"> }
   );
 
   const createDocument = useMutation(api.documents.create);
@@ -35,13 +35,12 @@ function DocumentsListPage() {
   }
 
   const handleCreate = async () => {
-    if (!newTitle.trim() || !userEmail) return;
+    if (!newTitle.trim()) return;
 
     try {
       const docId = await createDocument({
         boardId: boardId as Id<"boards">,
         title: newTitle.trim(),
-        userEmail,
       });
       setNewTitle("");
       setIsCreating(false);

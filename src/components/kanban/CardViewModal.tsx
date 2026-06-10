@@ -50,7 +50,7 @@ export function CardViewModal({ card, boardId, columns, members = [], userEmail,
     setCurrentColumnId(newColumnId);
     setIsUpdating(true);
     try {
-      await updateCard({ cardId: card._id, columnId: newColumnId, currentUserEmail: userEmail });
+      await updateCard({ cardId: card._id, columnId: newColumnId });
     } finally {
       setIsUpdating(false);
     }

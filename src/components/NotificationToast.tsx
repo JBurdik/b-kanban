@@ -24,18 +24,14 @@ interface Toast {
   type: string;
 }
 
-interface Props {
-  userEmail?: string;
-}
-
-export function NotificationToast({ userEmail }: Props) {
+export function NotificationToast() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const initialLoadRef = useRef(true);
 
   const notifications = useQuery(
     api.notifications.list,
-    userEmail ? { userEmail, limit: 5, unreadOnly: true } : "skip"
+    { limit: 5, unreadOnly: true }
   );
 
   // Detect new notifications and show toasts

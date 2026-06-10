@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useConvexUser } from "@/hooks/useConvexUser";
 
 interface Props {
   cardId: Id<"cards">;
@@ -13,17 +12,14 @@ export function FileUpload({ cardId }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { userEmail } = useConvexUser();
 
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
   const saveAttachment = useMutation(api.attachments.saveAttachment);
 
   const uploadFile = async (file: File) => {
     try {
-      if (!userEmail) throw new Error("Not authenticated");
-
       // Get upload URL from Convex
-      const uploadUrl = await generateUploadUrl({ userEmail });
+      const uploadUrl = await generateUploadUrl({});
 
       // Upload file to Convex storage
       const result = await fetch(uploadUrl, {
@@ -45,7 +41,6 @@ export function FileUpload({ cardId }: Props) {
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",
-        userEmail,
       });
     } catch (err) {
       throw err instanceof Error ? err : new Error("Upload failed");

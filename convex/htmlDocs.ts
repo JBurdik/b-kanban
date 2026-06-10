@@ -1,12 +1,20 @@
 import { v } from "convex/values";
-import { query, mutation, action } from "./_generated/server";
+import {
+  query,
+  mutation,
+  action,
+  internalQuery,
+  internalMutation,
+  internalAction,
+} from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { requireAuth } from "./lib/rbac";
 
 type Ctx = QueryCtx | MutationCtx;
 
-// Helper to get user by email
+// Helper to get user by email (kept for internal/MCP variants)
 async function getUserByEmail(ctx: Ctx, email: string) {
   return await ctx.db
     .query("users")
@@ -33,6 +41,43 @@ async function hasBoardAccess(
  * List all HTML docs for a board (most recent first).
  */
 export const list = query({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
+
+    const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
+    if (!hasAccess) return [];
+
+    const docs = await ctx.db
+      .query("htmlDocs")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    docs.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    return await Promise.all(
+      docs.map(async (doc) => {
+        const creator = await ctx.db.get(doc.createdById);
+        return {
+          ...doc,
+          creator: creator
+            ? {
+                id: creator._id,
+                name: creator.name,
+                email: creator.email,
+                image: creator.image,
+              }
+            : null,
+        };
+      }),
+    );
+  },
+});
+
+/**
+ * Internal variant used by the MCP server (passes userEmail).
+ */
+export const listByEmail = internalQuery({
   args: { boardId: v.id("boards"), userEmail: v.string() },
   handler: async (ctx, args) => {
     const user = await getUserByEmail(ctx, args.userEmail);
@@ -72,6 +117,38 @@ export const list = query({
  * rendering directly in a sandboxed iframe via the `src` attribute.
  */
 export const get = query({
+  args: { docId: v.id("htmlDocs") },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.docId);
+    if (!doc) return null;
+
+    const user = await requireAuth(ctx);
+
+    const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
+    if (!hasAccess) return null;
+
+    const creator = await ctx.db.get(doc.createdById);
+    const url = await ctx.storage.getUrl(doc.storageId);
+
+    return {
+      ...doc,
+      url,
+      creator: creator
+        ? {
+            id: creator._id,
+            name: creator.name,
+            email: creator.email,
+            image: creator.image,
+          }
+        : null,
+    };
+  },
+});
+
+/**
+ * Internal variant used by getContent internalAction (passes userEmail).
+ */
+export const getByEmail = internalQuery({
   args: { docId: v.id("htmlDocs"), userEmail: v.string() },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
@@ -105,10 +182,9 @@ export const get = query({
  * Generate an upload URL for the UI file-upload flow.
  */
 export const generateUploadUrl = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("Unauthorized");
+  args: {},
+  handler: async (ctx, _args) => {
+    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -123,11 +199,9 @@ export const create = mutation({
     fileName: v.string(),
     storageId: v.id("_storage"),
     fileSize: v.number(),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
     if (!hasAccess) {
@@ -151,9 +225,83 @@ export const create = mutation({
 });
 
 /**
+ * Internal variant used by createFromHtml internalAction (passes userEmail).
+ */
+export const createByEmail = internalMutation({
+  args: {
+    boardId: v.id("boards"),
+    title: v.string(),
+    fileName: v.string(),
+    storageId: v.id("_storage"),
+    fileSize: v.number(),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
+
+    const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
+    if (!hasAccess) {
+      await ctx.storage.delete(args.storageId);
+      throw new Error("Access denied");
+    }
+
+    const now = Date.now();
+    return await ctx.db.insert("htmlDocs", {
+      boardId: args.boardId,
+      title: args.title,
+      fileName: args.fileName,
+      storageId: args.storageId,
+      fileSize: args.fileSize,
+      createdById: user._id,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+/**
  * Replace the stored content of an existing HTML doc (deletes the old blob).
  */
 export const replaceContent = mutation({
+  args: {
+    docId: v.id("htmlDocs"),
+    storageId: v.id("_storage"),
+    fileSize: v.number(),
+    title: v.optional(v.string()),
+    fileName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.docId);
+    if (!doc) throw new Error("Document not found");
+
+    const user = await requireAuth(ctx);
+
+    const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
+    if (!hasAccess) {
+      await ctx.storage.delete(args.storageId);
+      throw new Error("Access denied");
+    }
+
+    await ctx.storage.delete(doc.storageId);
+
+    const updates: Record<string, unknown> = {
+      storageId: args.storageId,
+      fileSize: args.fileSize,
+      updatedAt: Date.now(),
+    };
+    if (args.title !== undefined) updates.title = args.title;
+    if (args.fileName !== undefined) updates.fileName = args.fileName;
+
+    await ctx.db.patch(args.docId, updates);
+    return args.docId;
+  },
+});
+
+/**
+ * Internal variant used by createFromHtml internalAction (passes userEmail).
+ */
+export const replaceContentByEmail = internalMutation({
   args: {
     docId: v.id("htmlDocs"),
     storageId: v.id("_storage"),
@@ -197,14 +345,12 @@ export const rename = mutation({
   args: {
     docId: v.id("htmlDocs"),
     title: v.string(),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -221,13 +367,12 @@ export const rename = mutation({
  * Delete an HTML doc and its stored blob.
  */
 export const remove = mutation({
-  args: { docId: v.id("htmlDocs"), userEmail: v.string() },
+  args: { docId: v.id("htmlDocs") },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -244,8 +389,11 @@ export const remove = mutation({
  * (which passes HTML directly) and any client that has the HTML in-memory.
  *
  * If `docId` is provided, the existing doc's content is replaced instead.
+ *
+ * This is an internalAction — only callable from trusted server-side code
+ * (e.g. mcpHttp.ts). The MCP server provides identity via userEmail.
  */
-export const createFromHtml = action({
+export const createFromHtml = internalAction({
   args: {
     boardId: v.id("boards"),
     title: v.string(),
@@ -263,7 +411,7 @@ export const createFromHtml = action({
       `${args.title.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase()}.html`;
 
     if (args.docId) {
-      return await ctx.runMutation(api.htmlDocs.replaceContent, {
+      return await ctx.runMutation(internal.htmlDocs.replaceContentByEmail, {
         docId: args.docId,
         storageId,
         fileSize: blob.size,
@@ -273,7 +421,7 @@ export const createFromHtml = action({
       });
     }
 
-    return await ctx.runMutation(api.htmlDocs.create, {
+    return await ctx.runMutation(internal.htmlDocs.createByEmail, {
       boardId: args.boardId,
       title: args.title,
       fileName,
@@ -287,14 +435,17 @@ export const createFromHtml = action({
 /**
  * Read the raw HTML content of a doc (text). Used by the MCP `get_html_doc`
  * tool so an agent can read documentation it (or someone else) uploaded.
+ *
+ * This is an internalAction — only callable from trusted server-side code
+ * (e.g. mcpHttp.ts). The MCP server provides identity via userEmail.
  */
-export const getContent = action({
+export const getContent = internalAction({
   args: { docId: v.id("htmlDocs"), userEmail: v.string() },
   handler: async (
     ctx,
     args,
   ): Promise<{ title: string; fileName: string; html: string } | null> => {
-    const doc = await ctx.runQuery(api.htmlDocs.get, {
+    const doc = await ctx.runQuery(internal.htmlDocs.getByEmail, {
       docId: args.docId,
       userEmail: args.userEmail,
     });

@@ -26,6 +26,8 @@ pub fn run() {
             mcp::mcp_set_active_card,
             mcp::skill_install,
             mcp::skill_uninstall,
+            check_for_updates_cmd,
+            install_update_cmd,
         ])
         .setup(|app| {
             desktop_setup(app)?;
@@ -58,25 +60,62 @@ fn desktop_setup(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
     app.set_menu(menu)?;
 
-    // Check for updates on startup (GitHub releases via updater plugin).
+    // Check on startup, then every hour.
     let handle = app.handle().clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = check_for_updates(handle).await {
-            log::error!("Update check failed: {e}");
+        loop {
+            if let Err(e) = check_and_notify(handle.clone()).await {
+                log::error!("Update check failed: {e}");
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(3600)).await;
         }
     });
 
     Ok(())
 }
 
+/// Shared by the background loop and the frontend-triggered command.
+/// Emits `update:available` when a newer version is found.
+/// The frontend is responsible for calling `install_update_cmd` to apply it.
 #[cfg(desktop)]
-async fn check_for_updates(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
+async fn check_and_notify(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
     use tauri_plugin_updater::UpdaterExt;
 
     if let Some(update) = app.updater()?.check().await? {
-        log::info!("Update available: {}, downloading...", update.version);
-        update.download_and_install(|_, _| {}, || {}).await?;
-        log::info!("Update installed; will apply on restart.");
+        log::info!("Update available: {}", update.version);
+        let _ = app.emit("update:available", update.version.clone());
+    }
+    Ok(())
+}
+
+/// Called from the frontend to manually trigger an update check.
+#[tauri::command]
+#[cfg(desktop)]
+async fn check_for_updates_cmd(app: tauri::AppHandle) -> Result<(), String> {
+    check_and_notify(app).await.map_err(|e| e.to_string())
+}
+
+/// Called from the frontend after the user confirms. Downloads, installs, and relaunches.
+#[tauri::command]
+#[cfg(desktop)]
+async fn install_update_cmd(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+
+    let update = app
+        .updater()
+        .map_err(|e| e.to_string())?
+        .check()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if let Some(update) = update {
+        let _ = app.emit("update:downloading", ());
+        update
+            .download_and_install(|_, _| {}, || {})
+            .await
+            .map_err(|e| e.to_string())?;
+        let _ = app.emit("update:ready", ());
+        app.restart();
     }
     Ok(())
 }

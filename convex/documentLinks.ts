@@ -2,15 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-
-// Helper to get user by email
-async function getUserByEmail(ctx: QueryCtx | MutationCtx, email: string) {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_email", (q) => q.eq("email", email))
-    .first();
-  return user;
-}
+import { requireAuth, requireBoardAccess } from "./lib/rbac";
 
 // Helper to get board ID from card
 async function getBoardIdFromCard(ctx: QueryCtx | MutationCtx, cardId: Id<"cards">) {
@@ -21,27 +13,20 @@ async function getBoardIdFromCard(ctx: QueryCtx | MutationCtx, cardId: Id<"cards
   return column?.boardId || null;
 }
 
-// Helper to check board membership
-async function hasBoardAccess(
-  ctx: QueryCtx | MutationCtx,
-  boardId: Id<"boards">,
-  userId: Id<"users">
-) {
-  const membership = await ctx.db
-    .query("boardMembers")
-    .withIndex("by_board_and_user", (q) =>
-      q.eq("boardId", boardId).eq("userId", userId)
-    )
-    .first();
-  return !!membership;
-}
-
 /**
  * List documents linked to a card
  */
 export const listByCard = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardId);
+    if (!boardId) throw new Error("Card not found");
+
+    await requireBoardAccess(ctx, boardId, userId, "member");
+
     const links = await ctx.db
       .query("documentLinks")
       .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
@@ -70,6 +55,14 @@ export const listByCard = query({
 export const listByDocument = query({
   args: { documentId: v.id("documents") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    const document = await ctx.db.get(args.documentId);
+    if (!document) throw new Error("Document not found");
+
+    await requireBoardAccess(ctx, document.boardId, userId, "member");
+
     const links = await ctx.db
       .query("documentLinks")
       .withIndex("by_document", (q) => q.eq("documentId", args.documentId))
@@ -102,18 +95,16 @@ export const link = mutation({
   args: {
     cardId: v.id("cards"),
     documentId: v.id("documents"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Verify the card exists and user has access
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
 
-    const hasAccess = await hasBoardAccess(ctx, boardId, user._id);
-    if (!hasAccess) throw new Error("Access denied");
+    await requireBoardAccess(ctx, boardId, userId, "member");
 
     // Verify the document exists and belongs to the same board
     const document = await ctx.db.get(args.documentId);
@@ -140,7 +131,7 @@ export const link = mutation({
     await ctx.db.insert("documentLinks", {
       cardId: args.cardId,
       documentId: args.documentId,
-      createdById: user._id,
+      createdById: userId,
       createdAt: Date.now(),
     });
 
@@ -155,18 +146,16 @@ export const unlink = mutation({
   args: {
     cardId: v.id("cards"),
     documentId: v.id("documents"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByEmail(ctx, args.userEmail);
-    if (!user) throw new Error("User not found");
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Verify user has access to the card's board
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
 
-    const hasAccess = await hasBoardAccess(ctx, boardId, user._id);
-    if (!hasAccess) throw new Error("Access denied");
+    await requireBoardAccess(ctx, boardId, userId, "member");
 
     // Find and delete the link
     const links = await ctx.db

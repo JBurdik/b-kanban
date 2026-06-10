@@ -27,7 +27,7 @@ function RootLayout() {
       <AssistantProvider>
         <AppLayout>
           <Outlet />
-          <NotificationToast userEmail={session.user.email} />
+          <NotificationToast />
         </AppLayout>
         <AssistantRoot />
       </AssistantProvider>

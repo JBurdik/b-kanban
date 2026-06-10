@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { requireAuth, requireBoardAccess } from "./lib/rbac";
 
 type BoardRole = "owner" | "admin" | "member";
 const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
@@ -11,28 +13,16 @@ const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
 export const list = query({
   args: {
     boardId: v.id("boards"),
-    userEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!args.userEmail) {
-      return [];
-    }
-
-    // Look up user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
-      .first();
-
-    if (!user) {
-      return [];
-    }
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Check board access
     const member = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", userId)
       )
       .first();
 
@@ -77,21 +67,10 @@ export const list = query({
 export const get = query({
   args: {
     secretId: v.id("secrets"),
-    userEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!args.userEmail) {
-      throw new Error("Unauthorized");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const secret = await ctx.db.get(args.secretId);
     if (!secret) {
@@ -102,7 +81,7 @@ export const get = query({
     const member = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", secret.boardId).eq("userId", user._id)
+        q.eq("boardId", secret.boardId).eq("userId", userId)
       )
       .first();
 
@@ -134,23 +113,16 @@ export const create = mutation({
     visibility: v.union(v.literal("public"), v.literal("hidden")),
     description: v.optional(v.string()),
     groupId: v.optional(v.id("secretGroups")),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Check board access (admin or owner)
     const member = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", userId)
       )
       .first();
 
@@ -186,7 +158,7 @@ export const create = mutation({
       visibility: args.visibility,
       description: args.description,
       groupId: args.groupId,
-      createdById: user._id,
+      createdById: userId,
       createdAt: now,
       updatedAt: now,
     });
@@ -206,17 +178,10 @@ export const update = mutation({
     visibility: v.optional(v.union(v.literal("public"), v.literal("hidden"))),
     description: v.optional(v.string()),
     groupId: v.optional(v.union(v.id("secretGroups"), v.null())),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const secret = await ctx.db.get(args.secretId);
     if (!secret) {
@@ -227,7 +192,7 @@ export const update = mutation({
     const member = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", secret.boardId).eq("userId", user._id)
+        q.eq("boardId", secret.boardId).eq("userId", userId)
       )
       .first();
 
@@ -276,17 +241,10 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     secretId: v.id("secrets"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const secret = await ctx.db.get(args.secretId);
     if (!secret) {
@@ -297,7 +255,7 @@ export const remove = mutation({
     const member = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", secret.boardId).eq("userId", user._id)
+        q.eq("boardId", secret.boardId).eq("userId", userId)
       )
       .first();
 

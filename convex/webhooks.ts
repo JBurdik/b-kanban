@@ -151,6 +151,32 @@ export const getBoardName = internalQuery({
 });
 
 /**
+ * Internal query: verify the caller is authenticated and is a member of the
+ * webhook's board. Returns the webhook on success, throws otherwise.
+ */
+export const verifyWebhookAccess = internalQuery({
+  args: {
+    webhookId: v.id("webhooks"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const webhook = await ctx.db.get(args.webhookId);
+    if (!webhook) throw new Error("Webhook not found");
+
+    const member = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", webhook.boardId).eq("userId", args.userId)
+      )
+      .first();
+
+    if (!member) throw new Error("Access denied");
+
+    return webhook;
+  },
+});
+
+/**
  * Internal mutation to update webhook status after dispatch
  */
 export const updateWebhookStatus = internalMutation({

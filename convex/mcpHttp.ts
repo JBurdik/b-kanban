@@ -9,7 +9,7 @@
 // Wired into the router in convex/http.ts at path "/mcp".
 
 import { httpAction } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { marked } from "marked";
 import { sha256Hex } from "./mcpKeys";
 
@@ -283,7 +283,7 @@ const TOOLS = [
 type Ctx = Parameters<Parameters<typeof httpAction>[0]>[0];
 
 async function resolveColumn(ctx: Ctx, boardId: string, email: string, columnName: string) {
-  const board = await ctx.runQuery(api.boards.get, { boardId: boardId as any, userEmail: email });
+  const board = await ctx.runQuery(internal.boards.getByEmail, { boardId: boardId as any, userEmail: email });
   if (!board) throw new Error("Board not found");
   const col = (board.columns ?? []).find(
     (c: any) => c.name.toLowerCase() === String(columnName).toLowerCase(),
@@ -301,7 +301,7 @@ async function resolveColumn(ctx: Ctx, boardId: string, email: string, columnNam
 async function callTool(ctx: Ctx, email: string, name: string, args: any): Promise<unknown> {
   switch (name) {
     case "list_boards": {
-      const boards = await ctx.runQuery(api.boards.list, { userEmail: email });
+      const boards = await ctx.runQuery(internal.boards.listByEmail, { userEmail: email });
       return (boards ?? []).map((b: any) => ({
         boardId: b._id,
         name: b.name,
@@ -309,7 +309,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       }));
     }
     case "get_board": {
-      const board = await ctx.runQuery(api.boards.get, { boardId: args.boardId, userEmail: email });
+      const board = await ctx.runQuery(internal.boards.getByEmail, { boardId: args.boardId, userEmail: email });
       if (!board) throw new Error("Board not found");
       return {
         boardId: board._id,
@@ -326,7 +326,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       };
     }
     case "get_card": {
-      const card = await ctx.runQuery(api.cards.getBySlug, {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
         slug: args.slug,
         boardId: args.boardId,
       });
@@ -334,14 +334,14 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return card;
     }
     case "list_my_tasks": {
-      return await ctx.runQuery(api.cards.getMyTasks, {
+      return await ctx.runQuery(internal.cards.getMyTasksByEmail, {
         userEmail: email,
         limit: args.limit,
       });
     }
     case "create_card": {
       const { column } = await resolveColumn(ctx, args.boardId, email, args.column);
-      const cardId = await ctx.runMutation(api.cards.create, {
+      const cardId = await ctx.runMutation(internal.cards.createByEmail, {
         columnId: column._id,
         title: args.title,
         content: mdToHtml(args.description),
@@ -355,12 +355,12 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { created: true, cardId };
     }
     case "update_card": {
-      const card = await ctx.runQuery(api.cards.getBySlug, {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
         slug: args.slug,
         boardId: args.boardId,
       });
       if (!card) throw new Error(`Card ${args.slug} not found`);
-      await ctx.runMutation(api.cards.update, {
+      await ctx.runMutation(internal.cards.updateByEmail, {
         cardId: card._id,
         title: args.title,
         content: args.description !== undefined ? mdToHtml(args.description) : undefined,
@@ -379,14 +379,14 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { updated: true, slug: args.slug };
     }
     case "update_card_status": {
-      const card = await ctx.runQuery(api.cards.getBySlug, {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
         slug: args.slug,
         boardId: args.boardId,
       });
       if (!card) throw new Error(`Card ${args.slug} not found`);
       const { column } = await resolveColumn(ctx, args.boardId, email, args.column);
       const position = (column.cards ?? []).length; // append to end of target column
-      await ctx.runMutation(api.cards.update, {
+      await ctx.runMutation(internal.cards.updateByEmail, {
         cardId: card._id,
         columnId: column._id,
         position,
@@ -395,12 +395,12 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { moved: true, slug: args.slug, column: column.name };
     }
     case "add_comment": {
-      const card = await ctx.runQuery(api.cards.getBySlug, {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
         slug: args.slug,
         boardId: args.boardId,
       });
       if (!card) throw new Error(`Card ${args.slug} not found`);
-      await ctx.runMutation(api.comments.create, {
+      await ctx.runMutation(internal.comments.createByEmail, {
         cardId: card._id,
         content: args.comment,
         authorEmail: email,
@@ -408,12 +408,12 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { commented: true, slug: args.slug };
     }
     case "list_comments": {
-      const card = await ctx.runQuery(api.cards.getBySlug, {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
         slug: args.slug,
         boardId: args.boardId,
       });
       if (!card) throw new Error(`Card ${args.slug} not found`);
-      const comments = await ctx.runQuery(api.comments.list, { cardId: card._id });
+      const comments = await ctx.runQuery(internal.comments.listByCardId, { cardId: card._id });
       return (comments ?? []).map((c: any) => ({
         author: c.author?.name ?? c.author?.email ?? "unknown",
         content: c.content,
@@ -421,19 +421,19 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       }));
     }
     case "list_labels": {
-      const labels = await ctx.runQuery(api.labels.list, {
+      const labels = await ctx.runQuery(internal.labels.listByEmail, {
         boardId: args.boardId,
         userEmail: email,
       });
       return (labels ?? []).map((l: any) => ({ name: l.name, color: l.color }));
     }
     case "add_label": {
-      const card = await ctx.runQuery(api.cards.getBySlug, {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
         slug: args.slug,
         boardId: args.boardId,
       });
       if (!card) throw new Error(`Card ${args.slug} not found`);
-      const labels = await ctx.runQuery(api.labels.list, {
+      const labels = await ctx.runQuery(internal.labels.listByEmail, {
         boardId: args.boardId,
         userEmail: email,
       });
@@ -447,7 +447,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
             .join(", ")}`,
         );
       }
-      await ctx.runMutation(api.labels.addToCard, {
+      await ctx.runMutation(internal.labels.addToCardByEmail, {
         cardId: card._id,
         labelId: label._id,
         userEmail: email,
@@ -455,7 +455,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { labeled: true, slug: args.slug, label: label.name };
     }
     case "search_cards": {
-      const board = await ctx.runQuery(api.boards.get, { boardId: args.boardId, userEmail: email });
+      const board = await ctx.runQuery(internal.boards.getByEmail, { boardId: args.boardId, userEmail: email });
       if (!board) throw new Error("Board not found");
       const q = String(args.query).toLowerCase();
       const matches: any[] = [];
@@ -475,7 +475,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return matches;
     }
     case "list_html_docs": {
-      const docs = await ctx.runQuery(api.htmlDocs.list, {
+      const docs = await ctx.runQuery(internal.htmlDocs.listByEmail, {
         boardId: args.boardId,
         userEmail: email,
       });
@@ -488,7 +488,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       }));
     }
     case "get_html_doc": {
-      const doc = await ctx.runAction(api.htmlDocs.getContent, {
+      const doc = await ctx.runAction(internal.htmlDocs.getContent, {
         docId: args.docId,
         userEmail: email,
       });
@@ -496,7 +496,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return doc;
     }
     case "upload_html_doc": {
-      const docId = await ctx.runAction(api.htmlDocs.createFromHtml, {
+      const docId = await ctx.runAction(internal.htmlDocs.createFromHtml, {
         boardId: args.boardId,
         title: args.title,
         html: args.html,
@@ -507,17 +507,17 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { uploaded: true, docId };
     }
     case "get_me": {
-      const user = await ctx.runQuery(api.users.getByEmail, { email });
+      const user = await ctx.runQuery(internal.users.getByEmail, { email });
       if (!user) throw new Error(`No user with email ${email}`);
       return { id: user.id, name: user.name, email: user.email };
     }
     case "assign_card": {
-      const card = await ctx.runQuery(api.cards.getBySlug, {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
         slug: args.slug,
         boardId: args.boardId,
       });
       if (!card) throw new Error(`Card ${args.slug} not found`);
-      await ctx.runMutation(api.cards.update, {
+      await ctx.runMutation(internal.cards.updateByEmail, {
         cardId: card._id,
         assigneeId:
           args.assigneeEmail === "" ? null : await resolveAssignee(ctx, args.assigneeEmail),
@@ -526,12 +526,12 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { assigned: true, slug: args.slug, assignee: args.assigneeEmail || null };
     }
     case "set_reporter": {
-      const card = await ctx.runQuery(api.cards.getBySlug, {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
         slug: args.slug,
         boardId: args.boardId,
       });
       if (!card) throw new Error(`Card ${args.slug} not found`);
-      await ctx.runMutation(api.cards.update, {
+      await ctx.runMutation(internal.cards.updateByEmail, {
         cardId: card._id,
         reporterId:
           args.reporterEmail === "" ? null : await resolveAssignee(ctx, args.reporterEmail),
@@ -540,7 +540,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return { reporterSet: true, slug: args.slug, reporter: args.reporterEmail || null };
     }
     case "create_board": {
-      const boardId = await ctx.runMutation(api.boards.create, {
+      const boardId = await ctx.runMutation(internal.boards.createByEmail, {
         name: args.name,
         description: args.description,
         userEmail: email,
@@ -554,7 +554,7 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
 
 async function resolveAssignee(ctx: Ctx, email?: string) {
   if (!email) return undefined;
-  const user = await ctx.runQuery(api.users.getByEmail, { email });
+  const user = await ctx.runQuery(internal.users.getByEmail, { email });
   if (!user?.id) throw new Error(`No user with email ${email}`);
   return user.id;
 }

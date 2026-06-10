@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { requireAuth } from "./lib/rbac";
 
 /**
  * Generate slug prefix from board name
@@ -18,28 +19,17 @@ function generateSlugPrefix(name: string): string {
 }
 
 /**
- * Get all boards for a user (by email)
+ * Get all boards for the authenticated user
  */
 export const list = query({
-  args: { userEmail: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    if (!args.userEmail) {
-      return [];
-    }
-
-    // Look up user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
-      .first();
-
-    if (!user) {
-      return [];
-    }
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const memberships = await ctx.db
       .query("boardMembers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     const boardIds = memberships.map((m) => m.boardId);
@@ -80,18 +70,11 @@ export const list = query({
 export const get = query({
   args: { boardId: v.id("boards"), userEmail: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const board = await ctx.db.get(args.boardId);
     if (!board) throw new Error("Board not found");
-
-    // Look up user by email to get role
-    let currentUserId: Id<"users"> | undefined;
-    if (args.userEmail) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
-        .first();
-      currentUserId = user?._id;
-    }
 
     const columns = await ctx.db
       .query("columns")
@@ -203,9 +186,7 @@ export const get = query({
       }),
     );
 
-    const userRole = currentUserId
-      ? memberships.find((m) => m.userId === currentUserId)?.role
-      : undefined;
+    const userRole = memberships.find((m) => m.userId === userId)?.role;
 
     // Get icon URL if board has an uploaded image icon
     const iconUrl = board.iconStorageId
@@ -229,37 +210,14 @@ export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    console.log("[boards:create] Looking up user with email:", args.userEmail);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
-    // Look up user by email - create if doesn't exist (sync from better-auth)
-    let user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
+    const user = await ctx.db.get(userId);
     if (!user) {
-      // User doesn't exist in our users table yet - create from session info
-      // This syncs the user from better-auth to our users table
-      console.log(
-        "[boards:create] User not in DB, creating from email:",
-        args.userEmail,
-      );
-      const userId = await ctx.db.insert("users", {
-        email: args.userEmail,
-        name: args.userEmail.split("@")[0], // Default name from email
-        emailVerified: false,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      user = await ctx.db.get(userId);
-      console.log("[boards:create] Created user:", user);
-    }
-
-    if (!user) {
-      throw new Error("Failed to create user");
+      throw new Error("User not found");
     }
 
     const now = Date.now();
@@ -270,7 +228,7 @@ export const create = mutation({
       description: args.description,
       slugPrefix,
       cardCounter: 0,
-      ownerId: user._id,
+      ownerId: userId,
       createdAt: now,
       updatedAt: now,
     });
@@ -288,7 +246,7 @@ export const create = mutation({
 
     await ctx.db.insert("boardMembers", {
       boardId,
-      userId: user._id,
+      userId,
       role: "owner",
       createdAt: now,
     });
@@ -305,22 +263,15 @@ export const update = mutation({
     boardId: v.id("boards"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", userId)
       )
       .first();
 
@@ -344,6 +295,20 @@ export const update = mutation({
 export const remove = mutation({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    const membership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", userId)
+      )
+      .first();
+
+    if (!membership || membership.role !== "owner") {
+      throw new Error("Only the board owner can delete the board");
+    }
+
     const columns = await ctx.db
       .query("columns")
       .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
@@ -422,22 +387,15 @@ export const setBadge = mutation({
     boardId: v.id("boards"),
     text: v.optional(v.string()),
     color: v.optional(v.string()),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", userId)
       )
       .first();
 
@@ -462,24 +420,15 @@ export const setBadge = mutation({
 export const generateIconUploadUrl = mutation({
   args: {
     boardId: v.id("boards"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Look up user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Check membership (should be owner or admin)
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", userId)
       )
       .first();
 
@@ -498,24 +447,15 @@ export const saveIcon = mutation({
   args: {
     boardId: v.id("boards"),
     storageId: v.id("_storage"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Look up user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Check membership
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", userId)
       )
       .first();
 
@@ -552,24 +492,15 @@ export const setEmojiIcon = mutation({
   args: {
     boardId: v.id("boards"),
     emoji: v.string(),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Look up user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Check membership
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", userId)
       )
       .first();
 
@@ -604,24 +535,15 @@ export const setEmojiIcon = mutation({
 export const removeIcon = mutation({
   args: {
     boardId: v.id("boards"),
-    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Look up user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Check membership
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", user._id)
+        q.eq("boardId", args.boardId).eq("userId", userId)
       )
       .first();
 
@@ -647,5 +569,267 @@ export const removeIcon = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Internal variants for MCP server (Bearer token auth passes userEmail)
+// ---------------------------------------------------------------------------
+
+/**
+ * List boards for a user identified by email (MCP use only)
+ */
+export const listByEmail = internalQuery({
+  args: { userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      return [];
+    }
+
+    const memberships = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const boardIds = memberships.map((m) => m.boardId);
+
+    const boards = await Promise.all(
+      boardIds.map(async (boardId) => {
+        const board = await ctx.db.get(boardId);
+        if (!board) return null;
+
+        const columns = await ctx.db
+          .query("columns")
+          .withIndex("by_board", (q) => q.eq("boardId", boardId))
+          .collect();
+
+        const membership = memberships.find((m) => m.boardId === boardId);
+
+        const iconUrl = board.iconStorageId
+          ? await ctx.storage.getUrl(board.iconStorageId)
+          : null;
+
+        return {
+          ...board,
+          iconUrl,
+          columnCount: columns.length,
+          userRole: membership?.role,
+        };
+      }),
+    );
+
+    return boards.filter(Boolean);
+  },
+});
+
+/**
+ * Get single board by email identity (MCP use only)
+ */
+export const getByEmail = internalQuery({
+  args: { boardId: v.id("boards"), userEmail: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const board = await ctx.db.get(args.boardId);
+    if (!board) throw new Error("Board not found");
+
+    let currentUserId: Id<"users"> | undefined;
+    if (args.userEmail) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
+        .first();
+      currentUserId = user?._id;
+    }
+
+    const columns = await ctx.db
+      .query("columns")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    columns.sort((a, b) => a.position - b.position);
+
+    const columnsWithCards = await Promise.all(
+      columns.map(async (column) => {
+        const cards = await ctx.db
+          .query("cards")
+          .withIndex("by_column", (q) => q.eq("columnId", column._id))
+          .filter((q) => q.neq(q.field("isArchived"), true))
+          .collect();
+
+        cards.sort((a, b) => a.position - b.position);
+
+        const cardsWithAssignee = await Promise.all(
+          cards.map(async (card) => {
+            let assignee = null;
+            if (card.assigneeId) {
+              const assigneeUser = await ctx.db.get(card.assigneeId);
+              if (assigneeUser) {
+                assignee = {
+                  id: assigneeUser._id,
+                  name: assigneeUser.name,
+                  email: assigneeUser.email,
+                  image: assigneeUser.image,
+                };
+              }
+            }
+
+            const cardLabels = await ctx.db
+              .query("cardLabels")
+              .withIndex("by_card", (q) => q.eq("cardId", card._id))
+              .collect();
+
+            const labelPromises = await Promise.all(
+              cardLabels.map(async (cl) => {
+                const label = await ctx.db.get(cl.labelId);
+                return label;
+              })
+            );
+
+            const labels = labelPromises.filter(
+              (l): l is NonNullable<typeof l> => l !== null
+            );
+
+            let version = null;
+            if (card.versionId) {
+              const ver = await ctx.db.get(card.versionId);
+              if (ver) {
+                version = { _id: ver._id, name: ver.name, color: ver.color };
+              }
+            }
+
+            let reporter = null;
+            if (card.reporterId) {
+              const reporterUser = await ctx.db.get(card.reporterId);
+              if (reporterUser) {
+                reporter = {
+                  id: reporterUser._id,
+                  name: reporterUser.name,
+                  email: reporterUser.email,
+                  image: reporterUser.image,
+                };
+              }
+            }
+
+            return { ...card, assignee, reporter, labels, version };
+          }),
+        );
+
+        return { ...column, cards: cardsWithAssignee };
+      }),
+    );
+
+    const memberships = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    const members = await Promise.all(
+      memberships.map(async (m) => {
+        const memberUser = await ctx.db.get(m.userId);
+        return {
+          id: m._id,
+          role: m.role,
+          userId: m.userId,
+          user: memberUser
+            ? {
+                id: memberUser._id,
+                name: memberUser.name,
+                email: memberUser.email,
+                image: memberUser.image,
+              }
+            : null,
+        };
+      }),
+    );
+
+    const userRole = currentUserId
+      ? memberships.find((m) => m.userId === currentUserId)?.role
+      : undefined;
+
+    const iconUrl = board.iconStorageId
+      ? await ctx.storage.getUrl(board.iconStorageId)
+      : null;
+
+    return {
+      ...board,
+      iconUrl,
+      columns: columnsWithCards,
+      members,
+      userRole,
+    };
+  },
+});
+
+/**
+ * Create a board for a user identified by email (MCP use only)
+ * Creates the user record if not yet present (syncs from better-auth).
+ */
+export const createByEmail = internalMutation({
+  args: {
+    name: v.string(),
+    description: v.optional(v.string()),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    let user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      console.log(
+        "[boards:createByEmail] User not in DB, creating from email:",
+        args.userEmail,
+      );
+      const userId = await ctx.db.insert("users", {
+        email: args.userEmail,
+        name: args.userEmail.split("@")[0],
+        emailVerified: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      user = await ctx.db.get(userId);
+    }
+
+    if (!user) {
+      throw new Error("Failed to create user");
+    }
+
+    const now = Date.now();
+    const slugPrefix = generateSlugPrefix(args.name);
+
+    const boardId = await ctx.db.insert("boards", {
+      name: args.name,
+      description: args.description,
+      slugPrefix,
+      cardCounter: 0,
+      ownerId: user._id,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const defaultColumns = ["To Do", "In Progress", "Done"];
+    for (let i = 0; i < defaultColumns.length; i++) {
+      await ctx.db.insert("columns", {
+        boardId,
+        name: defaultColumns[i],
+        position: i,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await ctx.db.insert("boardMembers", {
+      boardId,
+      userId: user._id,
+      role: "owner",
+      createdAt: now,
+    });
+
+    return boardId;
   },
 });

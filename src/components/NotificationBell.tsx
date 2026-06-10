@@ -3,19 +3,10 @@ import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { NotificationPanel } from "./NotificationPanel";
 
-interface Props {
-  userEmail?: string;
-}
-
-export function NotificationBell({ userEmail }: Props) {
+export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
 
-  const unreadCount = useQuery(
-    api.notifications.unreadCount,
-    userEmail ? { userEmail } : "skip",
-  );
-
-  if (!userEmail) return null;
+  const unreadCount = useQuery(api.notifications.unreadCount, {});
 
   return (
     <>
@@ -44,12 +35,7 @@ export function NotificationBell({ userEmail }: Props) {
         )}
       </button>
 
-      {isOpen && (
-        <NotificationPanel
-          userEmail={userEmail}
-          onClose={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <NotificationPanel onClose={() => setIsOpen(false)} />}
     </>
   );
 }

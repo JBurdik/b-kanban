@@ -7,7 +7,7 @@ export const Route = createFileRoute("/time")({
 });
 
 function TimeTrackingPage() {
-  const { userEmail, isLoading, session } = useConvexUser();
+  const { isLoading, session } = useConvexUser();
 
   if (isLoading) {
     return (
@@ -28,12 +28,12 @@ function TimeTrackingPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left column: Timer + Today's entries */}
         <div className="card">
-          <TimeTracker userEmail={userEmail!} mode="full" />
+          <TimeTracker mode="full" />
         </div>
 
         {/* Right column: Monthly report */}
         <div className="card">
-          <MonthlyReport userEmail={userEmail!} />
+          <MonthlyReport />
         </div>
       </div>
     </div>

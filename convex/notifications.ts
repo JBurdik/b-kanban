@@ -1,12 +1,13 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
+import { requireAuth } from "./lib/rbac";
+import { Id } from "./_generated/dataModel";
 
 /**
  * List notifications for a user
  */
 export const list = query({
   args: {
-    userEmail: v.string(),
     unreadOnly: v.optional(v.boolean()),
     limit: v.optional(v.number()),
     type: v.optional(
@@ -19,13 +20,8 @@ export const list = query({
     ),
   },
   handler: async (ctx, args) => {
-    // Get user by email
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) return [];
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Query notifications
     let notifications;
@@ -33,14 +29,14 @@ export const list = query({
       notifications = await ctx.db
         .query("notifications")
         .withIndex("by_user_type", (q) =>
-          q.eq("userId", user._id).eq("type", args.type!)
+          q.eq("userId", userId).eq("type", args.type!)
         )
         .order("desc")
         .collect();
     } else {
       notifications = await ctx.db
         .query("notifications")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .order("desc")
         .collect();
     }
@@ -79,19 +75,15 @@ export const list = query({
  * Get unread notification count
  */
 export const unreadCount = query({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) return 0;
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const unread = await ctx.db
       .query("notifications")
       .withIndex("by_user_read", (q) =>
-        q.eq("userId", user._id).eq("read", false),
+        q.eq("userId", userId).eq("read", false),
       )
       .collect();
 
@@ -105,8 +97,13 @@ export const unreadCount = query({
 export const markAsRead = mutation({
   args: { notificationId: v.id("notifications") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) throw new Error("Notification not found");
+    if (notification.userId !== userId)
+      throw new Error("Not authorized to mark this notification as read");
 
     await ctx.db.patch(args.notificationId, { read: true });
 
@@ -118,19 +115,15 @@ export const markAsRead = mutation({
  * Mark all notifications as read for a user
  */
 export const markAllAsRead = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const unread = await ctx.db
       .query("notifications")
       .withIndex("by_user_read", (q) =>
-        q.eq("userId", user._id).eq("read", false),
+        q.eq("userId", userId).eq("read", false),
       )
       .collect();
 
@@ -292,8 +285,13 @@ export const create = internalMutation({
 export const remove = mutation({
   args: { notificationId: v.id("notifications") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) throw new Error("Notification not found");
+    if (notification.userId !== userId)
+      throw new Error("Not authorized to delete this notification");
 
     await ctx.db.delete(args.notificationId);
 

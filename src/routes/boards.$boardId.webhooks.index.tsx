@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useConvexUser } from "@/hooks/useConvexUser";
@@ -34,13 +34,9 @@ function WebhooksPage() {
 
   const board = useQuery(api.boards.get, {
     boardId: boardId as Id<"boards">,
-    userEmail,
   });
 
-  const currentUser = useQuery(
-    api.users.getByEmail,
-    userEmail ? { email: userEmail } : "skip"
-  );
+  const currentUser = useQuery(api.users.me);
 
   const webhooks = useQuery(api.webhooks.list, {
     boardId: boardId as Id<"boards">,
@@ -49,7 +45,7 @@ function WebhooksPage() {
   const createWebhook = useMutation(api.webhooks.create);
   const updateWebhook = useMutation(api.webhooks.update);
   const removeWebhook = useMutation(api.webhooks.remove);
-  const testWebhook = useAction(api.webhookActions.test);
+  const testWebhook = useMutation(api.webhookActions.test);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<Id<"webhooks"> | null>(null);

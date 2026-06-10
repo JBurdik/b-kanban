@@ -5,11 +5,10 @@ import { TaskSelector } from "./TaskSelector";
 import type { Id } from "convex/_generated/dataModel";
 
 interface ManualEntryFormProps {
-  userEmail: string;
   onSuccess?: () => void;
 }
 
-export function ManualEntryForm({ userEmail, onSuccess }: ManualEntryFormProps) {
+export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
   const [description, setDescription] = useState("");
   const [hours, setHours] = useState("");
   const [minutes, setMinutes] = useState("");
@@ -30,7 +29,6 @@ export function ManualEntryForm({ userEmail, onSuccess }: ManualEntryFormProps) 
     setIsSubmitting(true);
     try {
       await addEntry({
-        userEmail,
         description: description.trim(),
         hours: hoursNum,
         minutes: minutesNum,
@@ -94,7 +92,6 @@ export function ManualEntryForm({ userEmail, onSuccess }: ManualEntryFormProps) 
 
       {/* Task selector */}
       <TaskSelector
-        userEmail={userEmail}
         value={selectedCardId}
         onChange={setSelectedCardId}
       />

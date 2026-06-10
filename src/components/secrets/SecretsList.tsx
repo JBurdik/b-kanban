@@ -35,12 +35,11 @@ type Secret = {
 interface SecretsListProps {
   boardId: Id<"boards">;
   canManage: boolean;
-  userEmail?: string;
 }
 
-export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps) {
-  const secrets = useQuery(api.secrets.list, { boardId, userEmail });
-  const groups = useQuery(api.secretGroups.list, { boardId, userEmail });
+export function SecretsList({ boardId, canManage }: SecretsListProps) {
+  const secrets = useQuery(api.secrets.list, { boardId });
+  const groups = useQuery(api.secretGroups.list, { boardId });
   const createSecret = useMutation(api.secrets.create);
   const updateSecret = useMutation(api.secrets.update);
   const deleteSecret = useMutation(api.secrets.remove);
@@ -158,7 +157,6 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
 
   // Handle create secret
   const handleCreateSecret = async (data: SecretFormData, pass?: string) => {
-    if (!userEmail) return;
 
     const passphraseToUse = pass || passphrase;
 
@@ -182,7 +180,6 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
         visibility: data.visibility,
         description: data.description || undefined,
         groupId: data.groupId as Id<"secretGroups"> | undefined,
-        userEmail,
       });
       setShowSecretModal(false);
     } catch (error) {
@@ -194,7 +191,6 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
 
   // Handle bulk import
   const handleBulkImport = async (secretsData: BulkSecretData[], pass?: string) => {
-    if (!userEmail) return;
 
     const passphraseToUse = pass || passphrase;
 
@@ -219,7 +215,6 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
           salt: encrypted.salt,
           visibility: secret.visibility,
           groupId: secret.groupId as Id<"secretGroups"> | undefined,
-          userEmail,
         });
       }
       setShowBulkModal(false);
@@ -233,7 +228,7 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
 
   // Handle edit secret
   const handleEditSecret = async (data: SecretFormData) => {
-    if (!editingSecret || !passphrase || !userEmail) return;
+    if (!editingSecret || !passphrase) return;
 
     setIsSubmitting(true);
     try {
@@ -246,14 +241,12 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
         visibility?: "public" | "hidden";
         description?: string;
         groupId?: Id<"secretGroups"> | null;
-        userEmail: string;
       } = {
         secretId: editingSecret._id,
         name: data.name,
         visibility: data.visibility,
         description: data.description || undefined,
         groupId: data.groupId as Id<"secretGroups"> | null,
-        userEmail,
       };
 
       // Only re-encrypt if value was changed
@@ -276,14 +269,12 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
 
   // Handle delete secret
   const handleDeleteSecret = async (secretId: Id<"secrets">) => {
-    if (!userEmail) return;
-
     if (!confirm("Are you sure you want to delete this secret? This cannot be undone.")) {
       return;
     }
 
     try {
-      await deleteSecret({ secretId, userEmail });
+      await deleteSecret({ secretId });
     } catch (error) {
       console.error("Failed to delete secret:", error);
     }
@@ -316,12 +307,11 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
 
   // Group management
   const handleCreateGroup = async () => {
-    if (!newGroupName.trim() || !userEmail) return;
+    if (!newGroupName.trim()) return;
     try {
       await createGroup({
         boardId,
         name: newGroupName.trim(),
-        userEmail,
       });
       setNewGroupName("");
       setShowNewGroupInput(false);
@@ -333,10 +323,9 @@ export function SecretsList({ boardId, canManage, userEmail }: SecretsListProps)
   };
 
   const handleDeleteGroup = async (groupId: Id<"secretGroups">) => {
-    if (!userEmail) return;
     if (!confirm("Delete this group? Secrets will be moved to 'Ungrouped'.")) return;
     try {
-      await deleteGroup({ groupId, userEmail });
+      await deleteGroup({ groupId });
     } catch (error) {
       console.error("Failed to delete group:", error);
     }

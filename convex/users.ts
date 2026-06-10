@@ -1,10 +1,13 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { requireAuth } from "./lib/rbac";
 
 /**
- * Get user by email (returns userId for frontend to use)
+ * Get user by email — internal only (used by MCP and other server-side code).
+ * Public callers must use searchByEmail (authenticated).
  */
-export const getByEmail = query({
+export const getByEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -25,13 +28,12 @@ export const getByEmail = query({
  * Get current user by ID
  */
 export const me = query({
-  args: { userId: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
-    if (!args.userId) {
-      return null;
-    }
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
-    const user = await ctx.db.get(args.userId);
+    const user = await ctx.db.get(userId);
     if (!user) return null;
 
     return {
@@ -51,6 +53,8 @@ export const me = query({
 export const get = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    await requireAuth(ctx);
+
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
 
@@ -69,6 +73,8 @@ export const get = query({
 export const searchByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
+    await requireAuth(ctx);
+
     // Search for users whose email contains the search term
     const allUsers = await ctx.db.query("users").collect();
 
@@ -91,19 +97,21 @@ export const searchByEmail = query({
  */
 export const updateProfile = mutation({
   args: {
-    userId: v.id("users"),
     name: v.optional(v.string()),
     image: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
     if (args.image !== undefined) updates.image = args.image;
 
-    await ctx.db.patch(args.userId, updates);
+    await ctx.db.patch(userId, updates);
 
     return { success: true };
   },
@@ -113,14 +121,9 @@ export const updateProfile = mutation({
  * Generate upload URL for avatar image
  */
 export const generateAvatarUploadUrl = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-    if (!user) throw new Error("User not found");
-
+  args: {},
+  handler: async (ctx) => {
+    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -130,14 +133,13 @@ export const generateAvatarUploadUrl = mutation({
  */
 export const saveAvatar = mutation({
   args: {
-    userEmail: v.string(),
     storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
 
     // Delete old avatar if exists
@@ -157,7 +159,7 @@ export const saveAvatar = mutation({
     const url = await ctx.storage.getUrl(args.storageId);
     if (!url) throw new Error("Failed to get avatar URL");
 
-    await ctx.db.patch(user._id, {
+    await ctx.db.patch(userId, {
       image: url,
       updatedAt: Date.now(),
     });
@@ -170,12 +172,12 @@ export const saveAvatar = mutation({
  * Remove custom avatar (revert to generated)
  */
 export const removeAvatar = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
 
     // Delete from storage if exists
@@ -192,7 +194,7 @@ export const removeAvatar = mutation({
       }
     }
 
-    await ctx.db.patch(user._id, {
+    await ctx.db.patch(userId, {
       image: undefined,
       updatedAt: Date.now(),
     });
@@ -205,15 +207,18 @@ export const removeAvatar = mutation({
  * Delete user account
  */
 export const deleteAccount = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
+    const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
 
     // Get all board memberships
     const memberships = await ctx.db
       .query("boardMembers")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     for (const membership of memberships) {
@@ -274,7 +279,7 @@ export const deleteAccount = mutation({
     // Unassign user from any cards they're assigned to
     const assignedCards = await ctx.db
       .query("cards")
-      .withIndex("by_assignee", (q) => q.eq("assigneeId", args.userId))
+      .withIndex("by_assignee", (q) => q.eq("assigneeId", userId))
       .collect();
 
     for (const card of assignedCards) {
@@ -282,7 +287,7 @@ export const deleteAccount = mutation({
     }
 
     // Delete the user
-    await ctx.db.delete(args.userId);
+    await ctx.db.delete(userId);
 
     return { success: true };
   },

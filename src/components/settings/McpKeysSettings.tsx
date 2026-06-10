@@ -50,8 +50,8 @@ The user can specify:
 - Be concise. Confirm what changed (slug + what).
 `;
 
-export function McpKeysSettings({ email }: { email?: string }) {
-  const keys = useQuery(api.mcpKeys.list, email ? { userEmail: email } : "skip");
+export function McpKeysSettings() {
+  const keys = useQuery(api.mcpKeys.list, {});
   const generate = useMutation(api.mcpKeys.generate);
   const revoke = useMutation(api.mcpKeys.revoke);
 
@@ -61,11 +61,10 @@ export function McpKeysSettings({ email }: { email?: string }) {
   const [newKey, setNewKey] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!email) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await generate({ name: name.trim() || "key", userEmail: email });
+      const res = await generate({ name: name.trim() || "key" });
       setNewKey(res.key);
       setName("");
     } catch (e) {
@@ -174,7 +173,7 @@ export function McpKeysSettings({ email }: { email?: string }) {
               </span>
             </div>
             <button
-              onClick={() => email && void revoke({ keyId: k._id, userEmail: email })}
+              onClick={() => void revoke({ keyId: k._id })}
               className="text-xs px-3 py-1.5 border border-dark-border text-dark-muted rounded-lg hover:text-red-400 hover:bg-red-500/10 transition-colors"
             >
               Revoke

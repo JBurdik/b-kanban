@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { requireAuth } from "./lib/rbac";
 
 // ============================================
 // Helper Functions
@@ -19,18 +21,14 @@ function getStartOfDay(timestamp?: number): number {
  * Get the user's currently active timer (if any)
  */
 export const getActiveTimer = query({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) return null;
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const timer = await ctx.db
       .query("activeTimers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     if (!timer) return null;
@@ -61,21 +59,17 @@ export const getActiveTimer = query({
  * Get today's time entries for the current user
  */
 export const getTodayEntries = query({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) return { entries: [], totalMs: 0 };
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const todayStart = getStartOfDay();
 
     const entries = await ctx.db
       .query("timeEntries")
       .withIndex("by_user_date", (q) =>
-        q.eq("userId", user._id).eq("date", todayStart)
+        q.eq("userId", userId).eq("date", todayStart)
       )
       .collect();
 
@@ -114,25 +108,20 @@ export const getTodayEntries = query({
  */
 export const getEntriesByDateRange = query({
   args: {
-    userEmail: v.string(),
     startDate: v.number(),
     endDate: v.number(),
     boardId: v.optional(v.id("boards")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) return [];
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     let entries;
     if (args.boardId) {
       entries = await ctx.db
         .query("timeEntries")
         .withIndex("by_user_board", (q) =>
-          q.eq("userId", user._id).eq("boardId", args.boardId)
+          q.eq("userId", userId).eq("boardId", args.boardId)
         )
         .collect();
       // Filter by date range
@@ -142,7 +131,7 @@ export const getEntriesByDateRange = query({
     } else {
       entries = await ctx.db
         .query("timeEntries")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
       // Filter by date range
       entries = entries.filter(
@@ -183,17 +172,12 @@ export const getEntriesByDateRange = query({
  */
 export const getMonthlySummary = query({
   args: {
-    userEmail: v.string(),
     year: v.number(),
     month: v.number(), // 1-12
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) return { totalMs: 0, byBoard: [], entries: [] };
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Calculate month start and end
     const startDate = new Date(args.year, args.month - 1, 1).getTime();
@@ -201,7 +185,7 @@ export const getMonthlySummary = query({
 
     const entries = await ctx.db
       .query("timeEntries")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     // Filter by date range
@@ -246,22 +230,17 @@ export const getMonthlySummary = query({
  */
 export const startTimer = mutation({
   args: {
-    userEmail: v.string(),
     description: v.string(),
     cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Check for existing timer and stop it
     const existingTimer = await ctx.db
       .query("activeTimers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     if (existingTimer) {
@@ -269,7 +248,7 @@ export const startTimer = mutation({
       const durationMs = Date.now() - existingTimer.startedAt;
 
       await ctx.db.insert("timeEntries", {
-        userId: user._id,
+        userId,
         cardId: existingTimer.cardId,
         boardId: existingTimer.boardId,
         description: existingTimer.description,
@@ -296,7 +275,7 @@ export const startTimer = mutation({
 
     // Create new timer
     const timerId = await ctx.db.insert("activeTimers", {
-      userId: user._id,
+      userId,
       cardId: args.cardId,
       boardId,
       description: args.description || "Working...",
@@ -312,18 +291,14 @@ export const startTimer = mutation({
  * Stop the active timer and create a time entry
  */
 export const stopTimer = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const timer = await ctx.db
       .query("activeTimers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     if (!timer) throw new Error("No active timer");
@@ -332,7 +307,7 @@ export const stopTimer = mutation({
 
     // Create time entry
     const entryId = await ctx.db.insert("timeEntries", {
-      userId: user._id,
+      userId,
       cardId: timer.cardId,
       boardId: timer.boardId,
       description: timer.description,
@@ -353,18 +328,14 @@ export const stopTimer = mutation({
  * Discard the active timer without saving
  */
 export const discardTimer = mutation({
-  args: { userEmail: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const timer = await ctx.db
       .query("activeTimers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     if (!timer) throw new Error("No active timer");
@@ -380,21 +351,16 @@ export const discardTimer = mutation({
  */
 export const updateTimer = mutation({
   args: {
-    userEmail: v.string(),
     description: v.optional(v.string()),
     cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     const timer = await ctx.db
       .query("activeTimers")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     if (!timer) throw new Error("No active timer");
@@ -432,7 +398,6 @@ export const updateTimer = mutation({
  */
 export const addManualEntry = mutation({
   args: {
-    userEmail: v.string(),
     description: v.string(),
     hours: v.number(),
     minutes: v.number(),
@@ -440,12 +405,8 @@ export const addManualEntry = mutation({
     cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
-      .first();
-
-    if (!user) throw new Error("User not found");
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
 
     // Convert hours + minutes to milliseconds
     const durationMs = (args.hours * 60 + args.minutes) * 60 * 1000;
@@ -468,7 +429,7 @@ export const addManualEntry = mutation({
     const date = getStartOfDay(args.date);
 
     const entryId = await ctx.db.insert("timeEntries", {
-      userId: user._id,
+      userId,
       cardId: args.cardId,
       boardId,
       description: args.description,
@@ -494,8 +455,14 @@ export const updateEntry = mutation({
     cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const entry = await ctx.db.get(args.entryId);
     if (!entry) throw new Error("Entry not found");
+
+    // Ensure the entry belongs to the authenticated user
+    if (entry.userId !== userId) throw new Error("Unauthorized");
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
 
@@ -547,8 +514,14 @@ export const updateEntry = mutation({
 export const deleteEntry = mutation({
   args: { entryId: v.id("timeEntries") },
   handler: async (ctx, args) => {
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+
     const entry = await ctx.db.get(args.entryId);
     if (!entry) throw new Error("Entry not found");
+
+    // Ensure the entry belongs to the authenticated user
+    if (entry.userId !== userId) throw new Error("Unauthorized");
 
     await ctx.db.delete(args.entryId);
 

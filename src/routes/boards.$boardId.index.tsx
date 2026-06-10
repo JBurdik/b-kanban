@@ -73,20 +73,15 @@ function BoardPage() {
   // Real-time subscription to board data
   const board = useQuery(api.boards.get, {
     boardId: boardId as Id<"boards">,
-    userEmail,
   });
 
   // Get versions for this board
   const boardVersions = useQuery(api.versions.list, {
     boardId: boardId as Id<"boards">,
-    userEmail,
   });
 
   // Get current user for filtering and display
-  const currentUser = useQuery(
-    api.users.getByEmail,
-    userEmail ? { email: userEmail } : "skip"
-  );
+  const currentUser = useQuery(api.users.me);
 
   // User display info
   const userName = currentUser?.name ?? authSession?.user?.name;
@@ -182,18 +177,17 @@ function BoardPage() {
         columnId,
         title: "Untitled",
         position: 0,
-        userEmail,
       });
     },
-    [createCard, userEmail]
+    [createCard]
   );
 
   // Mobile bottom-bar add-card: create with a real title at top of chosen column.
   const handleMobileCreateCard = useCallback(
     async (columnId: Id<"columns">, title: string) => {
-      await createCard({ columnId, title, position: 0, userEmail });
+      await createCard({ columnId, title, position: 0 });
     },
-    [createCard, userEmail]
+    [createCard]
   );
 
   // Keyboard navigation for board
@@ -262,11 +256,9 @@ function BoardPage() {
     })) || [];
 
   const handleUpdateName = async (name: string) => {
-    if (!userEmail) return;
     await updateBoard({
       boardId: boardId as Id<"boards">,
       name,
-      userEmail,
     });
   };
 
@@ -396,7 +388,7 @@ function BoardPage() {
               currentUserId={currentUser?.id}
             />
           </div>
-          <NotificationBell userEmail={userEmail} />
+          <NotificationBell />
           <UserDropdown
             userName={userName}
             userEmail={userEmail}
@@ -593,7 +585,6 @@ function BoardPage() {
             filter={filter}
             searchQuery={searchQuery}
             currentUserId={currentUser?.id}
-            userEmail={userEmail}
             versionFilter={selectedVersionId}
             onCardClick={handleCardClick}
             onCardDoubleClick={handleCardDoubleClick}
@@ -629,7 +620,6 @@ function BoardPage() {
         <CardSlidePanel
           card={selectedCardWithColumn}
           board={board}
-          userEmail={userEmail}
           editMode={editMode}
           defaultExpanded={cardOpenMode === "fullscreen"}
           onClose={handleClosePanel}
@@ -640,7 +630,6 @@ function BoardPage() {
       {showLabelManager && (
         <LabelManager
           boardId={boardId as Id<"boards">}
-          userEmail={userEmail}
           onClose={() => setShowLabelManager(false)}
         />
       )}
@@ -649,7 +638,6 @@ function BoardPage() {
       {showVersionManager && (
         <VersionManager
           boardId={boardId as Id<"boards">}
-          userEmail={userEmail}
           onClose={() => setShowVersionManager(false)}
         />
       )}

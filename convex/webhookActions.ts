@@ -1,14 +1,14 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { createHmac } from "crypto";
 
 /**
- * Internal action: send a test payload to the webhook URL.
+ * Test a webhook by sending a test payload
  */
-export const testAction = internalAction({
+export const test = action({
   args: { webhookId: v.id("webhooks") },
   handler: async (ctx, args) => {
     const webhook = await ctx.runQuery(internal.webhooks.getInternal, {

@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess } from "./lib/rbac";
+
+type BoardRole = "owner" | "admin" | "member";
+const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
 
 /**
  * List all secret groups for a board
@@ -9,12 +10,34 @@ import { requireAuth, requireBoardAccess } from "./lib/rbac";
 export const list = query({
   args: {
     boardId: v.id("boards"),
+    userEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    if (!args.userEmail) {
+      return [];
+    }
 
-    await requireBoardAccess(ctx, userId, args.boardId, "member");
+    // Look up user by email
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail!))
+      .first();
+
+    if (!user) {
+      return [];
+    }
+
+    // Check board access
+    const member = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!member) {
+      return [];
+    }
 
     const groups = await ctx.db
       .query("secretGroups")
@@ -33,12 +56,35 @@ export const create = mutation({
     boardId: v.id("boards"),
     name: v.string(),
     color: v.optional(v.string()),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
 
-    await requireBoardAccess(ctx, userId, args.boardId, "admin");
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    // Check board access (admin or owner)
+    const member = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!member) {
+      throw new Error("Access denied");
+    }
+
+    const userRoleIndex = roleHierarchy.indexOf(member.role);
+    const minRoleIndex = roleHierarchy.indexOf("admin");
+    if (userRoleIndex < minRoleIndex) {
+      throw new Error("Access denied - admin role required");
+    }
 
     // Check for duplicate name within the board
     const existing = await ctx.db
@@ -69,17 +115,40 @@ export const update = mutation({
     groupId: v.id("secretGroups"),
     name: v.optional(v.string()),
     color: v.optional(v.string()),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
 
     const group = await ctx.db.get(args.groupId);
     if (!group) {
       throw new Error("Group not found");
     }
 
-    await requireBoardAccess(ctx, userId, group.boardId, "admin");
+    // Check board access (admin or owner)
+    const member = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", group.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!member) {
+      throw new Error("Access denied");
+    }
+
+    const userRoleIndex = roleHierarchy.indexOf(member.role);
+    const minRoleIndex = roleHierarchy.indexOf("admin");
+    if (userRoleIndex < minRoleIndex) {
+      throw new Error("Access denied - admin role required");
+    }
 
     // If name is changing, check for duplicates
     if (args.name && args.name !== group.name) {
@@ -113,17 +182,40 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     groupId: v.id("secretGroups"),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
 
     const group = await ctx.db.get(args.groupId);
     if (!group) {
       throw new Error("Group not found");
     }
 
-    await requireBoardAccess(ctx, userId, group.boardId, "admin");
+    // Check board access (admin or owner)
+    const member = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", group.boardId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!member) {
+      throw new Error("Access denied");
+    }
+
+    const userRoleIndex = roleHierarchy.indexOf(member.role);
+    const minRoleIndex = roleHierarchy.indexOf("admin");
+    if (userRoleIndex < minRoleIndex) {
+      throw new Error("Access denied - admin role required");
+    }
 
     // Remove groupId from all secrets in this group
     const secretsInGroup = await ctx.db

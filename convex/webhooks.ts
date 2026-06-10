@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { requireAuth, requireBoardAccess } from "./lib/rbac";
-import { internal } from "./_generated/api";
 
 /**
  * Create a new webhook
@@ -152,32 +151,6 @@ export const getBoardName = internalQuery({
 });
 
 /**
- * Internal query: verify the caller is authenticated and is a member of the
- * webhook's board. Returns the webhook on success, throws otherwise.
- */
-export const verifyWebhookAccess = internalQuery({
-  args: {
-    webhookId: v.id("webhooks"),
-    userId: v.id("users"),
-  },
-  handler: async (ctx, args) => {
-    const webhook = await ctx.db.get(args.webhookId);
-    if (!webhook) throw new Error("Webhook not found");
-
-    const member = await ctx.db
-      .query("boardMembers")
-      .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", webhook.boardId).eq("userId", args.userId)
-      )
-      .first();
-
-    if (!member) throw new Error("Access denied");
-
-    return webhook;
-  },
-});
-
-/**
  * Internal mutation to update webhook status after dispatch
  */
 export const updateWebhookStatus = internalMutation({
@@ -190,23 +163,6 @@ export const updateWebhookStatus = internalMutation({
     await ctx.db.patch(args.webhookId, {
       lastTriggeredAt: args.lastTriggeredAt,
       lastStatus: args.lastStatus,
-    });
-  },
-});
-
-export const test = mutation({
-  args: { webhookId: v.id("webhooks") },
-  handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-
-    await ctx.runQuery(internal.webhooks.verifyWebhookAccess, {
-      webhookId: args.webhookId,
-      userId,
-    });
-
-    await ctx.scheduler.runAfter(0, internal.webhookActions.testAction, {
-      webhookId: args.webhookId,
     });
   },
 });

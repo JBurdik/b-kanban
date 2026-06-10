@@ -19,9 +19,13 @@ function ArchivePage() {
 
   const board = useQuery(api.boards.get, {
     boardId: boardId as Id<"boards">,
+    userEmail,
   });
 
-  const currentUser = useQuery(api.users.me);
+  const currentUser = useQuery(
+    api.users.getByEmail,
+    userEmail ? { email: userEmail } : "skip"
+  );
 
   const userName = currentUser?.name ?? authSession?.user?.name;
   const userImage = currentUser?.image ?? authSession?.user?.image;
@@ -84,7 +88,7 @@ function ArchivePage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <NotificationBell />
+          <NotificationBell userEmail={userEmail} />
           <UserDropdown
             userName={userName}
             userEmail={userEmail}

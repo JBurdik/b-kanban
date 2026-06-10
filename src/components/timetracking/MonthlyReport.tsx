@@ -3,12 +3,17 @@ import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { formatDuration, formatMonthYear } from "@/lib/timeUtils";
 
-export function MonthlyReport() {
+interface MonthlyReportProps {
+  userEmail: string;
+}
+
+export function MonthlyReport({ userEmail }: MonthlyReportProps) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
 
   const summary = useQuery(api.timeTracking.getMonthlySummary, {
+    userEmail,
     year,
     month,
   });

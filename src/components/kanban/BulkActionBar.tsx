@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useConvexUser } from "@/hooks/useConvexUser";
 
 interface Props {
   selectedCardIds: Set<Id<"cards">>;
@@ -17,6 +18,7 @@ export function BulkActionBar({
   onClearSelection,
   boardId,
 }: Props) {
+  const { userEmail } = useConvexUser();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
@@ -24,8 +26,8 @@ export function BulkActionBar({
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
   const [labelRemoveMode, setLabelRemoveMode] = useState(false);
 
-  const versions = useQuery(api.versions.list, { boardId });
-  const labels = useQuery(api.labels.list, { boardId });
+  const versions = useQuery(api.versions.list, { boardId, userEmail });
+  const labels = useQuery(api.labels.list, { boardId, userEmail });
 
   const bulkUpdatePriority = useMutation(api.cards.bulkUpdatePriority);
   const bulkArchive = useMutation(api.cards.bulkArchive);
@@ -65,10 +67,11 @@ export function BulkActionBar({
   };
 
   const handleLabelClick = async (labelId: Id<"labels">) => {
+    if (!userEmail) return;
     if (labelRemoveMode) {
-      await bulkRemoveLabel({ cardIds, labelId });
+      await bulkRemoveLabel({ cardIds, labelId, userEmail });
     } else {
-      await bulkAddLabel({ cardIds, labelId });
+      await bulkAddLabel({ cardIds, labelId, userEmail });
     }
     setShowLabelDropdown(false);
     onClearSelection();

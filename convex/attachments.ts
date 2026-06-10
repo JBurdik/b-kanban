@@ -1,7 +1,48 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, getOptionalAuth, requireBoardAccess, getBoardIdFromCard } from "./lib/rbac";
+
+type Ctx = QueryCtx | MutationCtx;
+
+/**
+ * Get user by email
+ */
+async function getUserByEmail(ctx: Ctx, email: string) {
+  return await ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .first();
+}
+
+/**
+ * Get board ID from card ID
+ */
+async function getBoardIdFromCard(
+  ctx: Ctx,
+  cardId: Id<"cards">,
+): Promise<Id<"boards"> | null> {
+  const card = await ctx.db.get(cardId);
+  if (!card) return null;
+  const column = await ctx.db.get(card.columnId);
+  return column?.boardId || null;
+}
+
+/**
+ * Check if user has access to board
+ */
+async function checkBoardAccess(
+  ctx: Ctx,
+  userId: Id<"users">,
+  boardId: Id<"boards">,
+): Promise<boolean> {
+  const member = await ctx.db
+    .query("boardMembers")
+    .withIndex("by_board_and_user", (q) =>
+      q.eq("boardId", boardId).eq("userId", userId),
+    )
+    .first();
+  return !!member;
+}
 
 /**
  * Get attachments for a card
@@ -9,9 +50,6 @@ import { requireAuth, getOptionalAuth, requireBoardAccess, getBoardIdFromCard } 
 export const list = query({
   args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx);
-    if (!authUser) return [];
-
     const attachments = await ctx.db
       .query("attachments")
       .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
@@ -33,9 +71,10 @@ export const list = query({
  * Generate upload URL for file upload
  */
 export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx, _args) => {
-    await requireAuth(ctx);
+  args: { userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("Unauthorized");
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -50,15 +89,17 @@ export const saveAttachment = mutation({
     fileName: v.string(),
     fileSize: v.number(),
     mimeType: v.string(),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("Unauthorized");
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
 
-    await requireBoardAccess(ctx, userId, boardId);
+    const hasAccess = await checkBoardAccess(ctx, user._id, boardId);
+    if (!hasAccess) throw new Error("Access denied");
 
     const attachmentId = await ctx.db.insert("attachments", {
       cardId: args.cardId,
@@ -66,7 +107,7 @@ export const saveAttachment = mutation({
       fileName: args.fileName,
       fileSize: args.fileSize,
       mimeType: args.mimeType,
-      uploadedById: userId,
+      uploadedById: user._id,
       createdAt: Date.now(),
     });
 
@@ -83,16 +124,8 @@ export const saveAttachment = mutation({
 export const remove = mutation({
   args: { attachmentId: v.id("attachments") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-
     const attachment = await ctx.db.get(args.attachmentId);
     if (!attachment) throw new Error("Attachment not found");
-
-    const boardId = await getBoardIdFromCard(ctx, attachment.cardId);
-    if (!boardId) throw new Error("Card not found");
-
-    await requireBoardAccess(ctx, userId, boardId);
 
     // Delete from storage
     await ctx.storage.delete(attachment.storageId);
@@ -111,9 +144,11 @@ export const remove = mutation({
 export const getImageUrl = mutation({
   args: {
     storageId: v.id("_storage"),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("Unauthorized");
 
     const url = await ctx.storage.getUrl(args.storageId);
     if (!url) throw new Error("Image not found");

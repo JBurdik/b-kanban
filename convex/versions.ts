@@ -1,18 +1,30 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess, checkBoardAccess } from "./lib/rbac";
+import { requireBoardAccess, checkBoardAccess } from "./lib/rbac";
+
+async function getUserByEmail(
+  ctx: QueryCtx | MutationCtx,
+  email: string
+): Promise<{ _id: Id<"users"> } | null> {
+  return await ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .first();
+}
 
 /**
  * List all versions for a board
  */
 export const list = query({
-  args: { boardId: v.id("boards") },
+  args: { boardId: v.id("boards"), userEmail: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    if (!args.userEmail) return [];
 
-    const { hasAccess } = await checkBoardAccess(ctx, userId, args.boardId, "member");
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) return [];
+
+    const { hasAccess } = await checkBoardAccess(ctx, user._id, args.boardId, "member");
     if (!hasAccess) return [];
 
     return await ctx.db
@@ -30,12 +42,13 @@ export const create = mutation({
     boardId: v.id("boards"),
     name: v.string(),
     color: v.string(),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
 
-    await requireBoardAccess(ctx, userId, args.boardId, "admin");
+    await requireBoardAccess(ctx, user._id, args.boardId, "admin");
 
     return await ctx.db.insert("versions", {
       boardId: args.boardId,
@@ -56,15 +69,16 @@ export const update = mutation({
     name: v.optional(v.string()),
     color: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
 
     const version = await ctx.db.get(args.versionId);
     if (!version) throw new Error("Version not found");
 
-    await requireBoardAccess(ctx, userId, version.boardId, "admin");
+    await requireBoardAccess(ctx, user._id, version.boardId, "admin");
 
     const updates: Record<string, unknown> = {};
     if (args.name !== undefined) updates.name = args.name;
@@ -80,15 +94,15 @@ export const update = mutation({
  * Remove a version and clear it from all cards (admin/owner only)
  */
 export const remove = mutation({
-  args: { versionId: v.id("versions") },
+  args: { versionId: v.id("versions"), userEmail: v.string() },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
 
     const version = await ctx.db.get(args.versionId);
     if (!version) throw new Error("Version not found");
 
-    await requireBoardAccess(ctx, userId, version.boardId, "admin");
+    await requireBoardAccess(ctx, user._id, version.boardId, "admin");
 
     // Clear versionId from all cards that reference this version
     const columns = await ctx.db

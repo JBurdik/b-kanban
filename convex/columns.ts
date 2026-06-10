@@ -1,7 +1,5 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
-import { requireAuth, requireBoardAccess } from "./lib/rbac";
-import type { Id } from "./_generated/dataModel";
 
 /**
  * Create a new column
@@ -13,10 +11,6 @@ export const create = mutation({
     position: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-    await requireBoardAccess(ctx, userId, args.boardId, "admin");
-
     const now = Date.now();
 
     // Get max position if not provided
@@ -54,10 +48,6 @@ export const update = mutation({
     const column = await ctx.db.get(args.columnId);
     if (!column) throw new Error("Column not found");
 
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-    await requireBoardAccess(ctx, userId, column.boardId, "admin");
-
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
     if (args.position !== undefined) updates.position = args.position;
@@ -76,10 +66,6 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const column = await ctx.db.get(args.columnId);
     if (!column) throw new Error("Column not found");
-
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-    await requireBoardAccess(ctx, userId, column.boardId, "admin");
 
     // Delete all cards in column
     const cards = await ctx.db
@@ -122,14 +108,6 @@ export const reorder = mutation({
   },
   handler: async (ctx, args) => {
     if (args.items.length === 0) return { success: true };
-
-    // Get boardId from the first column to verify access
-    const firstColumn = await ctx.db.get(args.items[0].id);
-    if (!firstColumn) throw new Error("Column not found");
-
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-    await requireBoardAccess(ctx, userId, firstColumn.boardId, "admin");
 
     for (const item of args.items) {
       await ctx.db.patch(item.id, { position: item.position, updatedAt: Date.now() });

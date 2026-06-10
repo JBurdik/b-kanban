@@ -11,15 +11,16 @@ interface Props {
   boardId: Id<"boards">;
   cardId: Id<"cards">;
   currentLabels: Label[];
+  userEmail?: string;
   onOpenManager?: () => void;
 }
 
-export function LabelSelector({ boardId, cardId, currentLabels, onOpenManager }: Props) {
+export function LabelSelector({ boardId, cardId, currentLabels, userEmail, onOpenManager }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
-  const allLabels = useQuery(api.labels.list, { boardId });
+  const allLabels = useQuery(api.labels.list, { boardId, userEmail });
   const addLabel = useMutation(api.labels.addToCard);
   const removeLabel = useMutation(api.labels.removeFromCard);
 
@@ -38,10 +39,11 @@ export function LabelSelector({ boardId, cardId, currentLabels, onOpenManager }:
   const currentLabelIds = new Set(currentLabels.map((l) => l._id));
 
   const handleToggleLabel = async (labelId: Id<"labels">) => {
+    if (!userEmail) return;
     if (currentLabelIds.has(labelId)) {
-      await removeLabel({ cardId, labelId });
+      await removeLabel({ cardId, labelId, userEmail });
     } else {
-      await addLabel({ cardId, labelId });
+      await addLabel({ cardId, labelId, userEmail });
     }
   };
 
@@ -71,7 +73,7 @@ export function LabelSelector({ boardId, cardId, currentLabels, onOpenManager }:
               key={label._id}
               label={label}
               size="sm"
-              onRemove={() => removeLabel({ cardId, labelId: label._id })}
+              onRemove={userEmail ? () => removeLabel({ cardId, labelId: label._id, userEmail }) : undefined}
             />
           ))}
         </div>

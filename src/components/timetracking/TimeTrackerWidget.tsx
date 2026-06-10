@@ -4,7 +4,11 @@ import { api } from "convex/_generated/api";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { formatTimerDisplay, formatDuration } from "@/lib/timeUtils";
 
-export function TimeTrackerWidget() {
+interface TimeTrackerWidgetProps {
+  userEmail: string;
+}
+
+export function TimeTrackerWidget({ userEmail }: TimeTrackerWidgetProps) {
   const [description, setDescription] = useState("");
 
   const {
@@ -13,9 +17,9 @@ export function TimeTrackerWidget() {
     isRunning,
     start,
     stop,
-  } = useActiveTimer();
+  } = useActiveTimer(userEmail);
 
-  const todayData = useQuery(api.timeTracking.getTodayEntries, {});
+  const todayData = useQuery(api.timeTracking.getTodayEntries, { userEmail });
 
   const handleStart = () => {
     if (description.trim()) {

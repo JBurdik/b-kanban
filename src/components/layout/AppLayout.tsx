@@ -8,7 +8,6 @@ import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserDropdown } from "@/components/UserDropdown";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
-import { useAutoUpdater } from "@/hooks/useAutoUpdater";
 import clsx from "clsx";
 
 interface AppLayoutProps {
@@ -20,10 +19,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { isCollapsed, isMobileOpen, toggle, toggleMobile, closeMobile } =
     useSidebarState();
   const { showShortcutsModal, setShowShortcutsModal } = useGlobalShortcuts();
-  const { state: updateState, version: updateVersion, installUpdate } = useAutoUpdater();
 
   // Fetch user from Convex to get updated avatar
-  const convexUser = useQuery(api.users.me);
+  const convexUser = useQuery(
+    api.users.getByEmail,
+    session?.user?.email ? { email: session.user.email } : "skip"
+  );
 
   const userName = convexUser?.name ?? session?.user?.name;
   const userImage = convexUser?.image ?? session?.user?.image;
@@ -37,6 +38,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <Sidebar
           isCollapsed={isCollapsed}
           onToggle={toggle}
+          userEmail={userEmail}
         />
       </div>
 
@@ -44,6 +46,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <MobileSidebar
         isOpen={isMobileOpen}
         onClose={closeMobile}
+        userEmail={userEmail}
       />
 
       {/* Main Content */}
@@ -65,7 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
             {/* Right: Notifications and User */}
             <div className="flex items-center gap-2">
-              <NotificationBell />
+              <NotificationBell userEmail={userEmail} />
               <UserDropdown
                 userName={userName}
                 userEmail={userEmail}
@@ -75,28 +78,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           </div>
         </div>
-
-        {/* Update banner */}
-        {(updateState === "available" || updateState === "downloading") && (
-          <div className="bg-accent/10 border-b border-accent/30 px-4 py-2 flex items-center justify-between gap-4 text-sm">
-            <span className="text-accent font-medium">
-              {updateState === "downloading"
-                ? "Downloading update…"
-                : `Update available${updateVersion ? ` (v${updateVersion})` : ""}`}
-            </span>
-            {updateState === "available" && (
-              <button
-                onClick={installUpdate}
-                className="px-3 py-1 rounded bg-accent text-white text-xs font-medium hover:bg-accent/80 transition-colors"
-              >
-                Download & Restart
-              </button>
-            )}
-            {updateState === "downloading" && (
-              <div className="animate-spin w-4 h-4 border-2 border-accent border-t-transparent rounded-full" />
-            )}
-          </div>
-        )}
 
         {/* Page Content */}
         <div className="flex-1">

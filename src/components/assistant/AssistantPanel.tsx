@@ -36,7 +36,7 @@ function md(text: string): string {
 }
 
 export function AssistantPanel({ onClose }: { onClose: () => void }) {
-  const { board, activeCard } = useAssistant();
+  const { board, userEmail, activeCard } = useAssistant();
   const [available, setAvailable] = useState<boolean | null>(null);
   const [status, setStatus] = useState<CodexStatus | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -186,6 +186,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
               content: c.description ? md(c.description) : undefined,
               priority: c.priority,
               type: c.type,
+              userEmail,
             });
             notes.push(`Created "${c.title}" in ${column.name}`);
           }
@@ -205,6 +206,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
               cardId: cardId as Id<"cards">,
               title: upd.title,
               content: upd.description ? md(upd.description) : undefined,
+              currentUserEmail: userEmail,
             });
             notes.push(`Updated ${upd.slug}`);
           }
@@ -228,7 +230,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
         ]);
       }
     },
-    [board, createCard, updateCard],
+    [board, createCard, updateCard, userEmail],
   );
 
   const rejectProposal = useCallback((msgId: number) => {

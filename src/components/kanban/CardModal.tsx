@@ -24,11 +24,12 @@ interface Props {
   boardId: Id<"boards">;
   columns: KanbanColumnWithCards[];
   members?: BoardMember[];
+  userEmail?: string;
   userRole?: "owner" | "admin" | "member";
   onClose: () => void;
 }
 
-export function CardModal({ card, boardId, columns, members = [], userRole, onClose }: Props) {
+export function CardModal({ card, boardId, columns, members = [], userEmail, userRole, onClose }: Props) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLabelManager, setShowLabelManager] = useState(false);
@@ -36,7 +37,7 @@ export function CardModal({ card, boardId, columns, members = [], userRole, onCl
 
   const updateCard = useMutation(api.cards.update);
   const deleteCard = useMutation(api.cards.remove);
-  const { onImageUpload } = useEditorImageUpload();
+  const { onImageUpload } = useEditorImageUpload(userEmail);
 
   // Use the new form state hook that tracks dirty fields and syncs with real-time updates
   const { values, setField, getDirtyFields, hasChanges, markSaved } = useCardFormState({
@@ -74,6 +75,7 @@ export function CardModal({ card, boardId, columns, members = [], userRole, onCl
         await updateCard({
           cardId: card._id,
           ...dirtyFields,
+          currentUserEmail: userEmail,
         });
         markSaved();
       } finally {
@@ -86,7 +88,7 @@ export function CardModal({ card, boardId, columns, members = [], userRole, onCl
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [values, hasChanges, getDirtyFields, card._id, updateCard, markSaved]);
+  }, [values, hasChanges, getDirtyFields, card._id, updateCard, userEmail, markSaved]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -142,6 +144,7 @@ export function CardModal({ card, boardId, columns, members = [], userRole, onCl
             boardId={boardId}
             cardId={card._id}
             currentLabels={card.labels || []}
+            userEmail={userEmail}
             onOpenManager={
               userRole === "owner" || userRole === "admin"
                 ? () => setShowLabelManager(true)
@@ -228,6 +231,7 @@ export function CardModal({ card, boardId, columns, members = [], userRole, onCl
       {showLabelManager && (
         <LabelManager
           boardId={boardId}
+          userEmail={userEmail}
           onClose={() => setShowLabelManager(false)}
         />
       )}

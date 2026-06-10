@@ -9,8 +9,6 @@ import { Avatar } from "@/components/Avatar";
 import { useCardOpenMode } from "@/hooks/useCardOpenMode";
 import { IntegrationsSettings } from "@/components/settings/IntegrationsSettings";
 import { McpKeysSettings } from "@/components/settings/McpKeysSettings";
-import { useAutoUpdater } from "@/hooks/useAutoUpdater";
-import { isDesktop } from "@/lib/platform";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -22,7 +20,10 @@ function ProfilePage() {
   const navigate = useNavigate();
 
   // Fetch user from Convex to get updated avatar
-  const convexUser = useQuery(api.users.me);
+  const convexUser = useQuery(
+    api.users.getByEmail,
+    sessionUser?.email ? { email: sessionUser.email } : "skip",
+  );
 
   // Use convexUser for display, fallback to sessionUser
   const user = convexUser ?? sessionUser;
@@ -39,7 +40,6 @@ function ProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { mode: cardOpenMode, setMode: setCardOpenMode } = useCardOpenMode();
-  const { state: updateState, version: updateVersion, isChecking, checkForUpdates, installUpdate } = useAutoUpdater();
 
   // Convex mutations
   const updateProfile = useMutation(api.users.updateProfile);
@@ -71,10 +71,10 @@ function ProfilePage() {
   }
 
   const handleNameSave = async () => {
-    if (name.trim() && name !== user?.name) {
+    if (name.trim() && name !== user?.name && userId) {
       setIsUpdatingName(true);
       try {
-        await updateProfile({ name: name.trim() });
+        await updateProfile({ userId, name: name.trim() });
       } finally {
         setIsUpdatingName(false);
       }
@@ -83,7 +83,8 @@ function ProfilePage() {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    const userEmail = user?.email;
+    if (!file || !userEmail) return;
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
@@ -100,7 +101,7 @@ function ProfilePage() {
     setIsUploadingAvatar(true);
     try {
       // Get upload URL
-      const uploadUrl = await generateAvatarUploadUrl({});
+      const uploadUrl = await generateAvatarUploadUrl({ userEmail });
 
       // Upload file
       const response = await fetch(uploadUrl, {
@@ -116,7 +117,7 @@ function ProfilePage() {
       const { storageId } = await response.json();
 
       // Save avatar reference
-      await saveAvatar({ storageId });
+      await saveAvatar({ userEmail, storageId });
     } catch (err) {
       console.error("Failed to upload avatar:", err);
       alert("Failed to upload avatar. Please try again.");
@@ -130,10 +131,12 @@ function ProfilePage() {
   };
 
   const handleRemoveAvatar = async () => {
+    const userEmail = user?.email;
+    if (!userEmail) return;
     if (!confirm("Remove your custom avatar?")) return;
 
     try {
-      await removeAvatar({});
+      await removeAvatar({ userEmail });
     } catch (err) {
       console.error("Failed to remove avatar:", err);
     }
@@ -175,6 +178,7 @@ function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
+    if (!userId) return;
     if (
       confirm(
         "Are you sure you want to delete your account? This action cannot be undone.",
@@ -187,7 +191,7 @@ function ProfilePage() {
       ) {
         setIsDeletingAccount(true);
         try {
-          await deleteAccountMutation({});
+          await deleteAccountMutation({ userId });
           await signOut();
           navigate({ to: "/login" });
         } catch (err) {
@@ -406,50 +410,8 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* App Updates — desktop only */}
-      {isDesktop && (
-        <div className="card mb-6">
-          <h2 className="font-semibold mb-4">App Updates</h2>
-          <div className="flex items-center justify-between gap-4">
-            <div className="text-sm text-dark-muted">
-              {updateState === "idle" && "App checks for updates every hour automatically."}
-              {updateState === "available" && (
-                <span className="text-accent font-medium">
-                  Update available{updateVersion ? ` — v${updateVersion}` : ""}
-                </span>
-              )}
-              {updateState === "downloading" && (
-                <span className="text-accent">Downloading update…</span>
-              )}
-              {updateState === "ready" && (
-                <span className="text-green-400">Update installed — restart to apply.</span>
-              )}
-            </div>
-            <div className="flex gap-2 flex-shrink-0">
-              {updateState === "available" && (
-                <button
-                  onClick={installUpdate}
-                  className="btn-primary text-sm"
-                >
-                  Download & Restart
-                </button>
-              )}
-              {(updateState === "idle" || updateState === "available") && (
-                <button
-                  onClick={checkForUpdates}
-                  disabled={isChecking}
-                  className="px-3 py-1.5 rounded-lg border border-dark-border text-sm text-dark-muted hover:text-dark-text hover:border-dark-hover transition-colors disabled:opacity-50"
-                >
-                  {isChecking ? "Checking…" : "Check now"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Remote MCP keys (Claude Code over HTTP) — always visible */}
-      <McpKeysSettings />
+      <McpKeysSettings email={user?.email} />
 
       {/* Assistant integrations (MCP + skill) — desktop only */}
       <IntegrationsSettings email={user?.email} />

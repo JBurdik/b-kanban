@@ -15,19 +15,19 @@ export const Route = createFileRoute("/boards/")({
 });
 
 function BoardsPage() {
-  const { isLoading: userLoading, session } = useConvexUser();
+  const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const [showCreate, setShowCreate] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: Id<"boards">; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Real-time subscription to boards
-  const boards = useQuery(api.boards.list, {});
+  // Real-time subscription to boards (skip if not authenticated)
+  const boards = useQuery(api.boards.list, userEmail ? { userEmail } : "skip");
 
   // Get user's tasks across all boards for dashboard
   const myTasksData = useQuery(
     api.cards.getMyTasks,
-    { limit: 5 }
+    userEmail ? { userEmail, limit: 5 } : "skip"
   );
 
   // Mutations
@@ -48,8 +48,8 @@ function BoardsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newBoardName.trim()) {
-      await createBoard({ name: newBoardName.trim() });
+    if (newBoardName.trim() && userEmail) {
+      await createBoard({ name: newBoardName.trim(), userEmail });
       setShowCreate(false);
       setNewBoardName("");
     }
@@ -175,7 +175,7 @@ function BoardsPage() {
                 View all
               </Link>
             </div>
-            <TimeTrackerWidget />
+            <TimeTrackerWidget userEmail={userEmail!} />
           </div>
 
           {/* Recent Tasks */}

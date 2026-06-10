@@ -1,8 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireAuth, getOptionalAuth, requireBoardAccess } from "./lib/rbac";
-import type { Id } from "./_generated/dataModel";
 
 /**
  * Get board members
@@ -10,11 +8,6 @@ import type { Id } from "./_generated/dataModel";
 export const list = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx);
-    if (!authUser) return [];
-    const userId = authUser._id as unknown as Id<"users">;
-    await requireBoardAccess(ctx, userId, args.boardId, "member");
-
     const members = await ctx.db
       .query("boardMembers")
       .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
@@ -54,12 +47,9 @@ export const add = mutation({
     boardId: v.id("boards"),
     email: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),
+    userId: v.optional(v.id("users")), // Current user adding the member
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-    await requireBoardAccess(ctx, userId, args.boardId, "admin");
-
     // Find user by email - create if doesn't exist
     let userToAdd = await ctx.db
       .query("users")
@@ -68,14 +58,14 @@ export const add = mutation({
 
     if (!userToAdd) {
       // Auto-create user from email (they can claim the account later)
-      const newUserId = await ctx.db.insert("users", {
+      const userId = await ctx.db.insert("users", {
         email: args.email,
         name: args.email.split("@")[0], // Default name from email
         emailVerified: false,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
-      userToAdd = await ctx.db.get(newUserId);
+      userToAdd = await ctx.db.get(userId);
     }
 
     if (!userToAdd) {
@@ -121,13 +111,8 @@ export const updateRole = mutation({
     role: v.union(v.literal("admin"), v.literal("member")),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-
     const memberToUpdate = await ctx.db.get(args.memberId);
     if (!memberToUpdate) throw new Error("Member not found");
-
-    await requireBoardAccess(ctx, userId, memberToUpdate.boardId, "admin");
 
     // Cannot modify owner
     if (memberToUpdate.role === "owner") {
@@ -146,13 +131,8 @@ export const updateRole = mutation({
 export const remove = mutation({
   args: { memberId: v.id("boardMembers") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-
     const memberToRemove = await ctx.db.get(args.memberId);
     if (!memberToRemove) throw new Error("Member not found");
-
-    await requireBoardAccess(ctx, userId, memberToRemove.boardId, "admin");
 
     // Cannot remove owner
     if (memberToRemove.role === "owner") {
@@ -174,11 +154,6 @@ export const search = query({
     query: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx);
-    if (!authUser) return [];
-    const userId = authUser._id as unknown as Id<"users">;
-    await requireBoardAccess(ctx, userId, args.boardId, "member");
-
     const members = await ctx.db
       .query("boardMembers")
       .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
@@ -216,15 +191,13 @@ export const search = query({
 export const leave = mutation({
   args: {
     boardId: v.id("boards"),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-
     const membership = await ctx.db
       .query("boardMembers")
       .withIndex("by_board_and_user", (q) =>
-        q.eq("boardId", args.boardId).eq("userId", userId)
+        q.eq("boardId", args.boardId).eq("userId", args.userId)
       )
       .first();
 

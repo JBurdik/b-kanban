@@ -19,41 +19,43 @@ const VERSION_COLORS = [
 
 interface Props {
   boardId: Id<"boards">;
+  userEmail?: string;
   onClose: () => void;
 }
 
-export function VersionManager({ boardId, onClose }: Props) {
+export function VersionManager({ boardId, userEmail, onClose }: Props) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(VERSION_COLORS[0]);
   const [editingId, setEditingId] = useState<Id<"versions"> | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
 
-  const versions = useQuery(api.versions.list, { boardId });
+  const versions = useQuery(api.versions.list, { boardId, userEmail });
   const createVersion = useMutation(api.versions.create);
   const updateVersion = useMutation(api.versions.update);
   const removeVersion = useMutation(api.versions.remove);
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
-    await createVersion({ boardId, name: name.trim(), color });
+    if (!name.trim() || !userEmail) return;
+    await createVersion({ boardId, name: name.trim(), color, userEmail });
     setName("");
     setColor(VERSION_COLORS[(versions?.length ?? 0) % VERSION_COLORS.length]);
   };
 
   const handleUpdate = async () => {
-    if (!editingId || !editName.trim()) return;
-    await updateVersion({ versionId: editingId, name: editName.trim(), color: editColor });
+    if (!editingId || !editName.trim() || !userEmail) return;
+    await updateVersion({ versionId: editingId, name: editName.trim(), color: editColor, userEmail });
     setEditingId(null);
   };
 
   const handleDelete = async (versionId: Id<"versions">) => {
-    if (!confirm("Delete this version? It will be removed from all cards.")) return;
-    await removeVersion({ versionId });
+    if (!userEmail || !confirm("Delete this version? It will be removed from all cards.")) return;
+    await removeVersion({ versionId, userEmail });
   };
 
   const handleToggleActive = async (versionId: Id<"versions">, isActive: boolean) => {
-    await updateVersion({ versionId, isActive: !isActive });
+    if (!userEmail) return;
+    await updateVersion({ versionId, isActive: !isActive, userEmail });
   };
 
   return (

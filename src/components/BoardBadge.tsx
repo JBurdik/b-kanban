@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useSession } from "@/lib/auth-client";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 
 // Badge color palette: key -> tailwind classes
@@ -51,6 +52,7 @@ export function BoardBadgeEditor({
   currentColor,
   onClose,
 }: BoardBadgeEditorProps) {
+  const { data: session } = useSession();
   const setBadge = useMutation(api.boards.setBadge);
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -72,12 +74,14 @@ export function BoardBadgeEditor({
   }, [onClose]);
 
   const handleSave = async () => {
+    if (!session?.user?.email) return;
     setSaving(true);
     try {
       await setBadge({
         boardId,
         text: text.trim() || undefined,
         color,
+        userEmail: session.user.email,
       });
       onClose();
     } catch (error) {
@@ -88,9 +92,10 @@ export function BoardBadgeEditor({
   };
 
   const handleClear = async () => {
+    if (!session?.user?.email) return;
     setSaving(true);
     try {
-      await setBadge({ boardId, text: undefined });
+      await setBadge({ boardId, text: undefined, userEmail: session.user.email });
       onClose();
     } catch (error) {
       console.error("Failed to clear badge:", error);

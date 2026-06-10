@@ -3,18 +3,19 @@ import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Logo } from "@/components/ui/Logo";
 import { BoardIcon } from "@/components/BoardIcon";
-import { useAppVersion } from "@/hooks/useAppVersion";
 import clsx from "clsx";
+
+const APP_VERSION = "1.0.0";
 
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
+  userEmail?: string;
 }
 
-export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+export function Sidebar({ isCollapsed, onToggle, userEmail }: SidebarProps) {
   const location = useLocation();
-  const boards = useQuery(api.boards.list, {});
-  const version = useAppVersion();
+  const boards = useQuery(api.boards.list, userEmail ? { userEmail } : "skip");
 
   const isActive = (path: string) => location.pathname === path;
   const isBoardActive = (boardId: string) =>
@@ -304,10 +305,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         {!isCollapsed ? (
           <div className="text-xs text-dark-muted">
             <p className="font-medium text-dark-muted/70">bProductive</p>
-            <p>Kanban Board v{version}</p>
+            <p>Kanban Board v{APP_VERSION}</p>
           </div>
         ) : (
-          <p className="text-[10px] text-dark-muted/50">v{version}</p>
+          <p className="text-[10px] text-dark-muted/50">v{APP_VERSION}</p>
         )}
       </div>
     </aside>
@@ -318,9 +319,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 export function MobileSidebar({
   isOpen,
   onClose,
+  userEmail,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  userEmail?: string;
 }) {
   if (!isOpen) return null;
 
@@ -334,7 +337,7 @@ export function MobileSidebar({
 
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-screen w-64 bg-dark-surface border-r border-dark-border flex flex-col z-50 lg:hidden animate-slide-in-left">
-        <Sidebar isCollapsed={false} onToggle={onClose} />
+        <Sidebar isCollapsed={false} onToggle={onClose} userEmail={userEmail} />
       </aside>
     </>
   );

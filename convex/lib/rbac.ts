@@ -15,7 +15,7 @@ export async function requireAuth(ctx: QueryCtx | MutationCtx) {
   if (!user) {
     throw new Error("Unauthorized");
   }
-  return user as typeof user & { _id: Id<"users"> };
+  return user;
 }
 
 /**

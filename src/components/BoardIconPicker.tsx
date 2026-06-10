@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useSession } from "@/lib/auth-client";
 import { BoardIcon } from "./BoardIcon";
 
 // Popular emojis for board icons
@@ -37,6 +38,7 @@ export function BoardIconPicker({
   boardName,
   onClose,
 }: BoardIconPickerProps) {
+  const { data: session } = useSession();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -72,10 +74,13 @@ export function BoardIconPicker({
   }, [onClose]);
 
   const handleEmojiSelect = async (emoji: string) => {
+    if (!session?.user?.email) return;
+
     try {
       await setEmojiIcon({
         boardId,
         emoji,
+        userEmail: session.user.email,
       });
       onClose();
     } catch (error) {
@@ -87,7 +92,7 @@ export function BoardIconPicker({
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !session?.user?.email) return;
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
@@ -107,6 +112,7 @@ export function BoardIconPicker({
       // Get upload URL
       const uploadUrl = await generateUploadUrl({
         boardId,
+        userEmail: session.user.email,
       });
 
       // Upload file
@@ -126,6 +132,7 @@ export function BoardIconPicker({
       await saveIcon({
         boardId,
         storageId,
+        userEmail: session.user.email,
       });
 
       onClose();
@@ -141,9 +148,12 @@ export function BoardIconPicker({
   };
 
   const handleRemoveIcon = async () => {
+    if (!session?.user?.email) return;
+
     try {
       await removeIcon({
         boardId,
+        userEmail: session.user.email,
       });
       onClose();
     } catch (error) {

@@ -1,19 +1,43 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, getOptionalAuth, requireBoardAccess } from "./lib/rbac";
+
+// Helper to get user by email
+async function getUserByEmail(ctx: QueryCtx | MutationCtx, email: string) {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .first();
+  return user;
+}
+
+// Helper to check board membership
+async function hasBoardAccess(
+  ctx: QueryCtx | MutationCtx,
+  boardId: Id<"boards">,
+  userId: Id<"users">
+) {
+  const membership = await ctx.db
+    .query("boardMembers")
+    .withIndex("by_board_and_user", (q) =>
+      q.eq("boardId", boardId).eq("userId", userId)
+    )
+    .first();
+  return !!membership;
+}
 
 /**
  * List all documents for a board
  */
 export const list = query({
-  args: { boardId: v.id("boards") },
+  args: { boardId: v.id("boards"), userEmail: v.string() },
   handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx);
-    if (!authUser) return [];
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) return [];
 
-    await requireBoardAccess(ctx, userId, args.boardId, "member");
+    const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
+    if (!hasAccess) return [];
 
     const documents = await ctx.db
       .query("documents")
@@ -49,16 +73,16 @@ export const list = query({
  * Get a single document with linked cards
  */
 export const get = query({
-  args: { documentId: v.id("documents") },
+  args: { documentId: v.id("documents"), userEmail: v.string() },
   handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx);
-    if (!authUser) return null;
-    const userId = authUser._id as unknown as Id<"users">;
-
     const document = await ctx.db.get(args.documentId);
     if (!document) return null;
 
-    await requireBoardAccess(ctx, userId, document.boardId, "member");
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) return null;
+
+    const hasAccess = await hasBoardAccess(ctx, document.boardId, user._id);
+    if (!hasAccess) return null;
 
     // Get creator info
     const creator = await ctx.db.get(document.createdById);
@@ -107,12 +131,14 @@ export const create = mutation({
     boardId: v.id("boards"),
     title: v.string(),
     content: v.optional(v.string()),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
 
-    await requireBoardAccess(ctx, userId, args.boardId, "member");
+    const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
+    if (!hasAccess) throw new Error("Access denied");
 
     const now = Date.now();
 
@@ -120,7 +146,7 @@ export const create = mutation({
       boardId: args.boardId,
       title: args.title,
       content: args.content,
-      createdById: userId,
+      createdById: user._id,
       createdAt: now,
       updatedAt: now,
     });
@@ -137,15 +163,17 @@ export const update = mutation({
     documentId: v.id("documents"),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-
     const document = await ctx.db.get(args.documentId);
     if (!document) throw new Error("Document not found");
 
-    await requireBoardAccess(ctx, userId, document.boardId, "member");
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
+
+    const hasAccess = await hasBoardAccess(ctx, document.boardId, user._id);
+    if (!hasAccess) throw new Error("Access denied");
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.title !== undefined) updates.title = args.title;
@@ -161,15 +189,16 @@ export const update = mutation({
  * Delete a document and its links
  */
 export const remove = mutation({
-  args: { documentId: v.id("documents") },
+  args: { documentId: v.id("documents"), userEmail: v.string() },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx);
-    const userId = authUser._id as unknown as Id<"users">;
-
     const document = await ctx.db.get(args.documentId);
     if (!document) throw new Error("Document not found");
 
-    await requireBoardAccess(ctx, userId, document.boardId, "member");
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) throw new Error("User not found");
+
+    const hasAccess = await hasBoardAccess(ctx, document.boardId, user._id);
+    if (!hasAccess) throw new Error("Access denied");
 
     // Delete all links to this document
     const links = await ctx.db
@@ -195,13 +224,14 @@ export const search = query({
   args: {
     boardId: v.id("boards"),
     query: v.string(),
+    userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx);
-    if (!authUser) return [];
-    const userId = authUser._id as unknown as Id<"users">;
+    const user = await getUserByEmail(ctx, args.userEmail);
+    if (!user) return [];
 
-    await requireBoardAccess(ctx, userId, args.boardId, "member");
+    const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
+    if (!hasAccess) return [];
 
     const documents = await ctx.db
       .query("documents")

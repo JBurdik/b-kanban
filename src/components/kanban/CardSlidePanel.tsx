@@ -54,6 +54,7 @@ interface Board {
 interface Props {
   card: CardWithColumn;
   board: Board;
+  userEmail?: string;
   editMode?: boolean;
   defaultExpanded?: boolean;
   onClose: () => void;
@@ -62,6 +63,7 @@ interface Props {
 export function CardSlidePanel({
   card,
   board,
+  userEmail,
   editMode = false,
   defaultExpanded = false,
   onClose,
@@ -110,7 +112,10 @@ export function CardSlidePanel({
 
   const updateCard = useMutation(api.cards.update);
   const toggleWatch = useMutation(api.cardWatchers.toggle);
-  const currentUser = useQuery(api.users.me);
+  const currentUser = useQuery(
+    api.users.getByEmail,
+    userEmail ? { email: userEmail } : "skip"
+  );
   const isWatching = useQuery(
     api.cardWatchers.isWatching,
     currentUser?.id
@@ -124,6 +129,7 @@ export function CardSlidePanel({
   });
   const boardVersions = useQuery(api.versions.list, {
     boardId: board._id,
+    userEmail,
   });
 
   const canEdit = checkCanEdit(board.userRole);
@@ -142,6 +148,7 @@ export function CardSlidePanel({
     // Build update args only with fields that have changed
     const updateArgs: Parameters<typeof updateCard>[0] = {
       cardId: card._id,
+      currentUserEmail: userEmail,
     };
 
     if ("title" in dirtyFields) updateArgs.title = dirtyFields.title;
@@ -172,7 +179,7 @@ export function CardSlidePanel({
     } finally {
       setIsSaving(false);
     }
-  }, [card._id, updateCard, getDirtyFields, markSaved, hasChanges]);
+  }, [card._id, updateCard, userEmail, getDirtyFields, markSaved, hasChanges]);
 
   // Save on close
   const handleClose = useCallback(async () => {
@@ -218,13 +225,14 @@ export function CardSlidePanel({
         updateCard({
           cardId: card._id,
           priority: newPriority,
+          currentUserEmail: userEmail,
         });
       }
     };
 
     window.addEventListener("keydown", handlePriorityShortcut);
     return () => window.removeEventListener("keydown", handlePriorityShortcut);
-  }, [card._id, updateCard, canEdit]);
+  }, [card._id, updateCard, userEmail, canEdit]);
 
   // Resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -579,6 +587,7 @@ export function CardSlidePanel({
                 boardId={board._id}
                 cardId={card._id}
                 currentLabels={card.labels || []}
+                userEmail={userEmail}
                 onOpenManager={() => setShowLabelManager(true)}
               />
             ) : card.labels && card.labels.length > 0 ? (
@@ -603,6 +612,7 @@ export function CardSlidePanel({
                 title={title}
                 content={content}
                 canEdit={true}
+                userEmail={userEmail}
                 onTitleChange={handleTitleChange}
                 onContentChange={handleContentChange}
                 onMentionSearch={handleMentionSearch}
@@ -631,6 +641,7 @@ export function CardSlidePanel({
                 onEffortChange={handleEffortChange}
                 cardId={card._id}
                 cardTitle={title}
+                userEmail={userEmail}
                 boardId={board._id}
                 labels={card.labels}
                 userRole={board.userRole}
@@ -726,7 +737,7 @@ export function CardSlidePanel({
                     </svg>
                     Comments
                   </h2>
-                  <CommentList cardId={card._id} boardId={board._id} readOnly={!canEdit} />
+                  <CommentList cardId={card._id} boardId={board._id} userEmail={userEmail} readOnly={!canEdit} />
                 </div>
 
               </div>
@@ -765,6 +776,7 @@ export function CardSlidePanel({
                         boardId={board._id}
                         cardId={card._id}
                         currentLabels={card.labels || []}
+                        userEmail={userEmail}
                         onOpenManager={() => setShowLabelManager(true)}
                       />
                     ) : card.labels && card.labels.length > 0 ? (
@@ -904,6 +916,7 @@ export function CardSlidePanel({
         {showLabelManager && (
           <LabelManager
             boardId={board._id}
+            userEmail={userEmail}
             onClose={() => setShowLabelManager(false)}
           />
         )}

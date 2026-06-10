@@ -39,6 +39,7 @@ interface Props {
   // Time tracking props
   cardId?: Id<"cards">;
   cardTitle?: string;
+  userEmail?: string;
   // Board ID for linked documents
   boardId?: Id<"boards">;
   // Labels props
@@ -70,6 +71,7 @@ export function CardSidebar({
   onEffortChange,
   cardId,
   cardTitle,
+  userEmail,
   boardId,
   labels,
   userRole,
@@ -81,7 +83,7 @@ export function CardSidebar({
     isRunning,
     start,
     stop,
-  } = useActiveTimer();
+  } = useActiveTimer(userEmail || "");
 
   // Check if timer is running for THIS card
   const isTimerForThisCard = isRunning && activeTimer?.cardId === cardId;
@@ -163,6 +165,7 @@ export function CardSidebar({
             boardId={boardId}
             cardId={cardId}
             currentLabels={labels || []}
+            userEmail={userEmail}
             onOpenManager={
               (userRole === "owner" || userRole === "admin") && onOpenLabelManager
                 ? onOpenLabelManager
@@ -286,7 +289,7 @@ export function CardSidebar({
       </div>
 
       {/* Time Tracking */}
-      {cardId && (
+      {userEmail && cardId && (
         <div className="mb-4 pt-4 border-t border-dark-border">
           <label className="block text-xs text-dark-muted mb-2">
             Time Tracking
@@ -336,6 +339,7 @@ export function CardSidebar({
           <LinkedDocuments
             cardId={cardId}
             boardId={boardId}
+            userEmail={userEmail}
             canEdit={canEdit}
           />
         </div>

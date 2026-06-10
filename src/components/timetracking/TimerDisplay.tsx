@@ -4,6 +4,7 @@ import { TaskSelector } from "./TaskSelector";
 import type { Id } from "convex/_generated/dataModel";
 
 interface TimerDisplayProps {
+  userEmail: string;
   isRunning: boolean;
   elapsedMs: number;
   description?: string;
@@ -14,6 +15,7 @@ interface TimerDisplayProps {
 }
 
 export function TimerDisplay({
+  userEmail,
   isRunning,
   elapsedMs,
   description,
@@ -96,6 +98,7 @@ export function TimerDisplay({
 
       {/* Task selector */}
       <TaskSelector
+        userEmail={userEmail}
         value={selectedCardId}
         onChange={setSelectedCardId}
       />

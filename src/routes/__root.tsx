@@ -12,6 +12,7 @@ export const Route = createRootRoute({
 function RootLayout() {
   const { data: session, isPending } = useSession();
 
+  // Show loading state
   if (isPending) {
     return (
       <div className="min-h-screen bg-dark-bg flex items-center justify-center">
@@ -20,18 +21,20 @@ function RootLayout() {
     );
   }
 
+  // Authenticated: Use sidebar layout
   if (session) {
     return (
       <AssistantProvider>
         <AppLayout>
           <Outlet />
-          <NotificationToast />
+          <NotificationToast userEmail={session.user.email} />
         </AppLayout>
         <AssistantRoot />
       </AssistantProvider>
     );
   }
 
+  // Not authenticated: Simple layout for login/register
   return (
     <div className="min-h-screen bg-dark-bg">
       <Outlet />

@@ -10,6 +10,7 @@ import { extractMentionedUserIds } from "@/utils/mentions";
 interface Props {
   cardId: Id<"cards">;
   boardId: Id<"boards">;
+  userEmail?: string;
   readOnly?: boolean;
 }
 
@@ -32,7 +33,7 @@ function isHtmlContent(content: string): boolean {
   return content.startsWith("<") && content.includes(">");
 }
 
-export function CommentList({ cardId, boardId, readOnly = false }: Props) {
+export function CommentList({ cardId, boardId, userEmail, readOnly = false }: Props) {
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<Id<"comments"> | null>(null);
@@ -43,7 +44,7 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
   const updateComment = useMutation(api.comments.update);
   const deleteComment = useMutation(api.comments.remove);
   const searchMembers = useQuery(api.members.search, { boardId, query: "" });
-  const currentUser = useQuery(api.users.me);
+  const currentUser = useQuery(api.users.getByEmail, userEmail ? { email: userEmail } : "skip");
 
   // Mention search callback
   const handleMentionSearch = useCallback(async (query: string) => {
@@ -63,7 +64,7 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!hasContent(newComment)) return;
+    if (!hasContent(newComment) || !userEmail) return;
 
     setIsSubmitting(true);
     try {
@@ -73,6 +74,7 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
       await createComment({
         cardId,
         content: newComment,
+        authorEmail: userEmail,
         mentionedUserIds: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
       });
       setNewComment("");
@@ -152,7 +154,7 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
                     </span>
                   </div>
                 </div>
-                {!readOnly && comment.author?.email === currentUser?.email && (
+                {!readOnly && comment.author?.email === userEmail && (
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => startEditing(comment._id, comment.content)}
@@ -229,7 +231,7 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
       )}
 
       {/* Add comment form */}
-      {!readOnly && (
+      {!readOnly && userEmail && (
         <div className="space-y-2">
           <CommentEditor
             content={newComment}

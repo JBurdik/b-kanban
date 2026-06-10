@@ -10,10 +10,11 @@ import clsx from "clsx";
 type Tab = "timer" | "manual";
 
 interface TimeTrackerProps {
+  userEmail: string;
   mode?: "compact" | "full";
 }
 
-export function TimeTracker({ mode = "full" }: TimeTrackerProps) {
+export function TimeTracker({ userEmail, mode = "full" }: TimeTrackerProps) {
   const [activeTab, setActiveTab] = useState<Tab>("timer");
 
   const {
@@ -23,9 +24,9 @@ export function TimeTracker({ mode = "full" }: TimeTrackerProps) {
     start,
     stop,
     discard,
-  } = useActiveTimer();
+  } = useActiveTimer(userEmail);
 
-  const todayData = useQuery(api.timeTracking.getTodayEntries, {});
+  const todayData = useQuery(api.timeTracking.getTodayEntries, { userEmail });
 
   const isCompact = mode === "compact";
 
@@ -66,6 +67,7 @@ export function TimeTracker({ mode = "full" }: TimeTrackerProps) {
       {/* Tab content */}
       {activeTab === "timer" ? (
         <TimerDisplay
+          userEmail={userEmail}
           isRunning={isRunning}
           elapsedMs={elapsedMs}
           description={activeTimer?.description}
@@ -75,7 +77,7 @@ export function TimeTracker({ mode = "full" }: TimeTrackerProps) {
           onDiscard={discard}
         />
       ) : (
-        <ManualEntryForm />
+        <ManualEntryForm userEmail={userEmail} />
       )}
 
       {/* Today's entries (only in full mode) */}

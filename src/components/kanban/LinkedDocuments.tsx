@@ -7,10 +7,11 @@ import { Link } from "@tanstack/react-router";
 interface Props {
   cardId: Id<"cards">;
   boardId: Id<"boards">;
+  userEmail?: string;
   canEdit: boolean;
 }
 
-export function LinkedDocuments({ cardId, boardId, canEdit }: Props) {
+export function LinkedDocuments({ cardId, boardId, userEmail, canEdit }: Props) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -18,8 +19,8 @@ export function LinkedDocuments({ cardId, boardId, canEdit }: Props) {
 
   const searchResults = useQuery(
     api.documents.search,
-    isSearching && searchQuery.length > 0
-      ? { boardId, query: searchQuery }
+    isSearching && userEmail && searchQuery.length > 0
+      ? { boardId, query: searchQuery, userEmail }
       : "skip"
   );
 
@@ -27,10 +28,13 @@ export function LinkedDocuments({ cardId, boardId, canEdit }: Props) {
   const unlinkDocument = useMutation(api.documentLinks.unlink);
 
   const handleLink = async (documentId: Id<"documents">) => {
+    if (!userEmail) return;
+
     try {
       await linkDocument({
         cardId,
         documentId,
+        userEmail,
       });
       setIsSearching(false);
       setSearchQuery("");
@@ -40,10 +44,13 @@ export function LinkedDocuments({ cardId, boardId, canEdit }: Props) {
   };
 
   const handleUnlink = async (documentId: Id<"documents">) => {
+    if (!userEmail) return;
+
     try {
       await unlinkDocument({
         cardId,
         documentId,
+        userEmail,
       });
     } catch (error) {
       console.error("Failed to unlink document:", error);

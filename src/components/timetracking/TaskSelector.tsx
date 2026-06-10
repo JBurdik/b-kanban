@@ -4,12 +4,14 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 
 interface TaskSelectorProps {
+  userEmail: string;
   value: Id<"cards"> | null;
   onChange: (cardId: Id<"cards"> | null) => void;
   compact?: boolean;
 }
 
 export function TaskSelector({
+  userEmail,
   value,
   onChange,
   compact = false,
@@ -20,6 +22,7 @@ export function TaskSelector({
 
   // Get user's tasks
   const tasksData = useQuery(api.cards.getMyTasks, {
+    userEmail,
     limit: 50,
   });
 

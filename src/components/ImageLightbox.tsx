@@ -57,13 +57,15 @@ export function ImageLightboxProvider({ children }: { children: ReactNode }) {
       if (!target || target.tagName !== "IMG") return;
       const container = target.closest(".rich-content, .comment-content");
       if (!container) return;
-      const src = (target as HTMLImageElement).currentSrc || (target as HTMLImageElement).src;
+      // Use .src (the attribute value) not .currentSrc — on Windows/WebView2
+      // currentSrc may return a Tauri-intercepted URL instead of the original.
+      const src = (target as HTMLImageElement).src;
       if (!src) return;
       e.preventDefault();
       e.stopPropagation();
       // Gallery = every image in the same content block.
       const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
-      const srcs = imgs.map((im) => ({ src: im.currentSrc || im.src, alt: im.alt }));
+      const srcs = imgs.map((im) => ({ src: im.src, alt: im.alt }));
       const start = imgs.indexOf(target as HTMLImageElement);
       open(srcs, start < 0 ? 0 : start);
     };
@@ -98,6 +100,7 @@ function Lightbox({ images, index, setIndex, onClose }: LightboxProps) {
   const [rotation, setRotation] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const current = images[index];
   const hasGallery = images.length > 1;
 
@@ -160,10 +163,18 @@ function Lightbox({ images, index, setIndex, onClose }: LightboxProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, go, hasGallery, zoomBy, reset]);
 
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    zoomBy(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
-  };
+  // Use native listener with {passive: false} — React's synthetic onWheel can't
+  // call preventDefault() in WebView2 (Windows), causing page scroll instead of zoom.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      zoomBy(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [zoomBy]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (scale <= 1) return;
@@ -185,9 +196,9 @@ function Lightbox({ images, index, setIndex, onClose }: LightboxProps) {
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center select-none"
       onClick={onClose}
-      onWheel={onWheel}
     >
       {/* Toolbar */}
       <div

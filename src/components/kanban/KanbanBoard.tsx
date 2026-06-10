@@ -107,6 +107,20 @@ export function KanbanBoard({
     };
   }, []);
 
+  // Windows: mouse wheel only fires deltaY. Convert to horizontal scroll so the
+  // board pans left/right with a regular scroll wheel (no Shift required).
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaX !== 0) return; // already horizontal (trackpad, shift+wheel)
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   const userRole = board.userRole;
   const canDrag = canEdit(userRole);
   const canAddColumn = canManageColumns(userRole);

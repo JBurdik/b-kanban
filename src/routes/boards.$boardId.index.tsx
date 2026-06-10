@@ -258,6 +258,7 @@ function BoardPage() {
       userId: m.userId,
       userName: m.user?.name || "Unknown",
       userEmail: m.user?.email || "",
+      userImage: m.user?.image,
     })) || [];
 
   const handleUpdateName = async (name: string) => {

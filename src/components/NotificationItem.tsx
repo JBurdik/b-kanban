@@ -161,6 +161,7 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete, onNavig
           <Avatar
             name={notification.fromUser.name}
             id={notification.fromUser.id}
+            imageUrl={notification.fromUser.image}
             size="md"
           />
         ) : (

@@ -18,6 +18,7 @@ interface Member {
   userId: Id<"users">;
   userName: string;
   userEmail: string;
+  userImage?: string;
 }
 
 interface Props {
@@ -93,7 +94,7 @@ export function BoardMembers({ boardId, members, userRole, onClose }: Props) {
             className="flex items-center justify-between p-3 bg-dark-bg rounded-lg"
           >
             <div className="flex items-center gap-3">
-              <Avatar name={member.userName} id={member.userId} size="md" />
+              <Avatar name={member.userName} id={member.userId} imageUrl={member.userImage} size="md" />
               <div>
                 <p className="text-sm font-medium">{member.userName}</p>
                 <p className="text-xs text-dark-muted">{member.userEmail}</p>

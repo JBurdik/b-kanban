@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { requireAuth } from "./lib/rbac";
+import { requireAuth, getOptionalAuth } from "./lib/rbac";
 
 /**
  * Get user by email — internal only (used by MCP and other server-side code).
@@ -30,7 +30,8 @@ export const getByEmail = internalQuery({
 export const me = query({
   args: {},
   handler: async (ctx) => {
-    const authUser = await requireAuth(ctx);
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return null;
     const userId = authUser._id as unknown as Id<"users">;
 
     const user = await ctx.db.get(userId);

@@ -12,19 +12,21 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const { data: session, isPending } = useSession();
-  const { isLoading: convexAuthLoading } = useConvexAuth();
+  const { isLoading: convexAuthLoading, isAuthenticated: convexAuthenticated } = useConvexAuth();
 
-  // Show loading state until both better-auth and Convex auth are ready
-  if (isPending || convexAuthLoading) {
-    return (
-      <div className="min-h-screen bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  const spinner = (
+    <div className="min-h-screen bg-dark-bg flex items-center justify-center">
+      <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
+    </div>
+  );
 
-  // Authenticated: Use sidebar layout
+  // Wait for better-auth to resolve
+  if (isPending) return spinner;
+
+  // Authenticated: wait for Convex auth token to propagate before rendering
+  // queries so they don't fire without a valid token
   if (session) {
+    if (convexAuthLoading || !convexAuthenticated) return spinner;
     return (
       <AssistantProvider>
         <AppLayout>

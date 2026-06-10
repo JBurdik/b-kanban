@@ -25,7 +25,7 @@ export const listByCard = query({
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
 
-    await requireBoardAccess(ctx, boardId, userId, "member");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     const links = await ctx.db
       .query("documentLinks")
@@ -61,7 +61,7 @@ export const listByDocument = query({
     const document = await ctx.db.get(args.documentId);
     if (!document) throw new Error("Document not found");
 
-    await requireBoardAccess(ctx, document.boardId, userId, "member");
+    await requireBoardAccess(ctx, userId, document.boardId, "member");
 
     const links = await ctx.db
       .query("documentLinks")
@@ -104,7 +104,7 @@ export const link = mutation({
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
 
-    await requireBoardAccess(ctx, boardId, userId, "member");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     // Verify the document exists and belongs to the same board
     const document = await ctx.db.get(args.documentId);
@@ -155,7 +155,7 @@ export const unlink = mutation({
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
 
-    await requireBoardAccess(ctx, boardId, userId, "member");
+    await requireBoardAccess(ctx, userId, boardId, "member");
 
     // Find and delete the link
     const links = await ctx.db

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { requireAuth, requireBoardAccess } from "./lib/rbac";
+import { requireAuth } from "./lib/rbac";
 
 type BoardRole = "owner" | "admin" | "member";
 const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];

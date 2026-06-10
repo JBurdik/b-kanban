@@ -2,13 +2,12 @@ import { v } from "convex/values";
 import {
   query,
   mutation,
-  action,
   internalQuery,
   internalMutation,
   internalAction,
 } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireAuth } from "./lib/rbac";
 

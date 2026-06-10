@@ -87,7 +87,7 @@ function SecretsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <NotificationBell userEmail={userEmail} />
+          <NotificationBell />
           <UserDropdown
             userName={userName}
             userEmail={userEmail}

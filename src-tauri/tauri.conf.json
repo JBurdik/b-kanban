@@ -39,7 +39,8 @@
     "macOS": {
       "signingIdentity": "Developer ID Application: Jakub Gál (9QY36KZ8JP)",
       "minimumSystemVersion": "10.15"
-    }
+    },
+    "iOS": { "developmentTeam": "9QY36KZ8JP" }
   },
   "plugins": {
     "updater": {

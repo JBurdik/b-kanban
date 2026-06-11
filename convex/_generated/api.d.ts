@@ -28,7 +28,6 @@ import type * as lib_rbac from "../lib/rbac.js";
 import type * as mcpHttp from "../mcpHttp.js";
 import type * as mcpKeys from "../mcpKeys.js";
 import type * as members from "../members.js";
-import type * as migrateCleanup from "../migrateCleanup.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
 import type * as secretGroups from "../secretGroups.js";
@@ -66,7 +65,6 @@ declare const fullApi: ApiFromModules<{
   mcpHttp: typeof mcpHttp;
   mcpKeys: typeof mcpKeys;
   members: typeof members;
-  migrateCleanup: typeof migrateCleanup;
   notifications: typeof notifications;
   presence: typeof presence;
   secretGroups: typeof secretGroups;

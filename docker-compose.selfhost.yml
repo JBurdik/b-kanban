@@ -42,6 +42,9 @@ services:
       - SITE_URL=${SITE_URL}
       - CONVEX_URL=${CONVEX_URL}
       - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
+      # Convex Auth signing keys (base64; deploy.sh decodes). Required at cutover.
+      - JWT_PRIVATE_KEY_B64=${JWT_PRIVATE_KEY_B64:-}
+      - JWKS_B64=${JWKS_B64:-}
     depends_on:
       convex:
         condition: service_healthy

@@ -60,12 +60,35 @@ set -e
 echo "Setting Convex environment variables..."
 pnpm convex env set SITE_URL "$SITE_URL" 2>&1 || echo "env set SITE_URL failed"
 pnpm convex env set CONVEX_URL "$CONVEX_URL" 2>&1 || echo "env set CONVEX_URL failed"
-pnpm convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" 2>&1 || echo "env set BETTER_AUTH_SECRET failed"
 pnpm convex env set TRUSTED_ORIGINS "$TRUSTED_ORIGINS" 2>&1 || echo "env set TRUSTED_ORIGINS failed"
 
-echo "Deploying Convex functions..."
+# Convex Auth signing keys (base64-encoded; decoded and set with `--` so the
+# leading "-----BEGIN" is not parsed as a CLI flag). Already set in stage 1, but
+# re-setting is idempotent and makes a fresh deployment self-contained.
+if [ -n "$JWT_PRIVATE_KEY_B64" ]; then
+  JWT_PK="$(printf '%s' "$JWT_PRIVATE_KEY_B64" | base64 -d)"
+  pnpm convex env set -- JWT_PRIVATE_KEY "$JWT_PK" 2>&1 && echo "JWT_PRIVATE_KEY set" || echo "JWT_PRIVATE_KEY set FAILED"
+else
+  echo "JWT_PRIVATE_KEY_B64 not provided (skipping)"
+fi
+if [ -n "$JWKS_B64" ]; then
+  JWKS_VAL="$(printf '%s' "$JWKS_B64" | base64 -d)"
+  pnpm convex env set -- JWKS "$JWKS_VAL" 2>&1 && echo "JWKS set" || echo "JWKS set FAILED"
+else
+  echo "JWKS_B64 not provided (skipping)"
+fi
+
+echo "Deploying Convex functions (Convex Auth cutover)..."
+# Schema ships with schemaValidation:false for this cutover so the deploy gets
+# past the old session-token-mirror rows in the authSessions table.
 pnpm convex deploy --yes
 echo "Convex functions deployed successfully!"
+
+# Delete the leftover session-token-mirror rows (legacy authSessions). Safe and
+# idempotent; Convex Auth's own authSessions rows are preserved.
+echo "Clearing legacy authSessions mirror rows..."
+pnpm convex run migrateCleanup:clearLegacyAuthSessions '{}' 2>&1 || echo "cleanup skipped/failed (non-fatal)"
+echo "Cutover deploy complete."
 EOF
 RUN chmod +x /app/deploy.sh
 

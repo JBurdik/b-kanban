@@ -43,8 +43,9 @@ services:
       - CONVEX_URL=${CONVEX_URL}
       - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
       # Convex Auth migration (stage 1 sets keys ahead of the stage-2 cutover).
-      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY:-}
-      - JWKS=${JWKS:-}
+      # Base64-encoded so the multi-line PEM / JSON survive env transport.
+      - JWT_PRIVATE_KEY_B64=${JWT_PRIVATE_KEY_B64:-}
+      - JWKS_B64=${JWKS_B64:-}
       - RUN_PASSWORD_MIGRATION=${RUN_PASSWORD_MIGRATION:-false}
     depends_on:
       convex:

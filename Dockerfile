@@ -63,10 +63,22 @@ pnpm convex env set CONVEX_URL "$CONVEX_URL" 2>&1 || echo "env set CONVEX_URL fa
 pnpm convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" 2>&1 || echo "env set BETTER_AUTH_SECRET failed"
 pnpm convex env set TRUSTED_ORIGINS "$TRUSTED_ORIGINS" 2>&1 || echo "env set TRUSTED_ORIGINS failed"
 
-# Convex Auth signing keys (stage 1 sets them ahead of the stage-2 cutover;
-# harmless while still on better-auth). Only set if provided.
-[ -n "$JWT_PRIVATE_KEY" ] && pnpm convex env set JWT_PRIVATE_KEY "$JWT_PRIVATE_KEY" 2>&1 || echo "JWT_PRIVATE_KEY not set (skipping)"
-[ -n "$JWKS" ] && pnpm convex env set JWKS "$JWKS" 2>&1 || echo "JWKS not set (skipping)"
+# Convex Auth signing keys. Passed BASE64-encoded (JWT_PRIVATE_KEY_B64 / JWKS_B64)
+# so the multi-line PEM and JSON survive env transport without special chars
+# mangling the Dokploy/compose env. Decoded here, then set with `--` so the
+# leading "-----BEGIN" of the key is not parsed as a CLI flag.
+if [ -n "$JWT_PRIVATE_KEY_B64" ]; then
+  JWT_PK="$(printf '%s' "$JWT_PRIVATE_KEY_B64" | base64 -d)"
+  pnpm convex env set -- JWT_PRIVATE_KEY "$JWT_PK" 2>&1 && echo "JWT_PRIVATE_KEY set" || echo "JWT_PRIVATE_KEY set FAILED"
+else
+  echo "JWT_PRIVATE_KEY_B64 not provided (skipping)"
+fi
+if [ -n "$JWKS_B64" ]; then
+  JWKS_VAL="$(printf '%s' "$JWKS_B64" | base64 -d)"
+  pnpm convex env set -- JWKS "$JWKS_VAL" 2>&1 && echo "JWKS set" || echo "JWKS set FAILED"
+else
+  echo "JWKS_B64 not provided (skipping)"
+fi
 
 echo "Deploying Convex functions..."
 pnpm convex deploy --yes

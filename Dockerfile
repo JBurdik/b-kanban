@@ -76,17 +76,9 @@ else
   echo "JWKS_B64 not provided (skipping)"
 fi
 
-echo "Deploying Convex functions (Convex Auth cutover)..."
-# Schema ships with schemaValidation:false for this cutover so the deploy gets
-# past the old session-token-mirror rows in the authSessions table.
+echo "Deploying Convex functions..."
 pnpm convex deploy --yes
 echo "Convex functions deployed successfully!"
-
-# Delete the leftover session-token-mirror rows (legacy authSessions). Safe and
-# idempotent; Convex Auth's own authSessions rows are preserved.
-echo "Clearing legacy authSessions mirror rows..."
-pnpm convex run migrateCleanup:clearLegacyAuthSessions '{}' 2>&1 || echo "cleanup skipped/failed (non-fatal)"
-echo "Cutover deploy complete."
 EOF
 RUN chmod +x /app/deploy.sh
 

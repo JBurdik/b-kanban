@@ -20,9 +20,9 @@ function getStartOfDay(timestamp?: number): number {
  * Get the user's currently active timer (if any)
  */
 export const getActiveTimer = query({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await getOptionalAuth(ctx);
     if (!user) return null;
 
     const timer = await ctx.db
@@ -58,9 +58,9 @@ export const getActiveTimer = query({
  * Get today's time entries for the current user
  */
 export const getTodayEntries = query({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await getOptionalAuth(ctx);
     if (!user) return { entries: [], totalMs: 0 };
 
     const todayStart = getStartOfDay();
@@ -110,10 +110,9 @@ export const getEntriesByDateRange = query({
     startDate: v.number(),
     endDate: v.number(),
     boardId: v.optional(v.id("boards")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) return [];
 
     let entries;
@@ -174,10 +173,9 @@ export const getMonthlySummary = query({
   args: {
     year: v.number(),
     month: v.number(), // 1-12
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) return { totalMs: 0, byBoard: [], entries: [] };
 
     // Calculate month start and end
@@ -233,10 +231,9 @@ export const startTimer = mutation({
   args: {
     description: v.string(),
     cardId: v.optional(v.id("cards")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     // Check for existing timer and stop it
     const existingTimer = await ctx.db
@@ -292,9 +289,9 @@ export const startTimer = mutation({
  * Stop the active timer and create a time entry
  */
 export const stopTimer = mutation({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await requireAuth(ctx);
 
     const timer = await ctx.db
       .query("activeTimers")
@@ -328,9 +325,9 @@ export const stopTimer = mutation({
  * Discard the active timer without saving
  */
 export const discardTimer = mutation({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await requireAuth(ctx);
 
     const timer = await ctx.db
       .query("activeTimers")
@@ -352,10 +349,9 @@ export const updateTimer = mutation({
   args: {
     description: v.optional(v.string()),
     cardId: v.optional(v.id("cards")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const timer = await ctx.db
       .query("activeTimers")
@@ -402,10 +398,9 @@ export const addManualEntry = mutation({
     minutes: v.number(),
     date: v.optional(v.number()),
     cardId: v.optional(v.id("cards")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     // Convert hours + minutes to milliseconds
     const durationMs = (args.hours * 60 + args.minutes) * 60 * 1000;
@@ -452,10 +447,9 @@ export const updateEntry = mutation({
     hours: v.optional(v.number()),
     minutes: v.optional(v.number()),
     cardId: v.optional(v.id("cards")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const entry = await ctx.db.get(args.entryId);
     if (!entry) throw new Error("Entry not found");
@@ -509,9 +503,9 @@ export const updateEntry = mutation({
  * Delete a time entry
  */
 export const deleteEntry = mutation({
-  args: { entryId: v.id("timeEntries"), sessionToken: v.optional(v.string()) },
+  args: { entryId: v.id("timeEntries") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const entry = await ctx.db.get(args.entryId);
     if (!entry) throw new Error("Entry not found");

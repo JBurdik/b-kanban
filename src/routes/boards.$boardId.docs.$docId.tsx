@@ -14,7 +14,7 @@ export const Route = createFileRoute("/boards/$boardId/docs/$docId")({
 
 function DocumentEditorPage() {
   const { boardId, docId } = Route.useParams();
-  const { userEmail, sessionToken, isLoading, session } = useConvexUser();
+  const { userEmail, isLoading, session } = useConvexUser();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
@@ -22,7 +22,7 @@ function DocumentEditorPage() {
 
   const document = useQuery(
     api.documents.get,
-    sessionToken ? { documentId: docId as Id<"documents">, sessionToken } : "skip",
+    session ? { documentId: docId as Id<"documents"> } : "skip",
   );
 
   const updateDocument = useMutation(api.documents.update);
@@ -43,10 +43,9 @@ function DocumentEditorPage() {
         documentId: docId as Id<"documents">,
         title: data.title,
         content: data.content,
-        sessionToken,
       });
     },
-    [updateDocument, docId, sessionToken],
+    [updateDocument, docId],
   );
 
   const { isSaving, hasChanges } = useAutoSave({
@@ -66,7 +65,6 @@ function DocumentEditorPage() {
     try {
       await deleteDocument({
         documentId: docId as Id<"documents">,
-        sessionToken,
       });
       window.location.href = `/boards/${boardId}/docs`;
     } catch (error) {

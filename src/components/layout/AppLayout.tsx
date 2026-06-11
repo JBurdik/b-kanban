@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
-import { useSession } from "@/lib/auth-client";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { Sidebar, MobileSidebar, MobileMenuButton } from "./Sidebar";
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
@@ -15,7 +15,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { data: session } = useSession();
+  const { user } = useConvexUser();
   const { isCollapsed, isMobileOpen, toggle, toggleMobile, closeMobile } =
     useSidebarState();
   const { showShortcutsModal, setShowShortcutsModal } = useGlobalShortcuts();
@@ -23,13 +23,13 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Fetch user from Convex to get updated avatar
   const convexUser = useQuery(
     api.users.getByEmail,
-    session?.user?.email ? { email: session.user.email } : "skip"
+    user?.email ? { email: user.email } : "skip"
   );
 
-  const userName = convexUser?.name ?? session?.user?.name;
-  const userImage = convexUser?.image ?? session?.user?.image;
-  const userId = convexUser?.id ?? session?.user?.id;
-  const userEmail = session?.user?.email;
+  const userName = convexUser?.name ?? user?.name;
+  const userImage = convexUser?.image ?? user?.image;
+  const userId = convexUser?.id ?? user?.id;
+  const userEmail = user?.email;
 
   return (
     <div className="min-h-screen bg-dark-bg">

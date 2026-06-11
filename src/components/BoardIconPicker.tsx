@@ -3,7 +3,6 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { BoardIcon } from "./BoardIcon";
-import { useSessionToken } from "@/hooks/useSessionToken";
 
 // Popular emojis for board icons
 const EMOJI_OPTIONS = [
@@ -42,7 +41,6 @@ export function BoardIconPicker({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  const sessionToken = useSessionToken();
   const generateUploadUrl = useMutation(api.boards.generateIconUploadUrl);
   const saveIcon = useMutation(api.boards.saveIcon);
   const setEmojiIcon = useMutation(api.boards.setEmojiIcon);
@@ -75,7 +73,7 @@ export function BoardIconPicker({
 
   const handleEmojiSelect = async (emoji: string) => {
     try {
-      await setEmojiIcon({ boardId, emoji, sessionToken });
+      await setEmojiIcon({ boardId, emoji });
       onClose();
     } catch (error) {
       console.error("Failed to set emoji icon:", error);
@@ -104,7 +102,7 @@ export function BoardIconPicker({
 
     try {
       // Get upload URL
-      const uploadUrl = await generateUploadUrl({ boardId, sessionToken });
+      const uploadUrl = await generateUploadUrl({ boardId });
 
       // Upload file
       const result = await fetch(uploadUrl, {
@@ -120,7 +118,7 @@ export function BoardIconPicker({
       const { storageId } = await result.json();
 
       // Save icon
-      await saveIcon({ boardId, storageId, sessionToken });
+      await saveIcon({ boardId, storageId });
 
       onClose();
     } catch (error) {
@@ -136,7 +134,7 @@ export function BoardIconPicker({
 
   const handleRemoveIcon = async () => {
     try {
-      await removeIcon({ boardId, sessionToken });
+      await removeIcon({ boardId });
       onClose();
     } catch (error) {
       console.error("Failed to remove icon:", error);

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { formatTimerDisplay, formatDuration } from "@/lib/timeUtils";
 
 export function TimeTrackerWidget() {
@@ -16,10 +16,10 @@ export function TimeTrackerWidget() {
     stop,
   } = useActiveTimer();
 
-  const sessionToken = useSessionToken();
+  const { session } = useConvexUser();
   const todayData = useQuery(
     api.timeTracking.getTodayEntries,
-    sessionToken ? { sessionToken } : "skip"
+    session ? {} : "skip"
   );
 
   const handleStart = () => {

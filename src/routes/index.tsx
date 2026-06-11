@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useSession } from "@/lib/auth-client";
+import { useConvexAuth } from "convex/react";
 import { Logo } from "@/components/ui/Logo";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
@@ -8,13 +8,13 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { data: session, isPending } = useSession();
+  const { isLoading, isAuthenticated } = useConvexAuth();
 
-  if (isPending) {
+  if (isLoading) {
     return <LoadingSpinner fullScreen />;
   }
 
-  if (session) {
+  if (isAuthenticated) {
     return <Navigate to="/boards" />;
   }
 

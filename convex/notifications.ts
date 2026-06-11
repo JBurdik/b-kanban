@@ -17,10 +17,9 @@ export const list = query({
         v.literal("card_updated"),
       )
     ),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) return [];
 
     // Query notifications
@@ -61,7 +60,7 @@ export const list = query({
             ? { id: card._id, slug: card.slug, title: card.title }
             : null,
           fromUser: fromUser
-            ? { id: fromUser._id, name: fromUser.name, image: fromUser.image }
+            ? { id: fromUser._id, name: fromUser.name ?? "", image: fromUser.image }
             : null,
         };
       }),
@@ -75,9 +74,9 @@ export const list = query({
  * Get unread notification count
  */
 export const unreadCount = query({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await getOptionalAuth(ctx);
     if (!user) return 0;
 
     const unread = await ctx.db
@@ -95,9 +94,9 @@ export const unreadCount = query({
  * Mark a notification as read
  */
 export const markAsRead = mutation({
-  args: { notificationId: v.id("notifications"), sessionToken: v.optional(v.string()) },
+  args: { notificationId: v.id("notifications") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) throw new Error("Notification not found");
@@ -113,9 +112,9 @@ export const markAsRead = mutation({
  * Mark all notifications as read for a user
  */
 export const markAllAsRead = mutation({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await requireAuth(ctx);
 
     const unread = await ctx.db
       .query("notifications")
@@ -280,9 +279,9 @@ export const create = internalMutation({
  * Delete a notification
  */
 export const remove = mutation({
-  args: { notificationId: v.id("notifications"), sessionToken: v.optional(v.string()) },
+  args: { notificationId: v.id("notifications") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) throw new Error("Notification not found");

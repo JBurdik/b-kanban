@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 
 type NotificationType = "assigned" | "mentioned" | "commented" | "card_updated";
 
@@ -34,10 +34,10 @@ export function NotificationToast({ userEmail: _userEmail }: Props) {
   const seenIdsRef = useRef<Set<string>>(new Set());
   const initialLoadRef = useRef(true);
 
-  const sessionToken = useSessionToken();
+  const { session } = useConvexUser();
   const notifications = useQuery(
     api.notifications.list,
-    sessionToken ? { limit: 5, unreadOnly: true, sessionToken } : "skip"
+    session ? { limit: 5, unreadOnly: true } : "skip"
   );
 
   // Detect new notifications and show toasts

@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 interface Props {
   selectedCardIds: Set<Id<"cards">>;
   selectedCount: number;
@@ -24,9 +24,9 @@ export function BulkActionBar({
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
   const [labelRemoveMode, setLabelRemoveMode] = useState(false);
 
-  const sessionToken = useSessionToken();
-  const versions = useQuery(api.versions.list, sessionToken ? { boardId, sessionToken } : "skip");
-  const labels = useQuery(api.labels.list, sessionToken ? { boardId, sessionToken } : "skip");
+  const { session } = useConvexUser();
+  const versions = useQuery(api.versions.list, session ? { boardId } : "skip");
+  const labels = useQuery(api.labels.list, session ? { boardId } : "skip");
 
   const bulkUpdatePriority = useMutation(api.cards.bulkUpdatePriority);
   const bulkArchive = useMutation(api.cards.bulkArchive);
@@ -38,20 +38,20 @@ export function BulkActionBar({
   const cardIds = Array.from(selectedCardIds);
 
   const handlePriority = async (priority: "low" | "medium" | "high") => {
-    await bulkUpdatePriority({ cardIds, priority, sessionToken });
+    await bulkUpdatePriority({ cardIds, priority });
     setShowPriorityDropdown(false);
     onClearSelection();
   };
 
   const handleArchive = async () => {
-    await bulkArchive({ cardIds, sessionToken });
+    await bulkArchive({ cardIds });
     onClearSelection();
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await bulkDelete({ cardIds, sessionToken });
+      await bulkDelete({ cardIds });
       setShowDeleteConfirm(false);
       onClearSelection();
     } finally {
@@ -60,16 +60,16 @@ export function BulkActionBar({
   };
 
   const handleVersion = async (versionId: Id<"versions"> | undefined) => {
-    await bulkSetVersion({ cardIds, versionId, sessionToken });
+    await bulkSetVersion({ cardIds, versionId });
     setShowVersionDropdown(false);
     onClearSelection();
   };
 
   const handleLabelClick = async (labelId: Id<"labels">) => {
     if (labelRemoveMode) {
-      await bulkRemoveLabel({ cardIds, labelId, sessionToken });
+      await bulkRemoveLabel({ cardIds, labelId });
     } else {
-      await bulkAddLabel({ cardIds, labelId, sessionToken });
+      await bulkAddLabel({ cardIds, labelId });
     }
     setShowLabelDropdown(false);
     onClearSelection();

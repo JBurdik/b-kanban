@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
-import { useSession } from "@/lib/auth-client";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { NotificationPanel } from "./NotificationPanel";
 
 export function NotificationBell() {
-  const { data: session } = useSession();
-  const sessionToken = useSessionToken();
+  const { session } = useConvexUser();
   const [isOpen, setIsOpen] = useState(false);
 
   const unreadCount = useQuery(
     api.notifications.unreadCount,
-    sessionToken ? { sessionToken } : "skip",
+    session ? {} : "skip",
   );
 
   if (!session) return null;

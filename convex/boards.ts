@@ -22,9 +22,9 @@ function generateSlugPrefix(name: string): string {
  * Get all boards for a user
  */
 export const list = query({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await getOptionalAuth(ctx);
     if (!user) {
       return [];
     }
@@ -70,13 +70,13 @@ export const list = query({
  * Get single board with all data
  */
 export const get = query({
-  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
+  args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
     const board = await ctx.db.get(args.boardId);
     if (!board) throw new Error("Board not found");
 
     // Look up current user to get role
-    const currentUser = await getOptionalAuth(ctx, args.sessionToken);
+    const currentUser = await getOptionalAuth(ctx);
     const currentUserId: Id<"users"> | undefined = currentUser?._id;
 
     // Only board members may read the board's contents.
@@ -114,8 +114,8 @@ export const get = query({
               if (assigneeUser) {
                 assignee = {
                   id: assigneeUser._id,
-                  name: assigneeUser.name,
-                  email: assigneeUser.email,
+                  name: assigneeUser.name ?? "",
+                  email: assigneeUser.email ?? "",
                   image: assigneeUser.image,
                 };
               }
@@ -154,8 +154,8 @@ export const get = query({
               if (reporterUser) {
                 reporter = {
                   id: reporterUser._id,
-                  name: reporterUser.name,
-                  email: reporterUser.email,
+                  name: reporterUser.name ?? "",
+                  email: reporterUser.email ?? "",
                   image: reporterUser.image,
                 };
               }
@@ -190,8 +190,8 @@ export const get = query({
           user: memberUser
             ? {
                 id: memberUser._id,
-                name: memberUser.name,
-                email: memberUser.email,
+                name: memberUser.name ?? "",
+                email: memberUser.email ?? "",
                 image: memberUser.image,
               }
             : null,
@@ -225,10 +225,9 @@ export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const now = Date.now();
     const slugPrefix = generateSlugPrefix(args.name);
@@ -273,10 +272,9 @@ export const update = mutation({
     boardId: v.id("boards"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const membership = await ctx.db
       .query("boardMembers")
@@ -303,9 +301,9 @@ export const update = mutation({
  * Delete board
  */
 export const remove = mutation({
-  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
+  args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     await requireBoardAccess(ctx, user._id, args.boardId, "owner");
 
     const columns = await ctx.db
@@ -386,10 +384,9 @@ export const setBadge = mutation({
     boardId: v.id("boards"),
     text: v.optional(v.string()),
     color: v.optional(v.string()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const membership = await ctx.db
       .query("boardMembers")
@@ -419,10 +416,9 @@ export const setBadge = mutation({
 export const generateIconUploadUrl = mutation({
   args: {
     boardId: v.id("boards"),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     // Check membership (should be owner or admin)
     const membership = await ctx.db
@@ -447,10 +443,9 @@ export const saveIcon = mutation({
   args: {
     boardId: v.id("boards"),
     storageId: v.id("_storage"),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     // Check membership
     const membership = await ctx.db
@@ -493,10 +488,9 @@ export const setEmojiIcon = mutation({
   args: {
     boardId: v.id("boards"),
     emoji: v.string(),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     // Check membership
     const membership = await ctx.db
@@ -537,10 +531,9 @@ export const setEmojiIcon = mutation({
 export const removeIcon = mutation({
   args: {
     boardId: v.id("boards"),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     // Check membership
     const membership = await ctx.db
@@ -583,7 +576,7 @@ export const listByEmail = internalQuery({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
       .first();
     if (!user) return [];
 
@@ -608,7 +601,7 @@ export const getByEmail = internalQuery({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
       .first();
     if (!user) return null;
 
@@ -645,8 +638,8 @@ export const getByEmail = internalQuery({
               if (assigneeUser) {
                 assignee = {
                   id: assigneeUser._id,
-                  name: assigneeUser.name,
-                  email: assigneeUser.email,
+                  name: assigneeUser.name ?? "",
+                  email: assigneeUser.email ?? "",
                   image: assigneeUser.image,
                 };
               }
@@ -670,8 +663,8 @@ export const getByEmail = internalQuery({
               if (reporterUser) {
                 reporter = {
                   id: reporterUser._id,
-                  name: reporterUser.name,
-                  email: reporterUser.email,
+                  name: reporterUser.name ?? "",
+                  email: reporterUser.email ?? "",
                   image: reporterUser.image,
                 };
               }
@@ -700,8 +693,8 @@ export const getByEmail = internalQuery({
           user: memberUser
             ? {
                 id: memberUser._id,
-                name: memberUser.name,
-                email: memberUser.email,
+                name: memberUser.name ?? "",
+                email: memberUser.email ?? "",
                 image: memberUser.image,
               }
             : null,
@@ -735,7 +728,7 @@ export const createByEmail = internalMutation({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
       .first();
     if (!user) throw new Error("User not found");
 

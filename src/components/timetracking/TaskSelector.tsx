@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 
 interface TaskSelectorProps {
   userEmail: string;
@@ -22,10 +22,10 @@ export function TaskSelector({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Get user's tasks
-  const sessionToken = useSessionToken();
+  const { session } = useConvexUser();
   const tasksData = useQuery(
     api.cards.getMyTasks,
-    sessionToken ? { limit: 50, sessionToken } : "skip"
+    session ? { limit: 50 } : "skip"
   );
 
   // Close dropdown on outside click

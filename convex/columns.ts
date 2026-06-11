@@ -10,10 +10,9 @@ export const create = mutation({
     boardId: v.id("boards"),
     name: v.string(),
     position: v.optional(v.number()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     await requireBoardAccess(ctx, user._id, args.boardId, "admin");
 
     const now = Date.now();
@@ -48,10 +47,9 @@ export const update = mutation({
     columnId: v.id("columns"),
     name: v.optional(v.string()),
     position: v.optional(v.number()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     const boardId = await getBoardIdFromColumn(ctx, args.columnId);
     if (!boardId) throw new Error("Column not found");
     await requireBoardAccess(ctx, user._id, boardId, "admin");
@@ -73,9 +71,9 @@ export const update = mutation({
  * Delete a column
  */
 export const remove = mutation({
-  args: { columnId: v.id("columns"), sessionToken: v.optional(v.string()) },
+  args: { columnId: v.id("columns") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     const boardId = await getBoardIdFromColumn(ctx, args.columnId);
     if (!boardId) throw new Error("Column not found");
     await requireBoardAccess(ctx, user._id, boardId, "admin");
@@ -121,12 +119,11 @@ export const reorder = mutation({
         position: v.number(),
       })
     ),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.items.length === 0) return { success: true };
 
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     const boardId = await getBoardIdFromColumn(ctx, args.items[0].id);
     if (!boardId) throw new Error("Column not found");
     await requireBoardAccess(ctx, user._id, boardId, "admin");

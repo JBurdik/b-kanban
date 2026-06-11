@@ -3,7 +3,7 @@ import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { signOut, changePassword } from "@/lib/auth-client";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { Avatar } from "@/components/Avatar";
 import { useCardOpenMode } from "@/hooks/useCardOpenMode";
@@ -15,7 +15,8 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { user: sessionUser, sessionToken, isLoading, session } = useConvexUser();
+  const { user: sessionUser, isLoading, session } = useConvexUser();
+  const { signOut } = useAuthActions();
   const userId = sessionUser?.id as Id<"users"> | undefined;
   const navigate = useNavigate();
 
@@ -43,6 +44,7 @@ function ProfilePage() {
 
   // Convex mutations
   const updateProfile = useMutation(api.users.updateProfile);
+  const changePasswordMutation = useMutation(api.users.changePassword);
   const deleteAccountMutation = useMutation(api.users.deleteAccount);
   const generateAvatarUploadUrl = useMutation(
     api.users.generateAvatarUploadUrl,
@@ -54,7 +56,7 @@ function ProfilePage() {
   // Initialize name from user data
   useEffect(() => {
     if (user && !name) {
-      setName(user.name);
+      setName(user.name ?? "");
     }
   }, [user, name]);
 
@@ -74,7 +76,7 @@ function ProfilePage() {
     if (name.trim() && name !== user?.name) {
       setIsUpdatingName(true);
       try {
-        await updateProfile({ name: name.trim(), sessionToken });
+        await updateProfile({ name: name.trim() });
       } finally {
         setIsUpdatingName(false);
       }
@@ -100,7 +102,7 @@ function ProfilePage() {
     setIsUploadingAvatar(true);
     try {
       // Get upload URL
-      const uploadUrl = await generateAvatarUploadUrl({ sessionToken });
+      const uploadUrl = await generateAvatarUploadUrl({});
 
       // Upload file
       const response = await fetch(uploadUrl, {
@@ -116,7 +118,7 @@ function ProfilePage() {
       const { storageId } = await response.json();
 
       // Save avatar reference
-      await saveAvatar({ storageId, sessionToken });
+      await saveAvatar({ storageId });
     } catch (err) {
       console.error("Failed to upload avatar:", err);
       alert("Failed to upload avatar. Please try again.");
@@ -133,7 +135,7 @@ function ProfilePage() {
     if (!confirm("Remove your custom avatar?")) return;
 
     try {
-      await removeAvatar({ sessionToken });
+      await removeAvatar({});
     } catch (err) {
       console.error("Failed to remove avatar:", err);
     }
@@ -155,16 +157,12 @@ function ProfilePage() {
 
     setIsChangingPassword(true);
     try {
-      const result = await changePassword({ currentPassword, newPassword });
-      if (result.error) {
-        setPasswordError(result.error.message || "Failed to change password");
-      } else {
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setPasswordSuccess(true);
-        setTimeout(() => setPasswordSuccess(false), 3000);
-      }
+      await changePasswordMutation({ currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSuccess(true);
+      setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (err) {
       setPasswordError(
         err instanceof Error ? err.message : "Failed to change password",
@@ -187,7 +185,7 @@ function ProfilePage() {
       ) {
         setIsDeletingAccount(true);
         try {
-          await deleteAccountMutation({ sessionToken });
+          await deleteAccountMutation({});
           await signOut();
           navigate({ to: "/login" });
         } catch (err) {

@@ -3,7 +3,6 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { TaskSelector } from "./TaskSelector";
 import type { Id } from "convex/_generated/dataModel";
-import { useSessionToken } from "@/hooks/useSessionToken";
 
 interface ManualEntryFormProps {
   userEmail: string;
@@ -17,7 +16,6 @@ export function ManualEntryForm({ userEmail, onSuccess }: ManualEntryFormProps) 
   const [selectedCardId, setSelectedCardId] = useState<Id<"cards"> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const sessionToken = useSessionToken();
   const addEntry = useMutation(api.timeTracking.addManualEntry);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,7 +34,6 @@ export function ManualEntryForm({ userEmail, onSuccess }: ManualEntryFormProps) 
         hours: hoursNum,
         minutes: minutesNum,
         cardId: selectedCardId ?? undefined,
-        sessionToken,
       });
 
       // Reset form

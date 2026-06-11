@@ -26,9 +26,9 @@ async function hasBoardAccess(
  * List all HTML docs for a board (most recent first).
  */
 export const list = query({
-  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
+  args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) return [];
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
@@ -49,8 +49,8 @@ export const list = query({
           creator: creator
             ? {
                 id: creator._id,
-                name: creator.name,
-                email: creator.email,
+                name: creator.name ?? "",
+                email: creator.email ?? "",
                 image: creator.image,
               }
             : null,
@@ -65,12 +65,12 @@ export const list = query({
  * rendering directly in a sandboxed iframe via the `src` attribute.
  */
 export const get = query({
-  args: { docId: v.id("htmlDocs"), sessionToken: v.optional(v.string()) },
+  args: { docId: v.id("htmlDocs") },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) return null;
 
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) return null;
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
@@ -85,8 +85,8 @@ export const get = query({
       creator: creator
         ? {
             id: creator._id,
-            name: creator.name,
-            email: creator.email,
+            name: creator.name ?? "",
+            email: creator.email ?? "",
             image: creator.image,
           }
         : null,
@@ -98,9 +98,9 @@ export const get = query({
  * Generate an upload URL for the UI file-upload flow.
  */
 export const generateUploadUrl = mutation({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -115,10 +115,9 @@ export const create = mutation({
     fileName: v.string(),
     storageId: v.id("_storage"),
     fileSize: v.number(),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, args.boardId, user._id);
     if (!hasAccess) {
@@ -151,13 +150,12 @@ export const replaceContent = mutation({
     fileSize: v.number(),
     title: v.optional(v.string()),
     fileName: v.optional(v.string()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) {
@@ -187,13 +185,12 @@ export const rename = mutation({
   args: {
     docId: v.id("htmlDocs"),
     title: v.string(),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -210,12 +207,12 @@ export const rename = mutation({
  * Delete an HTML doc and its stored blob.
  */
 export const remove = mutation({
-  args: { docId: v.id("htmlDocs"), sessionToken: v.optional(v.string()) },
+  args: { docId: v.id("htmlDocs") },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const hasAccess = await hasBoardAccess(ctx, doc.boardId, user._id);
     if (!hasAccess) throw new Error("Access denied");
@@ -300,7 +297,7 @@ export const listByEmail = internalQuery({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
       .first();
     if (!user) return [];
 
@@ -322,8 +319,8 @@ export const listByEmail = internalQuery({
           creator: creator
             ? {
                 id: creator._id,
-                name: creator.name,
-                email: creator.email,
+                name: creator.name ?? "",
+                email: creator.email ?? "",
                 image: creator.image,
               }
             : null,
@@ -481,7 +478,7 @@ export const getUserByEmail = internalQuery({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("email", (q) => q.eq("email", args.email))
       .first();
   },
 });

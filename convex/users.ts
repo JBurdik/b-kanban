@@ -1,6 +1,64 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { Scrypt } from "lucia";
 import { requireAuth } from "./lib/rbac";
+import { isLegacyBetterAuthHash, verifyBetterAuthHash } from "./lib/legacyPassword";
+
+/**
+ * Change password while logged in. Convex Auth has no built-in logged-in
+ * password change, so we verify the current password against the stored hash
+ * (legacy better-auth or native Lucia Scrypt) and re-hash the new one.
+ */
+export const changePassword = mutation({
+  args: { currentPassword: v.string(), newPassword: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+    if (args.newPassword.length < 8) {
+      throw new Error("New password must be at least 8 characters");
+    }
+
+    const account = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) =>
+        q.eq("userId", userId).eq("provider", "password"),
+      )
+      .first();
+    if (!account?.secret) throw new Error("No password set for this account");
+
+    const ok = isLegacyBetterAuthHash(account.secret)
+      ? await verifyBetterAuthHash(args.currentPassword, account.secret)
+      : await new Scrypt().verify(account.secret, args.currentPassword);
+    if (!ok) throw new Error("Current password is incorrect");
+
+    const newHash = await new Scrypt().hash(args.newPassword);
+    await ctx.db.patch(account._id, { secret: newHash });
+    return { success: true };
+  },
+});
+
+/**
+ * Current authenticated user (Convex Auth). Replaces better-auth useSession().user.
+ * Returns null when signed out.
+ */
+export const viewer = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    return {
+      id: user._id,
+      name: user.name ?? user.email ?? "",
+      email: user.email ?? "",
+      image: user.image,
+      role: user.role,
+      createdAt: user.createdAt ?? user._creationTime,
+    };
+  },
+});
 
 /**
  * Get user by email (returns userId for frontend to use)
@@ -10,13 +68,13 @@ export const getByEmail = query({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("email", (q) => q.eq("email", args.email))
       .first();
     if (!user) return null;
     return {
       id: user._id,
-      name: user.name,
-      email: user.email,
+      name: user.name ?? "",
+      email: user.email ?? "",
       image: user.image,
     };
   },
@@ -37,8 +95,8 @@ export const me = query({
 
     return {
       id: user._id,
-      name: user.name,
-      email: user.email,
+      name: user.name ?? "",
+      email: user.email ?? "",
       image: user.image,
       role: user.role,
       createdAt: user.createdAt,
@@ -57,8 +115,8 @@ export const get = query({
 
     return {
       id: user._id,
-      name: user.name,
-      email: user.email,
+      name: user.name ?? "",
+      email: user.email ?? "",
       image: user.image,
     };
   },
@@ -74,12 +132,12 @@ export const searchByEmail = query({
     const allUsers = await ctx.db.query("users").collect();
 
     const matchingUsers = allUsers
-      .filter((u) => u.email.toLowerCase().includes(args.email.toLowerCase()))
+      .filter((u) => (u.email ?? "").toLowerCase().includes(args.email.toLowerCase()))
       .slice(0, 10)
       .map((u) => ({
         id: u._id,
-        name: u.name,
-        email: u.email,
+        name: u.name ?? "",
+        email: u.email ?? "",
         image: u.image,
       }));
 
@@ -94,10 +152,9 @@ export const updateProfile = mutation({
   args: {
     name: v.optional(v.string()),
     image: v.optional(v.string()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
@@ -113,9 +170,9 @@ export const updateProfile = mutation({
  * Generate upload URL for avatar image
  */
 export const generateAvatarUploadUrl = mutation({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -126,10 +183,9 @@ export const generateAvatarUploadUrl = mutation({
 export const saveAvatar = mutation({
   args: {
     storageId: v.id("_storage"),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     // Delete old avatar if exists
     if (user.image) {
@@ -161,9 +217,9 @@ export const saveAvatar = mutation({
  * Remove custom avatar (revert to generated)
  */
 export const removeAvatar = mutation({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await requireAuth(ctx);
 
     // Delete from storage if exists
     if (user.image) {
@@ -192,9 +248,9 @@ export const removeAvatar = mutation({
  * Delete user account
  */
 export const deleteAccount = mutation({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await requireAuth(ctx);
 
     // Get all board memberships
     const memberships = await ctx.db
@@ -282,13 +338,13 @@ export const getByEmailInternal = internalQuery({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("email", (q) => q.eq("email", args.email))
       .first();
     if (!user) return null;
     return {
       id: user._id,
-      name: user.name,
-      email: user.email,
+      name: user.name ?? "",
+      email: user.email ?? "",
       image: user.image,
     };
   },

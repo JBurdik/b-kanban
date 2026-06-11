@@ -12,10 +12,9 @@ const roleHierarchy: BoardRole[] = ["member", "admin", "owner"];
 export const list = query({
   args: {
     boardId: v.id("boards"),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) {
       return [];
     }
@@ -55,7 +54,7 @@ export const list = query({
           createdAt: secret.createdAt,
           updatedAt: secret.updatedAt,
           createdBy: creator
-            ? { name: creator.name, email: creator.email }
+            ? { name: creator.name ?? "", email: creator.email ?? "" }
             : null,
         };
       })
@@ -69,10 +68,9 @@ export const list = query({
 export const get = query({
   args: {
     secretId: v.id("secrets"),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) {
       throw new Error("Unauthorized");
     }
@@ -98,7 +96,7 @@ export const get = query({
     return {
       ...secret,
       createdBy: creator
-        ? { name: creator.name, email: creator.email }
+        ? { name: creator.name ?? "", email: creator.email ?? "" }
         : null,
     };
   },
@@ -118,10 +116,9 @@ export const create = mutation({
     visibility: v.union(v.literal("public"), v.literal("hidden")),
     description: v.optional(v.string()),
     groupId: v.optional(v.id("secretGroups")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     // Check board access (admin or owner)
     const member = await ctx.db
@@ -183,10 +180,9 @@ export const update = mutation({
     visibility: v.optional(v.union(v.literal("public"), v.literal("hidden"))),
     description: v.optional(v.string()),
     groupId: v.optional(v.union(v.id("secretGroups"), v.null())),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const secret = await ctx.db.get(args.secretId);
     if (!secret) {
@@ -246,10 +242,9 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     secretId: v.id("secrets"),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const secret = await ctx.db.get(args.secretId);
     if (!secret) {

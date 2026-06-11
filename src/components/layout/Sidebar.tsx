@@ -16,10 +16,10 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed, onToggle, userEmail: _userEmail }: SidebarProps) {
   const location = useLocation();
-  const { sessionToken } = useConvexUser();
+  const { session } = useConvexUser();
   const boards = useQuery(
     api.boards.list,
-    sessionToken ? { sessionToken } : "skip",
+    session ? {} : "skip",
   );
 
   const isActive = (path: string) => location.pathname === path;

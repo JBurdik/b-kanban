@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
-import { useSession } from "@/lib/auth-client";
 import { useCardOpenMode } from "@/hooks/useCardOpenMode";
 import { useBoardFilters } from "@/hooks/useBoardFilters";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -36,8 +35,7 @@ export const Route = createFileRoute("/boards/$boardId/")({
 
 function BoardPage() {
   const { boardId } = Route.useParams();
-  const { userEmail, sessionToken, isLoading: userLoading, session } = useConvexUser();
-  const { data: authSession } = useSession();
+  const { userEmail, isLoading: userLoading, session } = useConvexUser();
   const { mode: cardOpenMode } = useCardOpenMode();
   const { filter, setFilter, viewMode, setViewMode, selectedVersionId, setSelectedVersionId, searchQuery, setSearchQuery } = useBoardFilters(boardId);
   const [showMembers, setShowMembers] = useState(false);
@@ -73,16 +71,16 @@ function BoardPage() {
   // Real-time subscription to board data
   const board = useQuery(
     api.boards.get,
-    sessionToken
-      ? { boardId: boardId as Id<"boards">, sessionToken }
+    session
+      ? { boardId: boardId as Id<"boards"> }
       : "skip",
   );
 
   // Get versions for this board
   const boardVersions = useQuery(
     api.versions.list,
-    sessionToken
-      ? { boardId: boardId as Id<"boards">, sessionToken }
+    session
+      ? { boardId: boardId as Id<"boards"> }
       : "skip",
   );
 
@@ -93,9 +91,9 @@ function BoardPage() {
   );
 
   // User display info
-  const userName = currentUser?.name ?? authSession?.user?.name;
-  const userImage = currentUser?.image ?? authSession?.user?.image;
-  const userId = currentUser?.id ?? authSession?.user?.id;
+  const userName = currentUser?.name ?? session?.user?.name;
+  const userImage = currentUser?.image ?? session?.user?.image;
+  const userId = currentUser?.id ?? session?.user?.id;
 
   // Real-time presence tracking
   const { onlineUsers } = usePresence(
@@ -172,9 +170,9 @@ function BoardPage() {
   const archiveCard = useMutation(api.cards.remove);
   const handleCardArchive = useCallback(
     (card: Card) => {
-      archiveCard({ cardId: card._id, sessionToken });
+      archiveCard({ cardId: card._id });
     },
-    [archiveCard, sessionToken]
+    [archiveCard]
   );
 
   // New card handler for keyboard shortcut — triggers click on the "+ Add card" button
@@ -186,18 +184,17 @@ function BoardPage() {
         columnId,
         title: "Untitled",
         position: 0,
-        sessionToken,
       });
     },
-    [createCard, sessionToken]
+    [createCard]
   );
 
   // Mobile bottom-bar add-card: create with a real title at top of chosen column.
   const handleMobileCreateCard = useCallback(
     async (columnId: Id<"columns">, title: string) => {
-      await createCard({ columnId, title, position: 0, sessionToken });
+      await createCard({ columnId, title, position: 0 });
     },
-    [createCard, sessionToken]
+    [createCard]
   );
 
   // Keyboard navigation for board

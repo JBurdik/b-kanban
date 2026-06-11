@@ -6,7 +6,7 @@ import type { Label } from "@/lib/types";
 import { LabelBadge } from "@/components/ui/LabelBadge";
 import { SelectPopover } from "@/components/ui/SelectPopover";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 
 interface Props {
   boardId: Id<"boards">;
@@ -20,8 +20,8 @@ export function LabelSelector({ boardId, cardId, currentLabels, onOpenManager }:
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
-  const sessionToken = useSessionToken();
-  const allLabels = useQuery(api.labels.list, sessionToken ? { boardId, sessionToken } : "skip");
+  const { session } = useConvexUser();
+  const allLabels = useQuery(api.labels.list, session ? { boardId } : "skip");
   const addLabel = useMutation(api.labels.addToCard);
   const removeLabel = useMutation(api.labels.removeFromCard);
 
@@ -41,9 +41,9 @@ export function LabelSelector({ boardId, cardId, currentLabels, onOpenManager }:
 
   const handleToggleLabel = async (labelId: Id<"labels">) => {
     if (currentLabelIds.has(labelId)) {
-      await removeLabel({ cardId, labelId, sessionToken });
+      await removeLabel({ cardId, labelId });
     } else {
-      await addLabel({ cardId, labelId, sessionToken });
+      await addLabel({ cardId, labelId });
     }
   };
 
@@ -73,7 +73,7 @@ export function LabelSelector({ boardId, cardId, currentLabels, onOpenManager }:
               key={label._id}
               label={label}
               size="sm"
-              onRemove={() => removeLabel({ cardId, labelId: label._id, sessionToken })}
+              onRemove={() => removeLabel({ cardId, labelId: label._id })}
             />
           ))}
         </div>

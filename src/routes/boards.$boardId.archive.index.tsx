@@ -3,7 +3,6 @@ import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useConvexUser } from "@/hooks/useConvexUser";
-import { useSession } from "@/lib/auth-client";
 import { ArchivedCardList } from "@/components/kanban/ArchivedCardList";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserDropdown } from "@/components/UserDropdown";
@@ -14,12 +13,11 @@ export const Route = createFileRoute("/boards/$boardId/archive/")({
 
 function ArchivePage() {
   const { boardId } = Route.useParams();
-  const { userEmail, sessionToken, isLoading: userLoading, session } = useConvexUser();
-  const { data: authSession } = useSession();
+  const { userEmail, isLoading: userLoading, session } = useConvexUser();
 
   const board = useQuery(
     api.boards.get,
-    sessionToken ? { boardId: boardId as Id<"boards">, sessionToken } : "skip"
+    session ? { boardId: boardId as Id<"boards"> } : "skip"
   );
 
   const currentUser = useQuery(
@@ -27,9 +25,9 @@ function ArchivePage() {
     userEmail ? { email: userEmail } : "skip"
   );
 
-  const userName = currentUser?.name ?? authSession?.user?.name;
-  const userImage = currentUser?.image ?? authSession?.user?.image;
-  const userId = currentUser?.id ?? authSession?.user?.id;
+  const userName = currentUser?.name ?? session?.user?.name;
+  const userImage = currentUser?.image ?? session?.user?.image;
+  const userId = currentUser?.id ?? session?.user?.id;
 
   const isLoading = board === undefined || userLoading;
 

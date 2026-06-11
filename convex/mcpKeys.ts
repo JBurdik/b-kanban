@@ -41,9 +41,9 @@ function randomKey(): string {
  * Returns the plaintext key ONCE — it is not retrievable afterwards.
  */
 export const generate = mutation({
-  args: { name: v.string(), sessionToken: v.optional(v.string()) },
+  args: { name: v.string() },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx, args.sessionToken);
+    const authUser = await requireAuth(ctx);
     const userId = authUser._id as unknown as Id<"users">;
 
     const key = randomKey();
@@ -64,9 +64,9 @@ export const generate = mutation({
 
 /** List the current user's MCP API keys (never returns the hash/plaintext). */
 export const list = query({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    const authUser = await getOptionalAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    const authUser = await getOptionalAuth(ctx);
     if (!authUser) return [];
     const userId = authUser._id as unknown as Id<"users">;
 
@@ -89,9 +89,9 @@ export const list = query({
 
 /** Revoke (delete) one of the current user's keys. */
 export const revoke = mutation({
-  args: { keyId: v.id("mcpApiKeys"), sessionToken: v.optional(v.string()) },
+  args: { keyId: v.id("mcpApiKeys") },
   handler: async (ctx, args) => {
-    const authUser = await requireAuth(ctx, args.sessionToken);
+    const authUser = await requireAuth(ctx);
     const userId = authUser._id as unknown as Id<"users">;
 
     const key = await ctx.db.get(args.keyId);

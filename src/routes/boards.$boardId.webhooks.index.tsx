@@ -3,7 +3,6 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useConvexUser } from "@/hooks/useConvexUser";
-import { useSession } from "@/lib/auth-client";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserDropdown } from "@/components/UserDropdown";
 import { useState } from "react";
@@ -29,12 +28,11 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
 
 function WebhooksPage() {
   const { boardId } = Route.useParams();
-  const { userEmail, sessionToken, isLoading: userLoading, session } = useConvexUser();
-  const { data: authSession } = useSession();
+  const { userEmail, isLoading: userLoading, session } = useConvexUser();
 
   const board = useQuery(
     api.boards.get,
-    sessionToken ? { boardId: boardId as Id<"boards">, sessionToken } : "skip"
+    session ? { boardId: boardId as Id<"boards"> } : "skip"
   );
 
   const currentUser = useQuery(
@@ -63,9 +61,9 @@ function WebhooksPage() {
   const [testingId, setTestingId] = useState<Id<"webhooks"> | null>(null);
   const [deletingId, setDeletingId] = useState<Id<"webhooks"> | null>(null);
 
-  const userName = currentUser?.name ?? authSession?.user?.name;
-  const userImage = currentUser?.image ?? authSession?.user?.image;
-  const userId = currentUser?.id ?? authSession?.user?.id;
+  const userName = currentUser?.name ?? session?.user?.name;
+  const userImage = currentUser?.image ?? session?.user?.image;
+  const userId = currentUser?.id ?? session?.user?.id;
 
   const isLoading = board === undefined || userLoading;
 
@@ -123,7 +121,6 @@ function WebhooksPage() {
         type: formData.type,
         events: formData.events,
         ...(formData.secret ? { secret: formData.secret } : {}),
-        sessionToken,
       });
     } else {
       await createWebhook({
@@ -133,7 +130,6 @@ function WebhooksPage() {
         type: formData.type,
         events: formData.events,
         ...(formData.secret ? { secret: formData.secret } : {}),
-        sessionToken,
       });
     }
 
@@ -141,7 +137,7 @@ function WebhooksPage() {
   };
 
   const handleToggle = async (webhookId: Id<"webhooks">, isActive: boolean) => {
-    await updateWebhook({ webhookId, isActive: !isActive, sessionToken });
+    await updateWebhook({ webhookId, isActive: !isActive });
   };
 
   const handleTest = async (webhookId: Id<"webhooks">) => {
@@ -156,7 +152,7 @@ function WebhooksPage() {
 
   const handleDelete = async (webhookId: Id<"webhooks">) => {
     setDeletingId(webhookId);
-    await removeWebhook({ webhookId, sessionToken });
+    await removeWebhook({ webhookId });
     setDeletingId(null);
   };
 

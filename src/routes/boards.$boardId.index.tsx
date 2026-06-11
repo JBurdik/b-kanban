@@ -23,6 +23,7 @@ import { useRegisterAssistantBoard } from "@/contexts/AssistantContext";
 import { PresenceBar } from "@/components/kanban/PresenceBar";
 import { UserDropdown } from "@/components/UserDropdown";
 import { usePresence } from "@/hooks/usePresence";
+import { useBoardCursors } from "@/hooks/useBoardCursors";
 import { BoardIcon } from "@/components/BoardIcon";
 import { BoardIconPicker } from "@/components/BoardIconPicker";
 import { BoardBadge, BoardBadgeEditor } from "@/components/BoardBadge";
@@ -99,6 +100,11 @@ function BoardPage() {
   const { onlineUsers } = usePresence(
     boardId as Id<"boards">,
     selectedCard?._id
+  );
+
+  // Live cursors
+  const { cursors, report: reportCursor } = useBoardCursors(
+    boardId as Id<"boards">
   );
 
   // Mutation for updating board name
@@ -598,6 +604,9 @@ function BoardPage() {
             focusedCardId={focusedCardId}
             isSelected={isSelected}
             onSelectionToggle={toggleCard}
+            cursors={cursors}
+            onCursorMove={reportCursor}
+            onlineUsers={onlineUsers}
           />
         ) : (
           <TableView

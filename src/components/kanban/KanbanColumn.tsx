@@ -17,6 +17,12 @@ interface KanbanColumnWithCards extends Column {
   cards: Card[];
 }
 
+interface CardViewer {
+  userId: Id<"users">;
+  userName: string;
+  userImage?: string;
+}
+
 interface Props {
   column: KanbanColumnWithCards;
   boardId: Id<"boards">;
@@ -28,6 +34,7 @@ interface Props {
   focusedCardId?: Id<"cards"> | null;
   isSelected?: (cardId: Id<"cards">) => boolean;
   onSelectionToggle?: (cardId: Id<"cards">) => void;
+  viewersByCard?: Map<string, CardViewer[]>;
 }
 
 export function KanbanColumn({
@@ -41,6 +48,7 @@ export function KanbanColumn({
   focusedCardId,
   isSelected,
   onSelectionToggle,
+  viewersByCard,
 }: Props) {
   const isMobileDevice =
     typeof window !== "undefined" &&
@@ -216,6 +224,7 @@ export function KanbanColumn({
               isFocused={focusedCardId === card._id}
               isSelected={isSelected?.(card._id)}
               onSelectionToggle={onSelectionToggle}
+              viewers={viewersByCard?.get(card._id)}
             />
           ))}
         </SortableContext>

@@ -314,6 +314,19 @@ export default defineSchema({
     .index("by_user_and_board", ["userId", "boardId"]),
 
   // ============================================
+  // Board Cursors (high-frequency, separate from boardPresence)
+  // ============================================
+  boardCursors: defineTable({
+    boardId: v.id("boards"),
+    userId: v.id("users"),
+    x: v.number(), // content-space px (includes scrollLeft)
+    y: v.number(), // content-space px (includes scrollTop)
+    lastSeen: v.number(),
+  })
+    .index("by_board", ["boardId"])
+    .index("by_user_and_board", ["userId", "boardId"]),
+
+  // ============================================
   // Webhooks
   // ============================================
   webhooks: defineTable({

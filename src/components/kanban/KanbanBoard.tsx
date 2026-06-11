@@ -15,7 +15,9 @@ import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
 import { AddColumnModal } from "./AddColumnModal";
 import { AddColumnButton } from "./AddColumnButton";
+import { CursorOverlay } from "./CursorOverlay";
 import type { FilterOption } from "./FilterBar";
+import type { CursorPosition } from "@/hooks/useBoardCursors";
 
 interface KanbanColumnWithCards extends Column {
   cards: Card[];
@@ -29,6 +31,13 @@ interface Board {
   userRole?: BoardRole;
 }
 
+interface OnlineUser {
+  userId: Id<"users">;
+  userName: string;
+  userImage?: string;
+  activeCardId?: Id<"cards">;
+}
+
 interface Props {
   board: Board;
   filter?: FilterOption;
@@ -40,6 +49,10 @@ interface Props {
   focusedCardId?: Id<"cards"> | null;
   isSelected?: (cardId: Id<"cards">) => boolean;
   onSelectionToggle?: (cardId: Id<"cards">) => void;
+  // Presence / cursors
+  cursors?: CursorPosition[];
+  onCursorMove?: (x: number, y: number) => void;
+  onlineUsers?: OnlineUser[];
 }
 
 // Helper to strip HTML tags from TipTap content
@@ -59,6 +72,9 @@ export function KanbanBoard({
   focusedCardId,
   isSelected,
   onSelectionToggle,
+  cursors = [],
+  onCursorMove,
+  onlineUsers = [],
 }: Props) {
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
@@ -66,6 +82,8 @@ export function KanbanBoard({
   // Mobile: track which full-width column is in view for the page dots.
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeCol, setActiveCol] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
   const rafRef = useRef<number | null>(null);
 
   const updateActiveCol = useCallback(() => {
@@ -89,8 +107,26 @@ export function KanbanBoard({
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
       updateActiveCol();
+      const el = scrollRef.current;
+      if (el) {
+        setScrollLeft(el.scrollLeft);
+        setScrollTop(el.scrollTop);
+      }
     });
   }, [updateActiveCol]);
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!onCursorMove) return;
+      const el = scrollRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left + el.scrollLeft;
+      const y = e.clientY - rect.top + el.scrollTop;
+      onCursorMove(x, y);
+    },
+    [onCursorMove]
+  );
 
   const scrollToCol = useCallback((index: number) => {
     const el = scrollRef.current;
@@ -104,6 +140,24 @@ export function KanbanBoard({
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
   }, []);
+
+  // Build userId → info map for cursor labels (cheap, no query)
+  const userLookup = useMemo(() => {
+    const map = new Map<string, OnlineUser>();
+    for (const u of onlineUsers) map.set(u.userId, u);
+    return map;
+  }, [onlineUsers]);
+
+  // Build cardId → viewers[] map for the open-card badges
+  const viewersByCard = useMemo(() => {
+    const map = new Map<string, OnlineUser[]>();
+    for (const u of onlineUsers) {
+      if (!u.activeCardId || u.userId === (currentUserId as unknown as Id<"users">)) continue;
+      const existing = map.get(u.activeCardId) ?? [];
+      map.set(u.activeCardId, [...existing, u]);
+    }
+    return map;
+  }, [onlineUsers, currentUserId]);
 
   const userRole = board.userRole;
   const canDrag = canEdit(userRole);
@@ -187,6 +241,7 @@ export function KanbanBoard({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
+        onPointerMove={handlePointerMove}
         className="flex gap-3 sm:gap-4 p-3 sm:p-4 pb-safe h-full overflow-x-auto snap-x snap-mandatory sm:snap-none scroll-pl-3"
       >
         <SortableContext
@@ -206,6 +261,7 @@ export function KanbanBoard({
               focusedCardId={focusedCardId}
               isSelected={isSelected}
               onSelectionToggle={onSelectionToggle}
+              viewersByCard={viewersByCard}
             />
           ))}
         </SortableContext>
@@ -214,6 +270,15 @@ export function KanbanBoard({
           <AddColumnButton onClick={() => setShowAddColumn(true)} />
         )}
       </div>
+
+      {/* Live cursor overlay — other users' pointers */}
+      <CursorOverlay
+        cursors={cursors}
+        userLookup={userLookup}
+        currentUserId={currentUserId as unknown as Id<"users"> | undefined}
+        scrollLeft={scrollLeft}
+        scrollTop={scrollTop}
+      />
 
       {/* Mobile page dots — one per column */}
       {columns.length > 1 && (

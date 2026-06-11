@@ -14,6 +14,12 @@ import type { Card } from "@/lib/types";
 import { VersionBadge } from "@/components/ui/VersionBadge";
 import clsx from "clsx";
 
+interface CardViewer {
+  userId: Id<"users">;
+  userName: string;
+  userImage?: string;
+}
+
 interface Props {
   card: Card;
   boardId?: Id<"boards">;
@@ -23,6 +29,7 @@ interface Props {
   onSelectionToggle?: (cardId: Id<"cards">) => void;
   onCardClick?: (card: Card) => void;
   onCardDoubleClick?: (card: Card) => void;
+  viewers?: CardViewer[];
 }
 
 export function KanbanCard({
@@ -34,6 +41,7 @@ export function KanbanCard({
   onSelectionToggle,
   onCardClick,
   onCardDoubleClick,
+  viewers,
 }: Props) {
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -151,6 +159,11 @@ export function KanbanCard({
           <div className={clsx("absolute left-0 top-0 bottom-0 w-1", bgLabel.color)} />
         )}
 
+        {/* Viewer avatars — who has this card open */}
+        {viewers && viewers.length > 0 && (
+          <ViewerBadge viewers={viewers} />
+        )}
+
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-1">
@@ -250,5 +263,44 @@ export function KanbanCard({
         loading={isDeleting}
       />
     </>
+  );
+}
+
+const MAX_VIEWER_BADGES = 3;
+
+function ViewerBadge({ viewers }: { viewers: CardViewer[] }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const visible = viewers.slice(0, MAX_VIEWER_BADGES);
+  const overflow = viewers.length - MAX_VIEWER_BADGES;
+
+  return (
+    <div
+      className="absolute top-1.5 right-1.5 z-10 flex items-center"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div className="flex -space-x-1">
+        {visible.map((v) => (
+          <div key={v.userId} className="ring-2 ring-green-500 rounded-full">
+            <Avatar
+              name={v.userName}
+              id={v.userId}
+              imageUrl={v.userImage}
+              size="xs"
+            />
+          </div>
+        ))}
+        {overflow > 0 && (
+          <div className="ring-2 ring-green-500 rounded-full w-4 h-4 bg-dark-surface flex items-center justify-center text-[9px] text-dark-muted">
+            +{overflow}
+          </div>
+        )}
+      </div>
+      {showTooltip && (
+        <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs text-white bg-dark-surface border border-dark-border rounded shadow-lg whitespace-nowrap z-50">
+          {viewers.map((v) => v.userName).join(", ")} viewing
+        </div>
+      )}
+    </div>
   );
 }

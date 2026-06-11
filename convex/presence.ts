@@ -101,6 +101,7 @@ export const list = query({
           userName: user?.name ?? "Unknown",
           userImage: user?.image,
           activeCardSlug,
+          activeCardId: p.activeCardId,
         };
       })
     );
@@ -110,18 +111,82 @@ export const list = query({
 });
 
 /**
- * Clean up stale presence records older than 5 minutes.
+ * Update this user's cursor position on a board.
+ * High-frequency mutation — no user joins, coords-only.
+ */
+export const updateCursor = mutation({
+  args: {
+    boardId: v.id("boards"),
+    x: v.number(),
+    y: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const authUser = await getOptionalAuth(ctx);
+    if (!authUser) return;
+    const userId = authUser._id as unknown as Id<"users">;
+    const now = Date.now();
+
+    const existing = await ctx.db
+      .query("boardCursors")
+      .withIndex("by_user_and_board", (q) =>
+        q.eq("userId", userId).eq("boardId", args.boardId)
+      )
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { x: args.x, y: args.y, lastSeen: now });
+    } else {
+      await ctx.db.insert("boardCursors", {
+        boardId: args.boardId,
+        userId,
+        x: args.x,
+        y: args.y,
+        lastSeen: now,
+      });
+    }
+  },
+});
+
+/**
+ * List live cursors on a board (seen within last 8 seconds).
+ * Returns coords + userId only — no user joins (client maps from onlineUsers).
+ */
+export const listCursors = query({
+  args: {
+    boardId: v.id("boards"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const cutoff = now - 8_000;
+
+    const cursors = await ctx.db
+      .query("boardCursors")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    return cursors
+      .filter((c) => c.lastSeen >= cutoff)
+      .map((c) => ({ userId: c.userId, x: c.x, y: c.y }));
+  },
+});
+
+/**
+ * Clean up stale presence and cursor records older than 5 minutes.
  */
 export const cleanupStale = internalMutation({
   args: {},
   handler: async (ctx) => {
     const cutoff = Date.now() - 5 * 60_000;
 
-    const stale = await ctx.db
-      .query("boardPresence")
-      .collect();
+    const stalePresence = await ctx.db.query("boardPresence").collect();
+    for (const record of stalePresence) {
+      if (record.lastSeen < cutoff) {
+        await ctx.db.delete(record._id);
+      }
+    }
 
-    for (const record of stale) {
+    const staleCursors = await ctx.db.query("boardCursors").collect();
+    for (const record of staleCursors) {
       if (record.lastSeen < cutoff) {
         await ctx.db.delete(record._id);
       }

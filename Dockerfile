@@ -8,7 +8,6 @@ WORKDIR /app
 
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml ./
-COPY patches/ ./patches/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -40,7 +39,6 @@ WORKDIR /app
 
 # Copy package files and install deps (needed for convex CLI)
 COPY package.json pnpm-lock.yaml ./
-COPY patches/ ./patches/
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy convex functions

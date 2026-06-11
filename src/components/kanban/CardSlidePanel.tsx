@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
+import { useBoardCursors } from "@/hooks/useBoardCursors";
+import { CursorOverlay } from "./CursorOverlay";
 import { useCardFormState } from "@/hooks/useCardFormState";
 import { useConvexUser } from "@/hooks/useConvexUser";
 import { useRegisterAssistantCard } from "@/contexts/AssistantContext";
@@ -52,12 +54,20 @@ interface Board {
   userRole?: BoardRole;
 }
 
+interface OnlineUser {
+  userId: Id<"users">;
+  userName: string;
+  userImage?: string;
+}
+
 interface Props {
   card: CardWithColumn;
   board: Board;
   editMode?: boolean;
   defaultExpanded?: boolean;
   onClose: () => void;
+  onlineUsers?: OnlineUser[];
+  currentUserId?: Id<"users">;
 }
 
 export function CardSlidePanel({
@@ -66,6 +76,8 @@ export function CardSlidePanel({
   editMode = false,
   defaultExpanded = false,
   onClose,
+  onlineUsers = [],
+  currentUserId,
 }: Props) {
   // Expose the open card to the Codex assistant so it can edit "this card".
   useRegisterAssistantCard({
@@ -97,6 +109,26 @@ export function CardSlidePanel({
   const [isSaving, setIsSaving] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Live cursors scoped to this card's panel
+  const { cursors: panelCursors, report: reportPanelCursor } = useBoardCursors(
+    board._id,
+    card._id
+  );
+  const panelUserLookupRef = useRef(new Map<string, OnlineUser>());
+  const panelUserLookup = panelUserLookupRef.current;
+  panelUserLookup.clear();
+  for (const u of onlineUsers) panelUserLookup.set(u.userId, u);
+
+  const handlePanelPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const el = panelRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      reportPanelCursor(e.clientX - rect.left, e.clientY - rect.top);
+    },
+    [reportPanelCursor]
+  );
 
   // On phones the panel is a full-screen sheet (no fixed px width / resize).
   const [isNarrow, setIsNarrow] = useState(
@@ -321,6 +353,7 @@ export function CardSlidePanel({
       {/* Panel */}
       <div
         ref={panelRef}
+        onPointerMove={handlePanelPointerMove}
         style={!isExpanded && !isNarrow ? { width: panelWidth } : undefined}
         className={`fixed bg-dark-surface shadow-2xl z-50 flex flex-col pb-safe sm:pb-0 ${
           isExpanded
@@ -340,6 +373,15 @@ export function CardSlidePanel({
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-dark-border group-hover:bg-accent/50 rounded-full transition-colors" />
           </div>
         )}
+
+        {/* Live cursors of other users viewing this card */}
+        <CursorOverlay
+          cursors={panelCursors}
+          userLookup={panelUserLookup}
+          currentUserId={currentUserId}
+          scrollLeft={0}
+          scrollTop={0}
+        />
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-dark-border">

@@ -322,6 +322,7 @@ export default defineSchema({
     x: v.number(), // content-space px (includes scrollLeft)
     y: v.number(), // content-space px (includes scrollTop)
     lastSeen: v.number(),
+    cardId: v.optional(v.id("cards")), // set when cursor is inside a card panel
   })
     .index("by_board", ["boardId"])
     .index("by_user_and_board", ["userId", "boardId"]),

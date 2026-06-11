@@ -119,6 +119,7 @@ export const updateCursor = mutation({
     boardId: v.id("boards"),
     x: v.number(),
     y: v.number(),
+    cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
     const authUser = await getOptionalAuth(ctx);
@@ -134,7 +135,12 @@ export const updateCursor = mutation({
       .unique();
 
     if (existing) {
-      await ctx.db.patch(existing._id, { x: args.x, y: args.y, lastSeen: now });
+      await ctx.db.patch(existing._id, {
+        x: args.x,
+        y: args.y,
+        lastSeen: now,
+        cardId: args.cardId,
+      });
     } else {
       await ctx.db.insert("boardCursors", {
         boardId: args.boardId,
@@ -142,6 +148,7 @@ export const updateCursor = mutation({
         x: args.x,
         y: args.y,
         lastSeen: now,
+        cardId: args.cardId,
       });
     }
   },
@@ -154,6 +161,7 @@ export const updateCursor = mutation({
 export const listCursors = query({
   args: {
     boardId: v.id("boards"),
+    cardId: v.optional(v.id("cards")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -165,7 +173,7 @@ export const listCursors = query({
       .collect();
 
     return cursors
-      .filter((c) => c.lastSeen >= cutoff)
+      .filter((c) => c.lastSeen >= cutoff && c.cardId === args.cardId)
       .map((c) => ({ userId: c.userId, x: c.x, y: c.y }));
   },
 });

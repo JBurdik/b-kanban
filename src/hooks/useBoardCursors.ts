@@ -11,9 +11,12 @@ export interface CursorPosition {
   y: number;
 }
 
-export function useBoardCursors(boardId: Id<"boards">) {
+export function useBoardCursors(
+  boardId: Id<"boards">,
+  cardId?: Id<"cards">
+) {
   const updateCursor = useMutation(api.presence.updateCursor);
-  const rawCursors = useQuery(api.presence.listCursors, { boardId });
+  const rawCursors = useQuery(api.presence.listCursors, { boardId, cardId });
 
   const lastSentRef = useRef<{ x: number; y: number; t: number }>({
     x: -1,
@@ -29,8 +32,8 @@ export function useBoardCursors(boardId: Id<"boards">) {
     if (!p) return;
     pendingRef.current = null;
     lastSentRef.current = { x: p.x, y: p.y, t: Date.now() };
-    updateCursor({ boardId, x: p.x, y: p.y });
-  }, [boardId, updateCursor]);
+    updateCursor({ boardId, x: p.x, y: p.y, cardId });
+  }, [boardId, cardId, updateCursor]);
 
   const report = useCallback(
     (x: number, y: number) => {

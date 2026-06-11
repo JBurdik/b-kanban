@@ -639,6 +639,8 @@ function BoardPage() {
           editMode={editMode}
           defaultExpanded={cardOpenMode === "fullscreen"}
           onClose={handleClosePanel}
+          onlineUsers={onlineUsers}
+          currentUserId={currentUser?.id as Id<"users"> | undefined}
         />
       )}
 

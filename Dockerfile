@@ -63,9 +63,32 @@ pnpm convex env set CONVEX_URL "$CONVEX_URL" 2>&1 || echo "env set CONVEX_URL fa
 pnpm convex env set BETTER_AUTH_SECRET "$BETTER_AUTH_SECRET" 2>&1 || echo "env set BETTER_AUTH_SECRET failed"
 pnpm convex env set TRUSTED_ORIGINS "$TRUSTED_ORIGINS" 2>&1 || echo "env set TRUSTED_ORIGINS failed"
 
+# Convex Auth signing keys (stage 1 sets them ahead of the stage-2 cutover;
+# harmless while still on better-auth). Only set if provided.
+[ -n "$JWT_PRIVATE_KEY" ] && pnpm convex env set JWT_PRIVATE_KEY "$JWT_PRIVATE_KEY" 2>&1 || echo "JWT_PRIVATE_KEY not set (skipping)"
+[ -n "$JWKS" ] && pnpm convex env set JWKS "$JWKS" 2>&1 || echo "JWKS not set (skipping)"
+
 echo "Deploying Convex functions..."
 pnpm convex deploy --yes
 echo "Convex functions deployed successfully!"
+
+# STAGE 1: pre-populate Convex Auth's authAccounts with existing better-auth
+# password hashes, BEFORE the component is removed in stage 2. Reading the
+# better-auth component can transiently OOM the isolate, so retry a few times.
+# Idempotent, so safe to run on every deploy.
+if [ "$RUN_PASSWORD_MIGRATION" = "true" ]; then
+  echo "Migrating password hashes into authAccounts..."
+  i=1
+  while [ "$i" -le 5 ]; do
+    if pnpm convex run migratePasswords:run '{}' 2>&1; then
+      echo "Password migration done."
+      break
+    fi
+    echo "Migration attempt $i failed (likely transient OOM); retrying..."
+    i=$((i + 1))
+    sleep 3
+  done
+fi
 EOF
 RUN chmod +x /app/deploy.sh
 

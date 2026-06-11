@@ -65,6 +65,22 @@ export default defineSchema({
     expiresAt: v.number(),
   }).index("by_token", ["token"]),
 
+  // STAGE 1 of the Convex Auth migration (still on better-auth here). This is
+  // Convex Auth's authAccounts table, defined ahead of time with the EXACT
+  // shape @convex-dev/auth expects, so migratePasswords:run can pre-populate it
+  // with existing better-auth password hashes (secret) BEFORE the better-auth
+  // component is removed in stage 2. The rows persist into the cutover branch.
+  authAccounts: defineTable({
+    userId: v.id("users"),
+    provider: v.string(),
+    providerAccountId: v.string(),
+    secret: v.optional(v.string()),
+    emailVerified: v.optional(v.string()),
+    phoneVerified: v.optional(v.string()),
+  })
+    .index("userIdAndProvider", ["userId", "provider"])
+    .index("providerAndAccountId", ["provider", "providerAccountId"]),
+
   // ============================================
   // Application Tables
   // ============================================

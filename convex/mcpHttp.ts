@@ -63,10 +63,27 @@ const TOOLS = [
   },
   {
     name: "list_my_tasks",
-    description: "List tasks assigned to the current user across all boards, with summary stats.",
+    description:
+      "List tasks assigned to the current user across all boards, with summary stats. Optionally filter by version name (use list_versions to discover names).",
     inputSchema: {
       type: "object",
-      properties: { limit: { type: "number" } },
+      properties: {
+        limit: { type: "number" },
+        version: {
+          type: "string",
+          description: "Only tasks with this version name (case-insensitive)",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "list_versions",
+    description: "List the versions defined on a board (name, color, isActive).",
+    inputSchema: {
+      type: "object",
+      properties: { boardId: { type: "string" } },
+      required: ["boardId"],
       additionalProperties: false,
     },
   },
@@ -337,7 +354,19 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
       return await ctx.runQuery(internal.cards.getMyTasksByEmail, {
         userEmail: email,
         limit: args.limit,
+        version: args.version,
       });
+    }
+    case "list_versions": {
+      const versions = await ctx.runQuery(internal.versions.listByEmail, {
+        boardId: args.boardId,
+        userEmail: email,
+      });
+      return (versions ?? []).map((v: any) => ({
+        name: v.name,
+        color: v.color,
+        isActive: v.isActive,
+      }));
     }
     case "create_card": {
       const { column } = await resolveColumn(ctx, args.boardId, email, args.column);

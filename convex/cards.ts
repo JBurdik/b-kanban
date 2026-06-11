@@ -1004,6 +1004,8 @@ export const getMyTasksByEmail = internalQuery({
   args: {
     userEmail: v.string(),
     limit: v.optional(v.number()),
+    // Optional filter: only tasks whose version name matches (case-insensitive).
+    version: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -1028,6 +1030,16 @@ export const getMyTasksByEmail = internalQuery({
       allColumns.push(...columns);
     }
 
+    // versionId -> name, across the user's boards (for filtering + display).
+    const versionNameById = new Map<string, string>();
+    for (const boardId of boardIds) {
+      const vers = await ctx.db
+        .query("versions")
+        .withIndex("by_board", (q) => q.eq("boardId", boardId))
+        .collect();
+      for (const ver of vers) versionNameById.set(ver._id, ver.name);
+    }
+
     const allCards = [];
     for (const column of allColumns) {
       const cards = await ctx.db
@@ -1037,9 +1049,19 @@ export const getMyTasksByEmail = internalQuery({
       allCards.push(...cards.map((c) => ({ ...c, column })));
     }
 
-    const myTasks = allCards.filter((c) => c.assigneeId === user._id);
+    let myTasks = allCards.filter((c) => c.assigneeId === user._id);
     const unassigned = allCards.filter((c) => !c.assigneeId);
     const highPriority = allCards.filter((c) => c.priority === "high");
+
+    // Filter assigned tasks by version name if requested.
+    if (args.version) {
+      const want = args.version.toLowerCase();
+      myTasks = myTasks.filter(
+        (c) =>
+          c.versionId &&
+          (versionNameById.get(c.versionId) ?? "").toLowerCase() === want,
+      );
+    }
 
     const recentTasks = myTasks
       .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
@@ -1053,6 +1075,9 @@ export const getMyTasksByEmail = internalQuery({
           slug: card.slug,
           title: card.title,
           priority: card.priority,
+          version: card.versionId
+            ? versionNameById.get(card.versionId) ?? null
+            : null,
           dueDate: card.dueDate,
           updatedAt: card.updatedAt,
           columnName: card.column.name,

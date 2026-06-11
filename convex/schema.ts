@@ -360,4 +360,13 @@ export default defineSchema({
     .index("by_board", ["boardId"])
     .index("by_board_name", ["boardId", "name"])
     .index("by_group", ["groupId"]),
+}, {
+  // STAGE 2 cutover only: the old session-token mirror left rows in a table
+  // named `authSessions` whose shape ({token,email,expiresAt}) differs from
+  // Convex Auth's authSessions ({userId,expirationTime}), so a validating
+  // deploy would be rejected. We deploy with validation OFF, then
+  // migrateCleanup:clearLegacyAuthSessions deletes those legacy rows (see
+  // deploy.sh). A follow-up (stage 3) removes this options object to re-enable
+  // schema validation.
+  schemaValidation: false,
 });

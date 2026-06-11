@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { signUp, storeBearerToken } from "@/lib/auth-client";
-import { isNative } from "@/lib/platform";
+import { useAuthActions } from "@convex-dev/auth/react";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -9,6 +8,7 @@ export const Route = createFileRoute("/register")({
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const { signIn } = useAuthActions();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,30 +21,10 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const result = await signUp.email(
-        { name, email, password },
-        {
-          onSuccess: (ctx) => {
-            // Store bearer token for native app auth
-            const authToken = ctx.response.headers.get("set-auth-token");
-            if (authToken) {
-              storeBearerToken(authToken);
-            }
-          },
-        }
-      );
-      if (result.error) {
-        setError(result.error.message || "Failed to create account");
-      } else {
-        if (isNative) {
-          // In native shells, reload to pick up the new token in ConvexProvider
-          window.location.href = "/boards";
-        } else {
-          navigate({ to: "/boards" });
-        }
-      }
+      await signIn("password", { email, password, name, flow: "signUp" });
+      navigate({ to: "/boards" });
     } catch {
-      setError("An unexpected error occurred");
+      setError("Failed to create account. The email may already be in use.");
     } finally {
       setLoading(false);
     }

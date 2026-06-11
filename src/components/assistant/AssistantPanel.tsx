@@ -6,7 +6,6 @@ import { marked } from "marked";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useAssistant } from "@/contexts/AssistantContext";
-import { useSessionToken } from "@/hooks/useSessionToken";
 import {
   codexProbe,
   codexLogin,
@@ -49,7 +48,6 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const nextId = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const sessionToken = useSessionToken();
   const createCard = useMutation(api.cards.create);
   const updateCard = useMutation(api.cards.update);
 
@@ -188,7 +186,6 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
               content: c.description ? md(c.description) : undefined,
               priority: c.priority,
               type: c.type,
-              sessionToken,
             });
             notes.push(`Created "${c.title}" in ${column.name}`);
           }
@@ -208,7 +205,6 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
               cardId: cardId as Id<"cards">,
               title: upd.title,
               content: upd.description ? md(upd.description) : undefined,
-              sessionToken,
             });
             notes.push(`Updated ${upd.slug}`);
           }

@@ -11,7 +11,7 @@ export const Route = createFileRoute("/invite/$token")({
 function InvitePage() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
-  const { userEmail, sessionToken, isLoading: authLoading } = useConvexUser();
+  const { userEmail, isLoading: authLoading } = useConvexUser();
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,7 +28,7 @@ function InvitePage() {
     setAccepting(true);
     setError("");
     try {
-      const result = await acceptInvite({ token, sessionToken });
+      const result = await acceptInvite({ token });
       navigate({ to: "/boards/$boardId", params: { boardId: result.boardId } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to accept invite");

@@ -6,9 +6,9 @@ import { requireBoardAccess, checkBoardAccess, requireAuth, getOptionalAuth } fr
  * List all versions for a board
  */
 export const list = query({
-  args: { boardId: v.id("boards"), sessionToken: v.optional(v.string()) },
+  args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) return [];
 
     const { hasAccess } = await checkBoardAccess(ctx, user._id, args.boardId, "member");
@@ -29,10 +29,9 @@ export const create = mutation({
     boardId: v.id("boards"),
     name: v.string(),
     color: v.string(),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     await requireBoardAccess(ctx, user._id, args.boardId, "admin");
 
@@ -55,10 +54,9 @@ export const update = mutation({
     name: v.optional(v.string()),
     color: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const version = await ctx.db.get(args.versionId);
     if (!version) throw new Error("Version not found");
@@ -79,9 +77,9 @@ export const update = mutation({
  * Remove a version and clear it from all cards (admin/owner only)
  */
 export const remove = mutation({
-  args: { versionId: v.id("versions"), sessionToken: v.optional(v.string()) },
+  args: { versionId: v.id("versions") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const version = await ctx.db.get(args.versionId);
     if (!version) throw new Error("Version not found");

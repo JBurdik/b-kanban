@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { signIn, storeBearerToken } from "@/lib/auth-client";
-import { isNative } from "@/lib/platform";
+import { useAuthActions } from "@convex-dev/auth/react";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -9,6 +8,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { signIn } = useAuthActions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,30 +20,10 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn.email(
-        { email, password },
-        {
-          onSuccess: (ctx) => {
-            // Store bearer token for native app auth
-            const authToken = ctx.response.headers.get("set-auth-token");
-            if (authToken) {
-              storeBearerToken(authToken);
-            }
-          },
-        }
-      );
-      if (result.error) {
-        setError(result.error.message || "Failed to sign in");
-      } else {
-        if (isNative) {
-          // In native shells, reload to pick up the new token in ConvexProvider
-          window.location.href = "/boards";
-        } else {
-          navigate({ to: "/boards" });
-        }
-      }
+      await signIn("password", { email, password, flow: "signIn" });
+      navigate({ to: "/boards" });
     } catch {
-      setError("An unexpected error occurred");
+      setError("Invalid email or password");
     } finally {
       setLoading(false);
     }

@@ -1,85 +1,35 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
+
+// Convex Auth owns the auth tables (authSessions, authAccounts, authVerificationCodes,
+// authRefreshTokens, authVerifiers, authRateLimits) + the users table. We extend
+// users with our app-specific fields. authAccounts.secret holds the password hash;
+// legacy better-auth hashes are verified via convex/lib/legacyPassword.ts.
+const { users: _authUsers, ...authTablesRest } = authTables;
 
 export default defineSchema({
-  // ============================================
-  // Better Auth Tables
-  // These are managed by @convex-dev/better-auth component
-  // but we define them here for type safety
-  // ============================================
+  ...authTablesRest,
 
+  // users = Convex Auth users + our app fields. name/email optional per Convex
+  // Auth; in practice the Password provider's profile() always sets email+name.
+  // Legacy fields (emailVerified/createdAt/updatedAt) kept optional for existing rows.
   users: defineTable({
-    name: v.string(),
-    email: v.string(),
-    emailVerified: v.boolean(),
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
     image: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    // app fields
     role: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_email", ["email"]),
-
-  sessions: defineTable({
-    userId: v.id("users"),
-    expiresAt: v.number(),
-    token: v.string(),
-    ipAddress: v.optional(v.string()),
-    userAgent: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
+    emailVerified: v.optional(v.boolean()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
-    .index("by_user", ["userId"])
-    .index("by_token", ["token"]),
-
-  accounts: defineTable({
-    userId: v.id("users"),
-    accountId: v.string(),
-    providerId: v.string(),
-    accessToken: v.optional(v.string()),
-    refreshToken: v.optional(v.string()),
-    accessTokenExpiresAt: v.optional(v.number()),
-    refreshTokenExpiresAt: v.optional(v.number()),
-    scope: v.optional(v.string()),
-    password: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_user", ["userId"]),
-
-  verifications: defineTable({
-    identifier: v.string(),
-    value: v.string(),
-    expiresAt: v.number(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_identifier", ["identifier"]),
-
-  // Lightweight session mirror. getUserIdentity()/JWT and the betterAuth
-  // component adapter both load adapter.js (~57 MiB) which OOMs the self-hosted
-  // V8 isolate, so they can't be used for per-request auth. Instead the client
-  // calls authMirror.bootstrap once after login: that verifies its session
-  // token against the betterAuth component (infrequent, retried) and writes
-  // { token -> email } here. Per-request auth then does a plain indexed lookup
-  // on this table — no adapter.js, no OOM. See convex/lib/rbac.ts.
-  authSessions: defineTable({
-    token: v.string(),
-    email: v.string(),
-    expiresAt: v.number(),
-  }).index("by_token", ["token"]),
-
-  // STAGE 1 of the Convex Auth migration (still on better-auth here). This is
-  // Convex Auth's authAccounts table, defined ahead of time with the EXACT
-  // shape @convex-dev/auth expects, so migratePasswords:run can pre-populate it
-  // with existing better-auth password hashes (secret) BEFORE the better-auth
-  // component is removed in stage 2. The rows persist into the cutover branch.
-  authAccounts: defineTable({
-    userId: v.id("users"),
-    provider: v.string(),
-    providerAccountId: v.string(),
-    secret: v.optional(v.string()),
-    emailVerified: v.optional(v.string()),
-    phoneVerified: v.optional(v.string()),
-  })
-    .index("userIdAndProvider", ["userId", "provider"])
-    .index("providerAndAccountId", ["provider", "providerAccountId"]),
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
 
   // ============================================
   // Application Tables

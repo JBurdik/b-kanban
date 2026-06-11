@@ -9,7 +9,6 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useKanbanDnd } from "@/hooks/useKanbanDnd";
-import { useSessionToken } from "@/hooks/useSessionToken";
 import { canEdit, canManageColumns } from "@/lib/permissions";
 import type { Card, Column, BoardMember, BoardRole } from "@/lib/types";
 import { KanbanColumn } from "./KanbanColumn";
@@ -111,7 +110,6 @@ export function KanbanBoard({
   const canAddColumn = canManageColumns(userRole);
 
   const createColumn = useMutation(api.columns.create);
-  const sessionToken = useSessionToken();
 
   // Apply filter and search to cards while keeping column structure
   const filteredColumns = useMemo(() => {
@@ -170,7 +168,6 @@ export function KanbanBoard({
         boardId: board._id,
         name,
         position: columns.length,
-        sessionToken,
       });
       setShowAddColumn(false);
     } finally {

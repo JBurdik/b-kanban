@@ -17,7 +17,6 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import type { Card, Column } from "@/lib/types";
-import { useSessionToken } from "@/hooks/useSessionToken";
 
 // Custom collision detection that works better for kanban boards
 const customCollisionDetection: CollisionDetection = (args) => {
@@ -46,7 +45,6 @@ export function useKanbanDnd({ initialColumns, canDrag, canReorderColumns = fals
 
   const reorderCards = useMutation(api.cards.reorder);
   const reorderColumns = useMutation(api.columns.reorder);
-  const sessionToken = useSessionToken();
 
   // Sync columns when data changes
   useEffect(() => {
@@ -181,7 +179,7 @@ export function useKanbanDnd({ initialColumns, canDrag, canReorderColumns = fals
           id: col._id as Id<"columns">,
           position: idx,
         }));
-        await reorderColumns({ items: columnItems, sessionToken });
+        await reorderColumns({ items: columnItems });
         return;
       }
 
@@ -227,9 +225,9 @@ export function useKanbanDnd({ initialColumns, canDrag, canReorderColumns = fals
         }))
       );
 
-      await reorderCards({ items: allCards, sessionToken });
+      await reorderCards({ items: allCards });
     },
-    [activeColumn, reorderCards, reorderColumns, sessionToken]
+    [activeColumn, reorderCards, reorderColumns]
   );
 
   return {

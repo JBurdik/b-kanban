@@ -55,8 +55,8 @@ export const get = query({
       if (assigneeUser) {
         assignee = {
           id: assigneeUser._id,
-          name: assigneeUser.name,
-          email: assigneeUser.email,
+          name: assigneeUser.name ?? "",
+          email: assigneeUser.email ?? "",
           image: assigneeUser.image,
         };
       }
@@ -82,8 +82,8 @@ export const get = query({
       if (reporterUser) {
         reporter = {
           id: reporterUser._id,
-          name: reporterUser.name,
-          email: reporterUser.email,
+          name: reporterUser.name ?? "",
+          email: reporterUser.email ?? "",
           image: reporterUser.image,
         };
       }
@@ -121,8 +121,8 @@ export const getBySlug = query({
       if (assigneeUser) {
         assignee = {
           id: assigneeUser._id,
-          name: assigneeUser.name,
-          email: assigneeUser.email,
+          name: assigneeUser.name ?? "",
+          email: assigneeUser.email ?? "",
           image: assigneeUser.image,
         };
       }
@@ -154,8 +154,8 @@ export const getBySlug = query({
       if (reporterUser) {
         reporter = {
           id: reporterUser._id,
-          name: reporterUser.name,
-          email: reporterUser.email,
+          name: reporterUser.name ?? "",
+          email: reporterUser.email ?? "",
           image: reporterUser.image,
         };
       }
@@ -186,10 +186,9 @@ export const create = mutation({
     versionId: v.optional(v.id("versions")),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const column = await ctx.db.get(args.columnId);
     if (!column) throw new Error("Column not found");
@@ -266,10 +265,9 @@ export const update = mutation({
     versionId: v.optional(v.union(v.id("versions"), v.null())),
     dueDate: v.optional(v.number()),
     effort: v.optional(v.number()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const currentUser = await requireAuth(ctx, args.sessionToken);
+    const currentUser = await requireAuth(ctx);
 
     const card = await ctx.db.get(args.cardId);
     if (!card) throw new Error("Card not found");
@@ -398,9 +396,9 @@ export const update = mutation({
  * Archive a card (soft delete)
  */
 export const remove = mutation({
-  args: { cardId: v.id("cards"), sessionToken: v.optional(v.string()) },
+  args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
     await requireBoardAccess(ctx, user._id, boardId, "member");
@@ -432,9 +430,9 @@ export const remove = mutation({
  * Restore an archived card
  */
 export const restore = mutation({
-  args: { cardId: v.id("cards"), sessionToken: v.optional(v.string()) },
+  args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
     await requireBoardAccess(ctx, user._id, boardId, "member");
@@ -469,9 +467,9 @@ export const restore = mutation({
  * Permanently delete an archived card
  */
 export const permanentDelete = mutation({
-  args: { cardId: v.id("cards"), sessionToken: v.optional(v.string()) },
+  args: { cardId: v.id("cards") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
     await requireBoardAccess(ctx, user._id, boardId, "member");
@@ -589,8 +587,8 @@ export const listArchived = query({
           if (assigneeUser) {
             assignee = {
               id: assigneeUser._id,
-              name: assigneeUser.name,
-              email: assigneeUser.email,
+              name: assigneeUser.name ?? "",
+              email: assigneeUser.email ?? "",
               image: assigneeUser.image,
             };
           }
@@ -603,8 +601,8 @@ export const listArchived = query({
           if (reporterUser) {
             reporter = {
               id: reporterUser._id,
-              name: reporterUser.name,
-              email: reporterUser.email,
+              name: reporterUser.name ?? "",
+              email: reporterUser.email ?? "",
               image: reporterUser.image,
             };
           }
@@ -634,10 +632,9 @@ export const move = mutation({
     cardId: v.id("cards"),
     columnId: v.id("columns"),
     position: v.number(),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
     await requireBoardAccess(ctx, user._id, boardId, "member");
@@ -667,12 +664,11 @@ export const reorder = mutation({
         position: v.number(),
       })
     ),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.items.length === 0) return { success: true };
 
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
     const boardId = await getBoardIdFromColumn(ctx, args.items[0].columnId);
     if (!boardId) throw new Error("Column not found");
     await requireBoardAccess(ctx, user._id, boardId, "member");
@@ -695,10 +691,9 @@ export const reorder = mutation({
 export const getMyTasks = query({
   args: {
     limit: v.optional(v.number()),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getOptionalAuth(ctx, args.sessionToken);
+    const user = await getOptionalAuth(ctx);
     if (!user) return { tasks: [], stats: { total: 0, myTasks: 0, unassigned: 0, highPriority: 0 } };
 
     // Get user's board memberships
@@ -776,12 +771,11 @@ export const bulkUpdatePriority = mutation({
   args: {
     cardIds: v.array(v.id("cards")),
     priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const authUser = await requireAuth(ctx, args.sessionToken);
+    const authUser = await requireAuth(ctx);
     const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
@@ -802,12 +796,11 @@ export const bulkUpdatePriority = mutation({
 export const bulkArchive = mutation({
   args: {
     cardIds: v.array(v.id("cards")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const authUser = await requireAuth(ctx, args.sessionToken);
+    const authUser = await requireAuth(ctx);
     const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
@@ -832,12 +825,11 @@ export const bulkArchive = mutation({
 export const bulkDelete = mutation({
   args: {
     cardIds: v.array(v.id("cards")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const authUser = await requireAuth(ctx, args.sessionToken);
+    const authUser = await requireAuth(ctx);
     const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
@@ -930,12 +922,11 @@ export const bulkSetVersion = mutation({
   args: {
     cardIds: v.array(v.id("cards")),
     versionId: v.optional(v.id("versions")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.cardIds.length === 0) return { success: true };
 
-    const authUser = await requireAuth(ctx, args.sessionToken);
+    const authUser = await requireAuth(ctx);
     const userId = authUser._id as unknown as Id<"users">;
     const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
     if (!boardId) throw new Error("Card not found");
@@ -979,8 +970,8 @@ export const getBySlugForMcp = internalQuery({
       if (assigneeUser) {
         assignee = {
           id: assigneeUser._id,
-          name: assigneeUser.name,
-          email: assigneeUser.email,
+          name: assigneeUser.name ?? "",
+          email: assigneeUser.email ?? "",
           image: assigneeUser.image,
         };
       }
@@ -992,8 +983,8 @@ export const getBySlugForMcp = internalQuery({
       if (reporterUser) {
         reporter = {
           id: reporterUser._id,
-          name: reporterUser.name,
-          email: reporterUser.email,
+          name: reporterUser.name ?? "",
+          email: reporterUser.email ?? "",
           image: reporterUser.image,
         };
       }
@@ -1017,7 +1008,7 @@ export const getMyTasksByEmail = internalQuery({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
       .first();
     if (!user) return { tasks: [], stats: { total: 0, myTasks: 0, unassigned: 0, highPriority: 0 } };
 
@@ -1101,7 +1092,7 @@ export const createByEmail = internalMutation({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
       .first();
     if (!user) throw new Error("User not found");
 
@@ -1171,7 +1162,7 @@ export const updateByEmail = internalMutation({
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.currentUserEmail))
+      .withIndex("email", (q) => q.eq("email", args.currentUserEmail))
       .first();
     if (!currentUser) throw new Error("User not found");
 

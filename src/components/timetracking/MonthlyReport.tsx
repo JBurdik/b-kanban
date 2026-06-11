@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { formatDuration, formatMonthYear } from "@/lib/timeUtils";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 
 interface MonthlyReportProps {
   userEmail?: string;
@@ -13,10 +13,10 @@ export function MonthlyReport({ userEmail: _userEmail }: MonthlyReportProps) {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const sessionToken = useSessionToken();
+  const { session } = useConvexUser();
   const summary = useQuery(
     api.timeTracking.getMonthlySummary,
-    sessionToken ? { year, month, sessionToken } : "skip"
+    session ? { year, month } : "skip"
   );
 
   const handlePrevMonth = () => {

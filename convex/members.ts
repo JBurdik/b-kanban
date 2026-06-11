@@ -27,8 +27,8 @@ export const list = query({
           user: memberUser
             ? {
                 id: memberUser._id,
-                name: memberUser.name,
-                email: memberUser.email,
+                name: memberUser.name ?? "",
+                email: memberUser.email ?? "",
                 image: memberUser.image,
               }
             : null,
@@ -49,16 +49,15 @@ export const add = mutation({
     email: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),
     userId: v.optional(v.id("users")), // Current user adding the member
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const currentUser = await requireAuth(ctx, args.sessionToken);
+    const currentUser = await requireAuth(ctx);
     await requireBoardAccess(ctx, currentUser._id, args.boardId, "admin");
 
     // Find user by email - create if doesn't exist
     let userToAdd = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("email", (q) => q.eq("email", args.email))
       .first();
 
     if (!userToAdd) {
@@ -114,10 +113,9 @@ export const updateRole = mutation({
   args: {
     memberId: v.id("boardMembers"),
     role: v.union(v.literal("admin"), v.literal("member")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const currentUser = await requireAuth(ctx, args.sessionToken);
+    const currentUser = await requireAuth(ctx);
 
     const memberToUpdate = await ctx.db.get(args.memberId);
     if (!memberToUpdate) throw new Error("Member not found");
@@ -149,9 +147,9 @@ export const updateRole = mutation({
  * Remove member from board
  */
 export const remove = mutation({
-  args: { memberId: v.id("boardMembers"), sessionToken: v.optional(v.string()) },
+  args: { memberId: v.id("boardMembers") },
   handler: async (ctx, args) => {
-    const currentUser = await requireAuth(ctx, args.sessionToken);
+    const currentUser = await requireAuth(ctx);
 
     const memberToRemove = await ctx.db.get(args.memberId);
     if (!memberToRemove) throw new Error("Member not found");
@@ -201,15 +199,15 @@ export const search = query({
         if (!user) return null;
 
         // Match by name or email
-        const matchesName = user.name.toLowerCase().includes(searchQuery);
-        const matchesEmail = user.email.toLowerCase().includes(searchQuery);
+        const matchesName = (user.name ?? "").toLowerCase().includes(searchQuery);
+        const matchesEmail = (user.email ?? "").toLowerCase().includes(searchQuery);
 
         if (!matchesName && !matchesEmail) return null;
 
         return {
           id: user._id,
-          name: user.name,
-          email: user.email,
+          name: user.name ?? "",
+          email: user.email ?? "",
           image: user.image,
         };
       })
@@ -226,10 +224,9 @@ export const leave = mutation({
   args: {
     boardId: v.id("boards"),
     userId: v.optional(v.id("users")),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const currentUser = await requireAuth(ctx, args.sessionToken);
+    const currentUser = await requireAuth(ctx);
 
     // A user can only remove their OWN membership; ignore any passed userId.
     const membership = await ctx.db

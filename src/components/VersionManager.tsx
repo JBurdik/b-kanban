@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import clsx from "clsx";
 
 const VERSION_COLORS = [
@@ -30,32 +30,32 @@ export function VersionManager({ boardId, onClose }: Props) {
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
 
-  const sessionToken = useSessionToken();
-  const versions = useQuery(api.versions.list, sessionToken ? { boardId, sessionToken } : "skip");
+  const { session } = useConvexUser();
+  const versions = useQuery(api.versions.list, session ? { boardId } : "skip");
   const createVersion = useMutation(api.versions.create);
   const updateVersion = useMutation(api.versions.update);
   const removeVersion = useMutation(api.versions.remove);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
-    await createVersion({ boardId, name: name.trim(), color, sessionToken });
+    await createVersion({ boardId, name: name.trim(), color });
     setName("");
     setColor(VERSION_COLORS[(versions?.length ?? 0) % VERSION_COLORS.length]);
   };
 
   const handleUpdate = async () => {
     if (!editingId || !editName.trim()) return;
-    await updateVersion({ versionId: editingId, name: editName.trim(), color: editColor, sessionToken });
+    await updateVersion({ versionId: editingId, name: editName.trim(), color: editColor });
     setEditingId(null);
   };
 
   const handleDelete = async (versionId: Id<"versions">) => {
     if (!confirm("Delete this version? It will be removed from all cards.")) return;
-    await removeVersion({ versionId, sessionToken });
+    await removeVersion({ versionId });
   };
 
   const handleToggleActive = async (versionId: Id<"versions">, isActive: boolean) => {
-    await updateVersion({ versionId, isActive: !isActive, sessionToken });
+    await updateVersion({ versionId, isActive: !isActive });
   };
 
   return (

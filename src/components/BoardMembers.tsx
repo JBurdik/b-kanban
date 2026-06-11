@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useSession } from "@/lib/auth-client";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { Avatar } from "./Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
@@ -30,7 +29,7 @@ interface Props {
 }
 
 export function BoardMembers({ boardId, members, userRole, onClose }: Props) {
-  const { data: session } = useSession();
+  const { session } = useConvexUser();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "member">("member");
   const [error, setError] = useState("");
@@ -39,7 +38,6 @@ export function BoardMembers({ boardId, members, userRole, onClose }: Props) {
   const isOwner = checkIsOwner(userRole);
   const canManageMembers = checkCanManage(userRole);
 
-  const sessionToken = useSessionToken();
   const addMember = useMutation(api.members.add);
   const updateRole = useMutation(api.members.updateRole);
   const removeMember = useMutation(api.members.remove);
@@ -52,7 +50,7 @@ export function BoardMembers({ boardId, members, userRole, onClose }: Props) {
     setError("");
 
     try {
-      await addMember({ boardId, email: email.trim(), role, sessionToken });
+      await addMember({ boardId, email: email.trim(), role });
       setEmail("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add member");
@@ -63,7 +61,7 @@ export function BoardMembers({ boardId, members, userRole, onClose }: Props) {
 
   const handleUpdateRole = async (memberId: Id<"boardMembers">, newRole: "admin" | "member") => {
     try {
-      await updateRole({ memberId, role: newRole, sessionToken });
+      await updateRole({ memberId, role: newRole });
     } catch (err) {
       console.error("Failed to update role:", err);
     }
@@ -72,7 +70,7 @@ export function BoardMembers({ boardId, members, userRole, onClose }: Props) {
   const handleRemove = async (memberId: Id<"boardMembers">, memberName: string) => {
     if (confirm(`Remove ${memberName} from this board?`)) {
       try {
-        await removeMember({ memberId, sessionToken });
+        await removeMember({ memberId });
       } catch (err) {
         console.error("Failed to remove member:", err);
       }

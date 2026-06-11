@@ -26,8 +26,8 @@ export const list = query({
           author: author
             ? {
                 id: author._id,
-                name: author.name,
-                email: author.email,
+                name: author.name ?? "",
+                email: author.email ?? "",
                 image: author.image,
               }
             : null,
@@ -47,10 +47,9 @@ export const create = mutation({
     cardId: v.id("cards"),
     content: v.string(),
     mentionedUserIds: v.optional(v.array(v.id("users"))),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const author = await requireAuth(ctx, args.sessionToken);
+    const author = await requireAuth(ctx);
 
     const now = Date.now();
 
@@ -115,10 +114,9 @@ export const update = mutation({
   args: {
     commentId: v.id("comments"),
     content: v.string(),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const comment = await ctx.db.get(args.commentId);
     if (!comment) throw new Error("Comment not found");
@@ -144,9 +142,9 @@ export const update = mutation({
  * Delete a comment
  */
 export const remove = mutation({
-  args: { commentId: v.id("comments"), sessionToken: v.optional(v.string()) },
+  args: { commentId: v.id("comments") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const comment = await ctx.db.get(args.commentId);
     if (!comment) throw new Error("Comment not found");
@@ -178,7 +176,7 @@ export const createByEmail = internalMutation({
   handler: async (ctx, args) => {
     const author = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.authorEmail))
+      .withIndex("email", (q) => q.eq("email", args.authorEmail))
       .first();
 
     if (!author) throw new Error("Author not found");
@@ -256,8 +254,8 @@ export const listByCardId = internalQuery({
           author: author
             ? {
                 id: author._id,
-                name: author.name,
-                email: author.email,
+                name: author.name ?? "",
+                email: author.email ?? "",
                 image: author.image,
               }
             : null,

@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useCardFormState } from "@/hooks/useCardFormState";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { AUTO_SAVE_DELAY } from "@/lib/constants";
 import { canEdit as checkCanEdit } from "@/lib/permissions";
 import type {
@@ -40,7 +40,7 @@ interface Props {
 export function CardDetailPage({ card, board }: Props) {
   const [isSaving, setIsSaving] = useState(false);
 
-  const sessionToken = useSessionToken();
+  const { session } = useConvexUser();
   const updateCard = useMutation(api.cards.update);
   const searchMembers = useQuery(api.members.search, {
     boardId: board._id,
@@ -48,7 +48,7 @@ export function CardDetailPage({ card, board }: Props) {
   });
   const boardVersions = useQuery(
     api.versions.list,
-    sessionToken ? { boardId: board._id, sessionToken } : "skip"
+    session ? { boardId: board._id } : "skip"
   );
 
   const canEdit = checkCanEdit(board.userRole);
@@ -93,7 +93,6 @@ export function CardDetailPage({ card, board }: Props) {
         await updateCard({
           cardId: card._id,
           ...dirtyFields,
-          sessionToken,
         });
         markSaved();
       } finally {
@@ -106,7 +105,7 @@ export function CardDetailPage({ card, board }: Props) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [values, hasChanges, getDirtyFields, card._id, updateCard, markSaved, sessionToken]);
+  }, [values, hasChanges, getDirtyFields, card._id, updateCard, markSaved]);
 
   // Mention search callback
   const handleMentionSearch = useCallback(

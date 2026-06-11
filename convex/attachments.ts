@@ -29,9 +29,9 @@ export const list = query({
  * Generate upload URL for file upload
  */
 export const generateUploadUrl = mutation({
-  args: { sessionToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx, args.sessionToken);
+  args: {},
+  handler: async (ctx, _args) => {
+    await requireAuth(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -46,10 +46,9 @@ export const saveAttachment = mutation({
     fileName: v.string(),
     fileSize: v.number(),
     mimeType: v.string(),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const boardId = await getBoardIdFromCard(ctx, args.cardId);
     if (!boardId) throw new Error("Card not found");
@@ -78,9 +77,9 @@ export const saveAttachment = mutation({
  * Delete an attachment
  */
 export const remove = mutation({
-  args: { attachmentId: v.id("attachments"), sessionToken: v.optional(v.string()) },
+  args: { attachmentId: v.id("attachments") },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.sessionToken);
+    const user = await requireAuth(ctx);
 
     const attachment = await ctx.db.get(args.attachmentId);
     if (!attachment) throw new Error("Attachment not found");
@@ -107,10 +106,9 @@ export const remove = mutation({
 export const getImageUrl = mutation({
   args: {
     storageId: v.id("_storage"),
-    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.sessionToken);
+    await requireAuth(ctx);
 
     const url = await ctx.storage.getUrl(args.storageId);
     if (!url) throw new Error("Image not found");

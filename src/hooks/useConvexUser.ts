@@ -1,30 +1,35 @@
-import { useSession } from "@/lib/auth-client";
-import { useConvexAuth } from "convex/react";
-import { useSessionToken } from "./useSessionToken";
+import { useConvexAuth, useQuery } from "convex/react";
+import { api } from "convex/_generated/api";
 
 /**
- * Hook to get the current user info from session
- * Uses useConvexAuth to check if auth is ready
+ * Current user via Convex Auth. Replaces the old better-auth useSession-based hook.
+ *
+ * `sessionToken` is kept (always undefined) only so existing callsites that still
+ * pass it keep compiling during the migration sweep — the backend ignores it and
+ * authenticates via the JWT (getAuthUserId). It will be removed in a follow-up.
  */
 export function useConvexUser() {
-  const { data: session, isPending: sessionLoading } = useSession();
-  const { isLoading: authLoading } = useConvexAuth();
-  const sessionToken = useSessionToken();
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : "skip");
 
-  const user = session?.user;
+  const user = viewer
+    ? {
+        id: viewer.id,
+        name: viewer.name,
+        email: viewer.email,
+        image: viewer.image ?? undefined,
+        createdAt: viewer.createdAt,
+      }
+    : null;
+
+  // `session` shim: truthy when authenticated, exposes `.user` like before.
+  const session = isAuthenticated && user ? { user } : null;
 
   return {
-    // Pass email to queries that need to look up user
     userEmail: user?.email,
-    // Secret session token to authenticate Convex queries/mutations server-side.
-    sessionToken,
-    user: user ? {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      image: user.image,
-    } : null,
-    isLoading: sessionLoading || authLoading,
+    sessionToken: undefined as string | undefined,
+    user,
+    isLoading: authLoading || (isAuthenticated && viewer === undefined),
     session,
   };
 }

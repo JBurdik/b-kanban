@@ -1,57 +1,36 @@
-import { betterAuth } from "better-auth";
-import { bearer } from "better-auth/plugins";
-import { createClient, type GenericCtx } from "@convex-dev/better-auth";
-import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
-import { DataModel } from "./_generated/dataModel";
-import { components } from "./_generated/api";
-import authConfig from "./auth.config";
+import { convexAuth } from "@convex-dev/auth/server";
+import { Password } from "@convex-dev/auth/providers/Password";
+import { Scrypt } from "lucia";
+import { isLegacyBetterAuthHash, verifyBetterAuthHash } from "./lib/legacyPassword";
 
-// SITE_URL is where the frontend is hosted (for crossDomain plugin)
-const siteUrl = process.env.SITE_URL || "http://localhost:5173";
-// CONVEX_URL is where the Convex HTTP routes are hosted (for baseURL)
-const convexUrl = process.env.CONVEX_URL || "http://localhost:3210";
-// For self-hosted dev, use env var or fallback to development secret
-const authSecret =
-  process.env.BETTER_AUTH_SECRET ||
-  "FZl8e1OSHCumadMLQZH7JitCmh/RSnlk3jXaN7aSIJY=";
-
-// Build trusted origins from environment + defaults
-const trustedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:80",
-  "http://localhost",
-  "https://bproductive.burdych.net",
-  "https://api-kanban.burdych.net",
-  "https://kanban-api.burdych.net",
-  "https://kanban.burdych.net",
-  "tauri://localhost", // Tauri v2 desktop (macOS/Linux) + iOS app
-  "https://tauri.localhost", // Tauri v2 desktop app (https, Windows)
-  "http://tauri.localhost", // Tauri v2 desktop (http) + Android app
-  "views://mainview", // Electrobun desktop app (legacy)
-  siteUrl,
-  // Add any additional origins from TRUSTED_ORIGINS env var (comma-separated)
-  ...(process.env.TRUSTED_ORIGINS?.split(",").map((o) => o.trim()) || []),
-].filter((origin) => origin && origin.length > 0);
-
-export const authComponent = createClient<DataModel>(components.betterAuth);
-
-export const createAuth = (
-  ctx: GenericCtx<DataModel>,
-  { optionsOnly } = { optionsOnly: false },
-) =>
-  betterAuth({
-    secret: authSecret,
-    baseURL: convexUrl,
-    database: authComponent.adapter(ctx),
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: false,
-    },
-    trustedOrigins,
-    plugins: [
-      convex({ authConfig }),
-      crossDomain({ siteUrl }),
-      bearer(), // Enable Bearer token auth for desktop/mobile apps
-    ],
-    logger: { disabled: optionsOnly },
-  });
+// Email + password auth via Convex Auth. Runs entirely inside Convex functions
+// (no better-auth adapter.js → no isolate OOM on self-hosted). JWTs are signed
+// with JWT_PRIVATE_KEY and validated natively against JWKS — so
+// ctx.auth.getUserIdentity() / getAuthUserId() work here.
+export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
+  providers: [
+    Password({
+      profile(params) {
+        return {
+          email: params.email as string,
+          name: (params.name as string) ?? (params.email as string),
+        };
+      },
+      crypto: {
+        async hashSecret(password: string) {
+          // New accounts → Convex Auth's native Lucia Scrypt format.
+          return await new Scrypt().hash(password);
+        },
+        async verifySecret(password: string, hash: string) {
+          // Existing better-auth hashes ("saltHex:keyHex", scrypt r=16) verify
+          // via the legacy shim; lazily migrate would re-hash, but keeping the
+          // legacy verify is enough and stable.
+          if (isLegacyBetterAuthHash(hash)) {
+            return await verifyBetterAuthHash(password, hash);
+          }
+          return await new Scrypt().verify(hash, password);
+        },
+      },
+    }),
+  ],
+});

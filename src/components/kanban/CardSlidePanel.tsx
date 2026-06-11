@@ -1,10 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
-import { useSession } from "@/lib/auth-client";
 import type { Id } from "convex/_generated/dataModel";
 import { useCardFormState } from "@/hooks/useCardFormState";
-import { useSessionToken } from "@/hooks/useSessionToken";
+import { useConvexUser } from "@/hooks/useConvexUser";
 import { useRegisterAssistantCard } from "@/contexts/AssistantContext";
 import { canEdit as checkCanEdit } from "@/lib/permissions";
 import type {
@@ -110,9 +109,7 @@ export function CardSlidePanel({
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  const { data: session } = useSession();
-  const userEmail = session?.user?.email;
-  const sessionToken = useSessionToken();
+  const { session, userEmail } = useConvexUser();
   const updateCard = useMutation(api.cards.update);
   const toggleWatch = useMutation(api.cardWatchers.toggle);
   const currentUser = useQuery(
@@ -132,7 +129,7 @@ export function CardSlidePanel({
   });
   const boardVersions = useQuery(
     api.versions.list,
-    sessionToken ? { boardId: board._id, sessionToken } : "skip"
+    session ? { boardId: board._id } : "skip"
   );
 
   const canEdit = checkCanEdit(board.userRole);
@@ -151,7 +148,6 @@ export function CardSlidePanel({
     // Build update args only with fields that have changed
     const updateArgs: Parameters<typeof updateCard>[0] = {
       cardId: card._id,
-      sessionToken,
     };
 
     if ("title" in dirtyFields) updateArgs.title = dirtyFields.title;
@@ -182,7 +178,7 @@ export function CardSlidePanel({
     } finally {
       setIsSaving(false);
     }
-  }, [card._id, updateCard, getDirtyFields, markSaved, hasChanges, sessionToken]);
+  }, [card._id, updateCard, getDirtyFields, markSaved, hasChanges]);
 
   // Save on close
   const handleClose = useCallback(async () => {
@@ -228,14 +224,13 @@ export function CardSlidePanel({
         updateCard({
           cardId: card._id,
           priority: newPriority,
-          sessionToken,
         });
       }
     };
 
     window.addEventListener("keydown", handlePriorityShortcut);
     return () => window.removeEventListener("keydown", handlePriorityShortcut);
-  }, [card._id, updateCard, canEdit, sessionToken]);
+  }, [card._id, updateCard, canEdit]);
 
   // Resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -407,7 +402,7 @@ export function CardSlidePanel({
             )}
             {/* Watch button */}
             <button
-              onClick={() => toggleWatch({ cardId: card._id, sessionToken })}
+              onClick={() => toggleWatch({ cardId: card._id })}
               className={`p-2 rounded-lg hover:bg-dark-hover transition-colors relative ${
                 isWatching
                   ? "text-accent"

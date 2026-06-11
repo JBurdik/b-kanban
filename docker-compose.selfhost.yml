@@ -9,7 +9,11 @@ services:
       - INSTANCE_NAME=${INSTANCE_NAME:-convex-self-hosted}
       - INSTANCE_SECRET=${INSTANCE_SECRET}
       - CONVEX_CLOUD_ORIGIN=${CONVEX_URL}
-      - CONVEX_SITE_ORIGIN=${CONVEX_URL}
+      # HTTP-actions (site) are proxied under /http on this single domain, so the
+      # site origin MUST include /http. Otherwise Convex Auth JWTs carry an issuer
+      # (= CONVEX_SITE_URL) whose /.well-known/openid-configuration 404s, and the
+      # backend rejects every token ("AuthProviderDiscoveryFailed").
+      - CONVEX_SITE_ORIGIN=${CONVEX_URL}/http
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - SITE_URL=${SITE_URL}
       - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
@@ -42,11 +46,9 @@ services:
       - SITE_URL=${SITE_URL}
       - CONVEX_URL=${CONVEX_URL}
       - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
-      # Convex Auth migration (stage 1 sets keys ahead of the stage-2 cutover).
-      # Base64-encoded so the multi-line PEM / JSON survive env transport.
+      # Convex Auth signing keys (base64; deploy.sh decodes). Required at cutover.
       - JWT_PRIVATE_KEY_B64=${JWT_PRIVATE_KEY_B64:-}
       - JWKS_B64=${JWKS_B64:-}
-      - RUN_PASSWORD_MIGRATION=${RUN_PASSWORD_MIGRATION:-false}
     depends_on:
       convex:
         condition: service_healthy
@@ -101,7 +103,7 @@ services:
     ports:
       - "6791:6791"
     environment:
-      - NEXT_PUBLIC_DEPLOYMENT_URL=http://convex:3210
+      - NEXT_PUBLIC_DEPLOYMENT_URL=https://api-kanban.burdych.net
     depends_on:
       - convex
     restart: unless-stopped

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { useConvexUser } from "@/hooks/useConvexUser";
@@ -106,6 +106,7 @@ function BoardPage() {
   const { cursors, report: reportCursor } = useBoardCursors(
     boardId as Id<"boards">
   );
+  const boardScrollToRef = useRef<((x: number, y: number) => void) | null>(null);
 
   // Mutation for updating board name
   const updateBoard = useMutation(api.boards.update);
@@ -171,6 +172,19 @@ function BoardPage() {
     setSelectedCard(null);
     setEditMode(false);
   }, []);
+
+  const handlePresenceUserClick = useCallback((user: { activeCardId?: Id<"cards">; userId: Id<"users"> }) => {
+    if (user.activeCardId) {
+      // Find the card across all columns and open it
+      for (const col of board?.columns ?? []) {
+        const card = col.cards.find((c) => c._id === user.activeCardId);
+        if (card) { setSelectedCard(card); setEditMode(false); return; }
+      }
+    }
+    // Fall back: scroll to their cursor position
+    const cursor = cursors.find((c) => c.userId === user.userId);
+    if (cursor) boardScrollToRef.current?.(cursor.x, cursor.y);
+  }, [board?.columns, cursors]);
 
   // Archive card handler for keyboard shortcut
   const archiveCard = useMutation(api.cards.remove);
@@ -399,6 +413,7 @@ function BoardPage() {
             <PresenceBar
               onlineUsers={onlineUsers}
               currentUserId={currentUser?.id}
+              onUserClick={handlePresenceUserClick}
             />
           </div>
           <NotificationBell />
@@ -607,6 +622,7 @@ function BoardPage() {
             cursors={cursors}
             onCursorMove={reportCursor}
             onlineUsers={onlineUsers}
+            scrollToRef={boardScrollToRef}
           />
         ) : (
           <TableView

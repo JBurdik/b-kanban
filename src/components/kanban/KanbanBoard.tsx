@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import clsx from "clsx";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
@@ -53,6 +53,7 @@ interface Props {
   cursors?: CursorPosition[];
   onCursorMove?: (x: number, y: number) => void;
   onlineUsers?: OnlineUser[];
+  scrollToRef?: React.MutableRefObject<((x: number, y: number) => void) | null>;
 }
 
 // Helper to strip HTML tags from TipTap content
@@ -75,6 +76,7 @@ export function KanbanBoard({
   cursors = [],
   onCursorMove,
   onlineUsers = [],
+  scrollToRef,
 }: Props) {
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
@@ -162,6 +164,11 @@ export function KanbanBoard({
       behavior: "smooth",
     });
   }, []);
+
+  useEffect(() => {
+    if (scrollToRef) scrollToRef.current = handleScrollTo;
+    return () => { if (scrollToRef) scrollToRef.current = null; };
+  }, [scrollToRef, handleScrollTo]);
 
   // Build userId → info map for cursor labels (cheap, no query)
   const userLookup = useMemo(() => {

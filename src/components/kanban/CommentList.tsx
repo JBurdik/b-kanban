@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { CommentEditor } from "./CommentEditor";
 import { CommentReactions } from "./CommentReactions";
 import { extractMentionedUserIds } from "@/utils/mentions";
+import { marked } from "marked";
 
 interface Props {
   cardId: Id<"cards">;
@@ -31,6 +32,16 @@ function formatTimeAgo(timestamp: number): string {
 // Check if content is HTML (rich text) or plain text
 function isHtmlContent(content: string): boolean {
   return content.startsWith("<") && content.includes(">");
+}
+
+// Older / plain-text comments (e.g. early MCP comments) were stored as raw
+// markdown. Render them as markdown so **bold**, `code`, code blocks etc. show.
+function renderMarkdown(content: string): string {
+  try {
+    return marked.parse(content, { async: false }) as string;
+  } catch {
+    return content;
+  }
 }
 
 export function CommentList({ cardId, boardId, readOnly = false }: Props) {
@@ -214,9 +225,10 @@ export function CommentList({ cardId, boardId, readOnly = false }: Props) {
                         dangerouslySetInnerHTML={{ __html: comment.content }}
                       />
                     ) : (
-                      <p className="text-sm text-dark-text whitespace-pre-wrap">
-                        {comment.content}
-                      </p>
+                      <div
+                        className="comment-content text-sm text-dark-text"
+                        dangerouslySetInnerHTML={{ __html: renderMarkdown(comment.content) }}
+                      />
                     )}
                   </div>
                   <CommentReactions

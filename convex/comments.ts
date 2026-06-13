@@ -2,6 +2,69 @@ import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAuth, getBoardIdFromCard, checkBoardAccess } from "./lib/rbac";
+import { marked } from "marked";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+
+function escapeHtmlAttr(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const EMAIL_MENTION_RE = /@([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
+
+/**
+ * Convert MCP-supplied markdown into the HTML the frontend renders, resolving
+ * `@email` tokens into TipTap mention spans (and returning the mentioned user
+ * ids so notifications fire). Mention spans are injected as raw inline HTML
+ * BEFORE markdown conversion — `marked` passes inline HTML through untouched,
+ * which also stops its GFM autolinker from turning the email into a mailto link.
+ */
+async function renderMcpComment(
+  ctx: MutationCtx,
+  cardId: Id<"cards">,
+  rawMarkdown: string,
+): Promise<{ html: string; mentionedUserIds: Id<"users">[] }> {
+  const card = await ctx.db.get(cardId);
+  let md = rawMarkdown;
+  const mentionedUserIds: Id<"users">[] = [];
+
+  if (card) {
+    const column = await ctx.db.get(card.columnId);
+    if (column) {
+      // Resolve candidate emails against board members only.
+      const emails = new Set(
+        Array.from(rawMarkdown.matchAll(EMAIL_MENTION_RE), (m) => m[1].toLowerCase()),
+      );
+      if (emails.size > 0) {
+        const members = await ctx.db
+          .query("boardMembers")
+          .withIndex("by_board", (q) => q.eq("boardId", column.boardId))
+          .collect();
+        for (const member of members) {
+          const user = await ctx.db.get(member.userId);
+          const email = user?.email?.toLowerCase();
+          if (!user || !email || !emails.has(email)) continue;
+          const label = user.name ?? user.email ?? "user";
+          const span = `<span data-type="mention" data-id="${user._id}" data-label="${escapeHtmlAttr(label)}">@${escapeHtmlAttr(label)}</span>`;
+          md = md.replace(new RegExp(`@${escapeRegExp(user.email!)}`, "g"), span);
+          if (!mentionedUserIds.includes(user._id)) mentionedUserIds.push(user._id);
+        }
+      }
+    }
+  }
+
+  let html: string;
+  try {
+    html = marked.parse(md, { async: false }) as string;
+  } catch {
+    html = md;
+  }
+  return { html, mentionedUserIds };
+}
 
 /**
  * List comments for a card
@@ -183,11 +246,22 @@ export const createByEmail = internalMutation({
 
     const now = Date.now();
 
+    // MCP supplies markdown; convert to the HTML the UI renders and resolve
+    // `@email` tokens into mention spans + notifiable user ids.
+    const { html, mentionedUserIds: resolvedMentions } = await renderMcpComment(
+      ctx,
+      args.cardId,
+      args.content,
+    );
+    const mentionedUserIdsArg = Array.from(
+      new Set([...(args.mentionedUserIds ?? []), ...resolvedMentions]),
+    );
+
     const commentId = await ctx.db.insert("comments", {
       cardId: args.cardId,
       authorId: author._id,
-      content: args.content,
-      mentionedUserIds: args.mentionedUserIds,
+      content: html,
+      mentionedUserIds: mentionedUserIdsArg.length > 0 ? mentionedUserIdsArg : undefined,
       createdAt: now,
       updatedAt: now,
     });
@@ -204,7 +278,7 @@ export const createByEmail = internalMutation({
       });
     }
 
-    const mentionedUserIds = args.mentionedUserIds || [];
+    const mentionedUserIds = mentionedUserIdsArg;
     for (const userId of mentionedUserIds) {
       await ctx.scheduler.runAfter(0, internal.notifications.create, {
         userId,

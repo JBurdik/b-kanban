@@ -127,13 +127,18 @@ const TOOLS = [
   },
   {
     name: "add_comment",
-    description: "Add a comment to a card identified by slug.",
+    description:
+      "Add a comment to a card identified by slug. The comment supports Markdown — **bold**, _italic_, `inline code`, fenced ```code blocks```, lists, links — and is rendered as rich text. Mention a board member by writing @their-email (e.g. @jane@acme.com); they are turned into a real mention and notified.",
     inputSchema: {
       type: "object",
       properties: {
         boardId: { type: "string" },
         slug: { type: "string" },
-        comment: { type: "string" },
+        comment: {
+          type: "string",
+          description:
+            "Markdown body. Use @email to mention/notify a board member.",
+        },
       },
       required: ["boardId", "slug", "comment"],
       additionalProperties: false,

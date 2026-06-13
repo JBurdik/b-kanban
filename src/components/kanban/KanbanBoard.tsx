@@ -84,6 +84,7 @@ export function KanbanBoard({
   const [activeCol, setActiveCol] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const rafRef = useRef<number | null>(null);
 
   const updateActiveCol = useCallback(() => {
@@ -139,6 +140,27 @@ export function KanbanBoard({
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setContainerSize({ w: el.clientWidth, h: el.clientHeight });
+    });
+    ro.observe(el);
+    setContainerSize({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, []);
+
+  const handleScrollTo = useCallback((contentX: number, contentY: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({
+      left: contentX - el.clientWidth / 2,
+      top: contentY - el.clientHeight / 2,
+      behavior: "smooth",
+    });
   }, []);
 
   // Build userId → info map for cursor labels (cheap, no query)
@@ -278,6 +300,9 @@ export function KanbanBoard({
         currentUserId={currentUserId as unknown as Id<"users"> | undefined}
         scrollLeft={scrollLeft}
         scrollTop={scrollTop}
+        containerWidth={containerSize.w}
+        containerHeight={containerSize.h}
+        onScrollTo={handleScrollTo}
       />
 
       {/* Mobile page dots — one per column */}

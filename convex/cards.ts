@@ -3,6 +3,7 @@ import { query, mutation, internalQuery, internalMutation } from "./_generated/s
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireAuth, requireBoardAccess, getBoardIdFromCard, getBoardIdFromColumn, getOptionalAuth } from "./lib/rbac";
+import { recordActivity, logCardUpdate } from "./lib/activity";
 
 /** Strip HTML tags + collapse whitespace to plain text */
 function htmlToText(html?: string): string {
@@ -237,6 +238,13 @@ export const create = mutation({
       updatedAt: now,
     });
 
+    await recordActivity(ctx, {
+      cardId,
+      userId: user._id,
+      action: "created",
+      newValue: args.title,
+    });
+
     // Dispatch webhook
     await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
       boardId,
@@ -313,6 +321,9 @@ export const update = mutation({
     if (args.effort !== undefined) updates.effort = args.effort;
 
     await ctx.db.patch(args.cardId, updates);
+
+    // Record history for each meaningful field change
+    await logCardUpdate(ctx, { cardId: args.cardId, userId: currentUser._id, card, args });
 
     // Dispatch webhook
     const column = await ctx.db.get(card.columnId);
@@ -412,6 +423,8 @@ export const remove = mutation({
       updatedAt: Date.now(),
     });
 
+    await recordActivity(ctx, { cardId: args.cardId, userId: user._id, action: "archived" });
+
     // Dispatch webhook
     const column = await ctx.db.get(card.columnId);
     if (column) {
@@ -458,6 +471,8 @@ export const restore = mutation({
       position: maxPosition,
       updatedAt: Date.now(),
     });
+
+    await recordActivity(ctx, { cardId: args.cardId, userId: user._id, action: "restored" });
 
     return { success: true };
   },
@@ -547,6 +562,16 @@ export const permanentDelete = mutation({
 
     for (const entry of timeEntries) {
       await ctx.db.delete(entry._id);
+    }
+
+    // Delete activity / history log
+    const activity = await ctx.db
+      .query("cardActivity")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .collect();
+
+    for (const a of activity) {
+      await ctx.db.delete(a._id);
     }
 
     await ctx.db.delete(args.cardId);
@@ -648,6 +673,21 @@ export const move = mutation({
       updatedAt: Date.now(),
     });
 
+    if (args.columnId !== card.columnId) {
+      const [oldCol, newCol] = await Promise.all([
+        ctx.db.get(card.columnId),
+        ctx.db.get(args.columnId),
+      ]);
+      await recordActivity(ctx, {
+        cardId: args.cardId,
+        userId: user._id,
+        action: "moved",
+        field: "column",
+        oldValue: oldCol?.name ?? null,
+        newValue: newCol?.name ?? null,
+      });
+    }
+
     return args.cardId;
   },
 });
@@ -673,12 +713,32 @@ export const reorder = mutation({
     if (!boardId) throw new Error("Column not found");
     await requireBoardAccess(ctx, user._id, boardId, "member");
 
+    const colNames = new Map<string, string | undefined>();
+    const colName = async (id: Id<"columns">) => {
+      const key = id as string;
+      if (!colNames.has(key)) colNames.set(key, (await ctx.db.get(id))?.name);
+      return colNames.get(key);
+    };
+
     for (const item of args.items) {
+      const card = await ctx.db.get(item.id);
       await ctx.db.patch(item.id, {
         columnId: item.columnId,
         position: item.position,
         updatedAt: Date.now(),
       });
+
+      // Log only genuine column moves (drag across columns), not reordering
+      if (card && card.columnId !== item.columnId) {
+        await recordActivity(ctx, {
+          cardId: item.id,
+          userId: user._id,
+          action: "moved",
+          field: "column",
+          oldValue: (await colName(card.columnId)) ?? null,
+          newValue: (await colName(item.columnId)) ?? null,
+        });
+      }
     }
 
     return { success: true };
@@ -1130,6 +1190,8 @@ export const createByEmail = internalMutation({
       updatedAt: now,
     });
 
+    await recordActivity(ctx, { cardId, userId: user._id, action: "created", newValue: args.title });
+
     await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
       boardId,
       event: "card.created",
@@ -1205,6 +1267,8 @@ export const updateByEmail = internalMutation({
     if (args.effort !== undefined) updates.effort = args.effort;
 
     await ctx.db.patch(args.cardId, updates);
+
+    await logCardUpdate(ctx, { cardId: args.cardId, userId: currentUser._id, card, args });
 
     const column = await ctx.db.get(card.columnId);
     if (column) {

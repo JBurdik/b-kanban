@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { requireBoardAccess, checkBoardAccess, getBoardIdFromCard, getOptionalAuth, requireAuth } from "./lib/rbac";
+import { recordActivity } from "./lib/activity";
 
 /**
  * Get all labels for a board
@@ -192,6 +193,14 @@ export const addToCard = mutation({
       createdAt: Date.now(),
     });
 
+    await recordActivity(ctx, {
+      cardId: args.cardId,
+      userId: user._id,
+      action: "label_added",
+      field: "label",
+      newValue: label.name,
+    });
+
     return cardLabelId;
   },
 });
@@ -220,6 +229,14 @@ export const removeFromCard = mutation({
 
     if (cardLabel) {
       await ctx.db.delete(cardLabel._id);
+      const label = await ctx.db.get(args.labelId);
+      await recordActivity(ctx, {
+        cardId: args.cardId,
+        userId: user._id,
+        action: "label_removed",
+        field: "label",
+        oldValue: label?.name ?? null,
+      });
     }
 
     return { success: true };
@@ -367,6 +384,14 @@ export const addToCardByEmail = internalMutation({
       cardId: args.cardId,
       labelId: args.labelId,
       createdAt: Date.now(),
+    });
+
+    await recordActivity(ctx, {
+      cardId: args.cardId,
+      userId: user._id,
+      action: "label_added",
+      field: "label",
+      newValue: label.name,
     });
 
     return cardLabelId;

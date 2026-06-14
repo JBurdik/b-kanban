@@ -1,7 +1,9 @@
+import { useState } from "react";
 import type { Id } from "convex/_generated/dataModel";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AttachmentList } from "./AttachmentList";
 import { CommentList } from "./CommentList";
+import { HistoryList } from "./HistoryList";
 import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
 
 interface MentionUser {
@@ -35,6 +37,7 @@ export function CardContent({
   onBlur,
 }: Props) {
   const { onImageUpload } = useEditorImageUpload();
+  const [activeTab, setActiveTab] = useState<"comments" | "history">("comments");
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -81,12 +84,48 @@ export function CardContent({
         <AttachmentList cardId={cardId} readOnly={!canEdit} />
       </div>
 
-      {/* Comments */}
+      {/* Comments / History tabs */}
       <div>
-        <SectionHeader icon="comment">Comments</SectionHeader>
-        <CommentList cardId={cardId} boardId={boardId} readOnly={!canEdit} />
+        <div className="flex items-center gap-1 border-b border-dark-border mb-4">
+          <TabButton active={activeTab === "comments"} onClick={() => setActiveTab("comments")}>
+            Comments
+          </TabButton>
+          <TabButton active={activeTab === "history"} onClick={() => setActiveTab("history")}>
+            History
+          </TabButton>
+        </div>
+        {activeTab === "comments" ? (
+          <CommentList cardId={cardId} boardId={boardId} readOnly={!canEdit} />
+        ) : (
+          <HistoryList cardId={cardId} />
+        )}
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors " +
+        (active
+          ? "border-accent text-dark-text"
+          : "border-transparent text-dark-muted hover:text-dark-text")
+      }
+    >
+      {children}
+    </button>
   );
 }
 

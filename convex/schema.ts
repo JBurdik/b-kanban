@@ -122,6 +122,19 @@ export default defineSchema({
     .index("by_card", ["cardId"])
     .index("by_author", ["authorId"]),
 
+  // Card activity / history log. One row per change (created, moved,
+  // field edit, archive/restore, label add/remove). Values stored as
+  // display strings; column moves store names, not ids.
+  cardActivity: defineTable({
+    cardId: v.id("cards"),
+    userId: v.id("users"),
+    action: v.string(), // created | moved | field | archived | restored | label_added | label_removed
+    field: v.optional(v.string()), // e.g. title, priority, assignee, column
+    oldValue: v.optional(v.string()),
+    newValue: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_card", ["cardId"]),
+
   // Notifications table
   notifications: defineTable({
     userId: v.id("users"),

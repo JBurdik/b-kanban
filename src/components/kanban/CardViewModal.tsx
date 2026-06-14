@@ -6,6 +6,7 @@ import type { Id } from "convex/_generated/dataModel";
 import { CardModal } from "./CardModal";
 import { AttachmentList } from "./AttachmentList";
 import { CommentList } from "./CommentList";
+import { HistoryList } from "./HistoryList";
 import { Avatar } from "@/components/Avatar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -32,6 +33,7 @@ export function CardViewModal({ card, boardId, columns, members = [], userRole, 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentColumnId, setCurrentColumnId] = useState(card.columnId);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [activeTab, setActiveTab] = useState<"comments" | "history">("comments");
 
   // Sync local state when card prop changes (from real-time updates by other users)
   useEffect(() => {
@@ -296,20 +298,39 @@ export function CardViewModal({ card, boardId, columns, members = [], userRole, 
             <AttachmentList cardId={card._id} readOnly={!canEdit} />
           </div>
 
-          {/* Comments */}
+          {/* Comments / History tabs */}
           <div className="px-5 pb-5">
-            <div className="flex items-center gap-2 mb-3">
-              <svg className="w-4 h-4 text-dark-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-              <span className="text-sm font-medium text-dark-muted uppercase tracking-wide">Comments</span>
+            <div className="flex items-center gap-1 border-b border-dark-border mb-4">
+              <button
+                type="button"
+                onClick={() => setActiveTab("comments")}
+                className={
+                  "px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors " +
+                  (activeTab === "comments"
+                    ? "border-accent text-dark-text"
+                    : "border-transparent text-dark-muted hover:text-dark-text")
+                }
+              >
+                Comments
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("history")}
+                className={
+                  "px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors " +
+                  (activeTab === "history"
+                    ? "border-accent text-dark-text"
+                    : "border-transparent text-dark-muted hover:text-dark-text")
+                }
+              >
+                History
+              </button>
             </div>
-            <CommentList cardId={card._id} boardId={boardId} readOnly={!canEdit} />
+            {activeTab === "comments" ? (
+              <CommentList cardId={card._id} boardId={boardId} readOnly={!canEdit} />
+            ) : (
+              <HistoryList cardId={card._id} />
+            )}
           </div>
         </div>
       </div>

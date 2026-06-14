@@ -25,6 +25,7 @@ import { CardContent } from "./CardContent";
 import { CardSidebar } from "./CardSidebar";
 import { AttachmentList } from "./AttachmentList";
 import { CommentList } from "./CommentList";
+import { HistoryList } from "./HistoryList";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { PrioritySelector } from "@/components/ui/PrioritySelector";
 import { StatusSelect } from "@/components/ui/StatusSelect";
@@ -108,6 +109,7 @@ export function CardSlidePanel({
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"comments" | "history">("comments");
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Live cursors scoped to this card's panel
@@ -766,15 +768,39 @@ export function CardSlidePanel({
                   <AttachmentList cardId={card._id} readOnly />
                 </div>
 
-                {/* Comments */}
+                {/* Comments / History tabs */}
                 <div className="mb-6">
-                  <h2 className="text-sm font-medium text-dark-muted uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    Comments
-                  </h2>
-                  <CommentList cardId={card._id} boardId={board._id} readOnly={!canEdit} />
+                  <div className="flex items-center gap-1 border-b border-dark-border mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("comments")}
+                      className={
+                        "px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors " +
+                        (activeTab === "comments"
+                          ? "border-accent text-dark-text"
+                          : "border-transparent text-dark-muted hover:text-dark-text")
+                      }
+                    >
+                      Comments
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("history")}
+                      className={
+                        "px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors " +
+                        (activeTab === "history"
+                          ? "border-accent text-dark-text"
+                          : "border-transparent text-dark-muted hover:text-dark-text")
+                      }
+                    >
+                      History
+                    </button>
+                  </div>
+                  {activeTab === "comments" ? (
+                    <CommentList cardId={card._id} boardId={board._id} readOnly={!canEdit} />
+                  ) : (
+                    <HistoryList cardId={card._id} />
+                  )}
                 </div>
 
               </div>

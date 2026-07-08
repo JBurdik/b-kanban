@@ -1,7 +1,7 @@
-import Image from "@tiptap/extension-image";
 import { Plugin, PluginKey } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import type { Editor } from "@tiptap/core";
+import { ResizableImage } from "./ResizableImage";
 
 export interface ImageUploadOptions {
   onUpload?: (file: File) => Promise<string | null>;
@@ -13,7 +13,7 @@ export interface ImageUploadOptions {
  * - Drag and drop for images
  * - File input upload
  */
-export const ImageUploadExtension = Image.extend<ImageUploadOptions>({
+export const ImageUploadExtension = ResizableImage.extend<ImageUploadOptions>({
   addOptions() {
     return {
       ...this.parent?.(),

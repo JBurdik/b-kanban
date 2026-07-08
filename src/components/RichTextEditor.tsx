@@ -8,6 +8,8 @@ import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
 import Highlight from "@tiptap/extension-highlight";
+import TextStyle from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
 import Link from "@tiptap/extension-link";
 import { marked } from "marked";
 import TurndownService from "turndown";
@@ -16,6 +18,7 @@ import { Callout } from "./editor/CalloutExtension";
 import { createMentionExtension } from "./editor/MentionExtension";
 import { LinkPopover, LinkPopoverContent } from "./editor/LinkPopover";
 import { ImageUploadExtension, triggerImageUpload } from "./editor/ImageUploadExtension";
+import { EDITOR_COLORS } from "./editor/colors";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import clsx from "clsx";
 import type { Id } from "convex/_generated/dataModel";
@@ -108,6 +111,8 @@ export function RichTextEditor({
   onImageUpload,
   onBlur,
 }: Props) {
+  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showLinkPopover, setShowLinkPopover] = useState(false);
   const [showFloatingLinkPopover, setShowFloatingLinkPopover] = useState(false);
   const [floatingPopoverPos, setFloatingPopoverPos] = useState({ top: 0, left: 0 });
@@ -147,8 +152,10 @@ export function RichTextEditor({
       TableRow,
       TableHeader,
       TableCell,
+      TextStyle,
+      Color,
       Highlight.configure({
-        multicolor: false,
+        multicolor: true,
       }),
       Link.configure({
         openOnClick: true,
@@ -424,15 +431,61 @@ export function RichTextEditor({
 
         <div className="w-px h-4 bg-dark-border mx-0.5" />
 
-        <BubbleButton
-          onClick={() => editor.chain().focus().toggleHighlight().run()}
-          active={editor.isActive("highlight")}
-          title="Highlight"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-        </BubbleButton>
+        <div className="relative">
+          <BubbleButton
+            onClick={() => setShowHighlightPicker(!showHighlightPicker)}
+            active={editor.isActive("highlight") || showHighlightPicker}
+            title="Highlight"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </BubbleButton>
+
+          {showHighlightPicker && (
+            <ColorSwatchPopover
+              colors={EDITOR_COLORS}
+              activeColor={editor.getAttributes("highlight").color}
+              onPick={(color) => {
+                editor.chain().focus().setHighlight({ color }).run();
+                setShowHighlightPicker(false);
+              }}
+              onClear={() => {
+                editor.chain().focus().unsetHighlight().run();
+                setShowHighlightPicker(false);
+              }}
+              onClose={() => setShowHighlightPicker(false)}
+            />
+          )}
+        </div>
+
+        <div className="relative">
+          <BubbleButton
+            onClick={() => setShowTextColorPicker(!showTextColorPicker)}
+            active={editor.isActive("textStyle") || showTextColorPicker}
+            title="Text Color"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20h16M5.5 17L10 5h1l4.5 12M7 12h7" />
+            </svg>
+          </BubbleButton>
+
+          {showTextColorPicker && (
+            <ColorSwatchPopover
+              colors={EDITOR_COLORS}
+              activeColor={editor.getAttributes("textStyle").color}
+              onPick={(color) => {
+                editor.chain().focus().setColor(color).run();
+                setShowTextColorPicker(false);
+              }}
+              onClear={() => {
+                editor.chain().focus().unsetColor().run();
+                setShowTextColorPicker(false);
+              }}
+              onClose={() => setShowTextColorPicker(false)}
+            />
+          )}
+        </div>
 
         <div className="relative">
           <BubbleButton
@@ -632,6 +685,30 @@ export function RichTextEditor({
           outline: 2px solid #f59e0b;
           outline-offset: 2px;
         }
+        .resizable-image-wrapper img {
+          border-radius: 0.5em;
+          margin: 0.5em 0;
+          cursor: pointer;
+        }
+        .resizable-image-wrapper.ProseMirror-selectednode img {
+          outline: 2px solid #f59e0b;
+          outline-offset: 2px;
+        }
+        .resizable-image-handle {
+          display: none;
+          position: absolute;
+          right: -6px;
+          bottom: 4px;
+          width: 14px;
+          height: 14px;
+          border-radius: 3px;
+          background: #f59e0b;
+          border: 2px solid #1a1a1a;
+          cursor: nwse-resize;
+        }
+        .resizable-image-wrapper.ProseMirror-selectednode .resizable-image-handle {
+          display: block;
+        }
 
         /* Callout styles */
         .ProseMirror .callout {
@@ -641,6 +718,48 @@ export function RichTextEditor({
         }
       `}</style>
     </div>
+  );
+}
+
+function ColorSwatchPopover({
+  colors,
+  activeColor,
+  onPick,
+  onClear,
+  onClose,
+}: {
+  colors: { name: string; value: string }[];
+  activeColor?: string;
+  onPick: (color: string) => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="absolute top-full left-0 mt-1 z-50 p-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl flex flex-col gap-2 w-max">
+        <div className="flex items-center gap-1.5">
+          {colors.map((c) => (
+            <button
+              key={c.value}
+              onClick={() => onPick(c.value)}
+              title={c.name}
+              className={clsx(
+                "w-5 h-5 rounded-full border-2 transition-transform hover:scale-110",
+                activeColor === c.value ? "border-white" : "border-transparent"
+              )}
+              style={{ backgroundColor: c.value }}
+            />
+          ))}
+        </div>
+        <button
+          onClick={onClear}
+          className="text-xs text-dark-muted hover:text-dark-text text-left"
+        >
+          Clear color
+        </button>
+      </div>
+    </>
   );
 }
 

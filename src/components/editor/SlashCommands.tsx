@@ -18,6 +18,7 @@ import {
   LinkIcon,
   ImageIcon,
 } from "./CommandIcons";
+import { EDITOR_COLORS } from "./colors";
 
 interface CommandItem {
   title: string;
@@ -100,6 +101,13 @@ const commands: CommandItem[] = [
     icon: <HighlightIcon />,
     command: (editor) => editor.chain().focus().toggleHighlight().run(),
   },
+  ...EDITOR_COLORS.map((color) => ({
+    title: `Highlight: ${color.name}`,
+    description: `Highlight selected text ${color.name.toLowerCase()}`,
+    icon: <span style={{ color: color.value }}><HighlightIcon /></span>,
+    command: (editor: any) =>
+      editor.chain().focus().setHighlight({ color: color.value }).run(),
+  })),
   {
     title: "Link",
     description: "Add a hyperlink",

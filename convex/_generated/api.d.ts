@@ -11,6 +11,7 @@
 import type * as attachments from "../attachments.js";
 import type * as auth from "../auth.js";
 import type * as boards from "../boards.js";
+import type * as canvasLinks from "../canvasLinks.js";
 import type * as canvases from "../canvases.js";
 import type * as cardActivity from "../cardActivity.js";
 import type * as cardWatchers from "../cardWatchers.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   attachments: typeof attachments;
   auth: typeof auth;
   boards: typeof boards;
+  canvasLinks: typeof canvasLinks;
   canvases: typeof canvases;
   cardActivity: typeof cardActivity;
   cardWatchers: typeof cardWatchers;

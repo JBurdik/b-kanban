@@ -6,6 +6,7 @@ import { StatusSelect } from "@/components/ui/StatusSelect";
 import { AssigneeSelect } from "@/components/ui/AssigneeSelect";
 import { LabelSelector } from "@/components/labels/LabelSelector";
 import { LinkedDocuments } from "./LinkedDocuments";
+import { LinkedCanvases } from "./LinkedCanvases";
 import { PRIORITY_CONFIG } from "@/lib/constants";
 import type { Priority, CardType, Column, BoardMember, Label, BoardRole } from "@/lib/types";
 import { CardTypeSelector } from "@/components/ui/CardTypeSelector";
@@ -334,6 +335,20 @@ export function CardSidebar({
             Linked Documents
           </label>
           <LinkedDocuments
+            cardId={cardId}
+            boardId={boardId}
+            canEdit={canEdit}
+          />
+        </div>
+      )}
+
+      {/* Linked Canvases */}
+      {cardId && boardId && (
+        <div className="mb-4 pt-4 border-t border-dark-border">
+          <label className="block text-xs text-dark-muted mb-2">
+            Linked Canvases
+          </label>
+          <LinkedCanvases
             cardId={cardId}
             boardId={boardId}
             canEdit={canEdit}

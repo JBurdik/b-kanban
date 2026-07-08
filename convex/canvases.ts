@@ -181,8 +181,44 @@ export const remove = mutation({
       await ctx.db.delete(row._id);
     }
 
+    // Otherwise cards keep pointing at a canvas that no longer exists.
+    const links = await ctx.db
+      .query("canvasLinks")
+      .withIndex("by_canvas", (q) => q.eq("canvasId", args.canvasId))
+      .collect();
+
+    for (const link of links) {
+      await ctx.db.delete(link._id);
+    }
+
     await ctx.db.delete(args.canvasId);
     return { success: true };
+  },
+});
+
+/**
+ * Search canvases by name within a board (for the card-linking picker).
+ */
+export const search = query({
+  args: { boardId: v.id("boards"), query: v.string() },
+  handler: async (ctx, args) => {
+    const user = await getOptionalAuth(ctx);
+    if (!user) return [];
+
+    const { hasAccess } = await checkAccess(ctx, user._id, args.boardId);
+    if (!hasAccess) return [];
+
+    const canvases = await ctx.db
+      .query("canvases")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    const needle = args.query.toLowerCase();
+    return canvases
+      .filter((canvas) => canvas.name.toLowerCase().includes(needle))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 10)
+      .map((canvas) => ({ _id: canvas._id, name: canvas.name, updatedAt: canvas.updatedAt }));
   },
 });
 

@@ -244,6 +244,16 @@ export default defineSchema({
     .index("by_canvas", ["canvasId"])
     .index("by_canvas_file", ["canvasId", "fileId"]),
 
+  // Card-Canvas links (many-to-many), mirroring documentLinks
+  canvasLinks: defineTable({
+    cardId: v.id("cards"),
+    canvasId: v.id("canvases"),
+    createdById: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_card", ["cardId"])
+    .index("by_canvas", ["canvasId"]),
+
   // Card-Document links (many-to-many)
   documentLinks: defineTable({
     cardId: v.id("cards"),

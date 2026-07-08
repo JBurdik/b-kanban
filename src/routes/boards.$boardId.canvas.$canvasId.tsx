@@ -21,6 +21,11 @@ function CanvasEditorPage() {
 
   const deleteCanvas = useMutation(api.canvases.remove);
 
+  const linkedCards = useQuery(
+    api.canvasLinks.listByCanvas,
+    session ? { canvasId: canvasId as Id<"canvases"> } : "skip"
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
@@ -65,6 +70,21 @@ function CanvasEditorPage() {
             ← Canvases
           </Link>
           <h1 className="text-sm font-medium truncate">{canvas.name}</h1>
+          {linkedCards && linkedCards.length > 0 && (
+            <div className="flex items-center gap-1.5 min-w-0">
+              {linkedCards.map((card) => (
+                <Link
+                  key={card._id}
+                  to="/boards/$boardId/cards/$cardSlug"
+                  params={{ boardId, cardSlug: card.slug }}
+                  title={card.title}
+                  className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  {card.slug}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
         <button
           onClick={() => void handleDelete()}

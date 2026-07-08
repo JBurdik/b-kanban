@@ -15,6 +15,7 @@ import { BoardMembers } from "@/components/BoardMembers";
 import { FilterBar } from "@/components/kanban/FilterBar";
 import { SpotlightSearch } from "@/components/kanban/SpotlightSearch";
 import { VersionFilter } from "@/components/kanban/VersionFilter";
+import { SavedViewsDropdown } from "@/components/kanban/SavedViewsDropdown";
 import { CardSlidePanel } from "@/components/kanban/CardSlidePanel";
 import { LabelManager } from "@/components/labels/LabelManager";
 import { VersionManager } from "@/components/VersionManager";
@@ -495,6 +496,16 @@ function BoardPage() {
               onChange={setSelectedVersionId}
             />
           )}
+
+          {/* Saved filter views */}
+          <SavedViewsDropdown
+            boardId={boardId as Id<"boards">}
+            currentFilterConfig={{ filter, versionId: selectedVersionId }}
+            onApply={(config) => {
+              setFilter(config.filter);
+              setSelectedVersionId(config.versionId);
+            }}
+          />
 
           {/* Spotlight search */}
           <SpotlightSearch

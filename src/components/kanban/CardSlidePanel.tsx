@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -127,10 +128,18 @@ export function CardSlidePanel({
       const el = panelRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      reportPanelCursor(e.clientX - rect.left, e.clientY - rect.top);
+      reportPanelCursor(e.clientX - rect.left, e.clientY - rect.top, card.columnId);
     },
-    [reportPanelCursor]
+    [reportPanelCursor, card.columnId]
   );
+
+  // The panel is a single non-scrolling region, so it maps onto CursorOverlay's
+  // per-column model as one "column" keyed by the card's real columnId.
+  const panelColumnEls = useMemo(() => {
+    const map = new Map<string, HTMLDivElement>();
+    if (panelRef.current) map.set(card.columnId, panelRef.current);
+    return map;
+  }, [card.columnId, panelRef.current]);
 
   // On phones the panel is a full-screen sheet (no fixed px width / resize).
   const [isNarrow, setIsNarrow] = useState(
@@ -381,8 +390,8 @@ export function CardSlidePanel({
           cursors={panelCursors}
           userLookup={panelUserLookup}
           currentUserId={currentUserId}
-          scrollLeft={0}
-          scrollTop={0}
+          columnEls={panelColumnEls}
+          originEl={panelRef.current}
         />
 
         {/* Header */}
@@ -470,6 +479,17 @@ export function CardSlidePanel({
                 </span>
               )}
             </button>
+            {/* Open at fullscreen route */}
+            <Link
+              to="/boards/$boardId/cards/$cardSlug"
+              params={{ boardId: board._id, cardSlug: card.slug }}
+              className="p-2 rounded-lg hover:bg-dark-hover text-dark-muted hover:text-dark-text transition-colors"
+              title="Open in full page"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </Link>
             {/* Expand/Collapse button — hidden on mobile (panel is already full-screen) */}
             <button
               onClick={() => setIsExpanded(!isExpanded)}

@@ -374,6 +374,7 @@ export default defineSchema({
     lastSeen: v.number(),
     cardId: v.optional(v.id("cards")), // set when cursor is inside a card panel
     columnId: v.optional(v.id("columns")), // which column x/y are relative to
+    canvasId: v.optional(v.id("canvases")), // set when cursor is on a canvas; x/y are scene coords
   })
     .index("by_board", ["boardId"])
     .index("by_user_and_board", ["userId", "boardId"]),
@@ -408,6 +409,18 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_hash", ["keyHash"]),
+
+  // ============================================
+  // Saved Filters (per-user views)
+  // ============================================
+  savedFilters: defineTable({
+    userId: v.id("users"),
+    boardId: v.id("boards"),
+    name: v.string(),
+    filterConfig: v.string(), // JSON.stringify(FilterConfig)
+    createdAt: v.number(),
+  })
+    .index("by_user_and_board", ["userId", "boardId"]),
 
   secrets: defineTable({
     boardId: v.id("boards"),

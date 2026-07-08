@@ -11,16 +11,28 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useConvexUser } from "@/hooks/useConvexUser";
+import { usePresence } from "@/hooks/usePresence";
+import { useCanvasCursors } from "@/hooks/useCanvasCursors";
 import { diffNewFiles, dataUrlToBlob } from "./diffNewFiles";
 import "@excalidraw/excalidraw/index.css";
 
 const SAVE_DEBOUNCE_MS = 1000;
+
+/** Deterministic, well-spread cursor color per user (Excalidraw wants bg+stroke). */
+function colorForUser(userId: string): { background: string; stroke: string } {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  const hue = hash % 360;
+  return { background: `hsl(${hue} 70% 55%)`, stroke: `hsl(${hue} 70% 35%)` };
+}
 
 /** appState is huge and mostly ephemeral; only these survive a reload. */
 type PersistedAppState = Pick<AppState, "viewBackgroundColor" | "gridSize">;
 
 export type CanvasData = {
   _id: Id<"canvases">;
+  boardId: Id<"boards">;
   elements: string;
   appState: string;
   updatedAt: number;
@@ -54,6 +66,10 @@ export function CanvasEditor({ canvas }: { canvas: CanvasData }) {
   const save = useMutation(api.canvases.save);
   const generateUploadUrl = useMutation(api.canvases.generateUploadUrl);
   const addFile = useMutation(api.canvases.addFile);
+
+  const { user } = useConvexUser();
+  const { onlineUsers } = usePresence(canvas.boardId);
+  const { cursors, report } = useCanvasCursors(canvas.boardId, canvas._id);
 
   const [api_, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
@@ -237,12 +253,37 @@ export function CanvasEditor({ canvas }: { canvas: CanvasData }) {
     []
   );
 
+  // Feed peers' cursors to Excalidraw's built-in collaborator rendering, which
+  // handles scene→viewport projection (pan/zoom) for us.
+  useEffect(() => {
+    if (!api_) return;
+
+    const names = new Map(onlineUsers.map((u) => [u.userId as string, u]));
+    const collaborators = new Map();
+    for (const cursor of cursors) {
+      const id = cursor.userId as string;
+      if (id === user?.id) continue; // don't render our own cursor
+      const info = names.get(id);
+      collaborators.set(id, {
+        id,
+        username: info?.userName ?? "",
+        avatarUrl: info?.userImage,
+        pointer: { x: cursor.x, y: cursor.y, tool: "pointer" as const },
+        color: colorForUser(id),
+      });
+    }
+
+    // Cast: Excalidraw keys by branded SocketId, but any stable string works.
+    api_.updateScene({ collaborators: collaborators as never });
+  }, [api_, cursors, onlineUsers, user?.id]);
+
   return (
     <div className="relative h-full w-full">
       <Excalidraw
         excalidrawAPI={setApi}
         initialData={initialData}
         onChange={handleChange}
+        onPointerUpdate={(payload) => report(payload.pointer.x, payload.pointer.y)}
         theme={resolvedMode}
       />
       <SaveIndicator status={status} />

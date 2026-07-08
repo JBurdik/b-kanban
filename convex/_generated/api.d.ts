@@ -34,6 +34,7 @@ import type * as mcpKeys from "../mcpKeys.js";
 import type * as members from "../members.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
+import type * as savedFilters from "../savedFilters.js";
 import type * as secretGroups from "../secretGroups.js";
 import type * as secrets from "../secrets.js";
 import type * as timeTracking from "../timeTracking.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   members: typeof members;
   notifications: typeof notifications;
   presence: typeof presence;
+  savedFilters: typeof savedFilters;
   secretGroups: typeof secretGroups;
   secrets: typeof secrets;
   timeTracking: typeof timeTracking;

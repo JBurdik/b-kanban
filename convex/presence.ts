@@ -121,6 +121,7 @@ export const updateCursor = mutation({
     y: v.number(),
     cardId: v.optional(v.id("cards")),
     columnId: v.optional(v.id("columns")),
+    canvasId: v.optional(v.id("canvases")),
   },
   handler: async (ctx, args) => {
     const authUser = await getOptionalAuth(ctx);
@@ -142,6 +143,7 @@ export const updateCursor = mutation({
         lastSeen: now,
         cardId: args.cardId,
         columnId: args.columnId,
+        canvasId: args.canvasId,
       });
     } else {
       await ctx.db.insert("boardCursors", {
@@ -152,6 +154,7 @@ export const updateCursor = mutation({
         lastSeen: now,
         cardId: args.cardId,
         columnId: args.columnId,
+        canvasId: args.canvasId,
       });
     }
   },
@@ -165,6 +168,7 @@ export const listCursors = query({
   args: {
     boardId: v.id("boards"),
     cardId: v.optional(v.id("cards")),
+    canvasId: v.optional(v.id("canvases")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -175,8 +179,14 @@ export const listCursors = query({
       .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
       .collect();
 
+    const matches = args.canvasId
+      ? (c: (typeof cursors)[number]) => c.canvasId === args.canvasId
+      : // Board/card view: exclude canvas cursors so their scene coords don't
+        // get rendered as board coords.
+        (c: (typeof cursors)[number]) => c.canvasId === undefined && c.cardId === args.cardId;
+
     return cursors
-      .filter((c) => c.lastSeen >= cutoff && c.cardId === args.cardId)
+      .filter((c) => c.lastSeen >= cutoff && matches(c))
       .map((c) => ({ userId: c.userId, x: c.x, y: c.y, columnId: c.columnId }));
   },
 });

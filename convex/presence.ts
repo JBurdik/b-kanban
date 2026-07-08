@@ -120,6 +120,7 @@ export const updateCursor = mutation({
     x: v.number(),
     y: v.number(),
     cardId: v.optional(v.id("cards")),
+    columnId: v.optional(v.id("columns")),
   },
   handler: async (ctx, args) => {
     const authUser = await getOptionalAuth(ctx);
@@ -140,6 +141,7 @@ export const updateCursor = mutation({
         y: args.y,
         lastSeen: now,
         cardId: args.cardId,
+        columnId: args.columnId,
       });
     } else {
       await ctx.db.insert("boardCursors", {
@@ -149,6 +151,7 @@ export const updateCursor = mutation({
         y: args.y,
         lastSeen: now,
         cardId: args.cardId,
+        columnId: args.columnId,
       });
     }
   },
@@ -174,7 +177,7 @@ export const listCursors = query({
 
     return cursors
       .filter((c) => c.lastSeen >= cutoff && c.cardId === args.cardId)
-      .map((c) => ({ userId: c.userId, x: c.x, y: c.y }));
+      .map((c) => ({ userId: c.userId, x: c.x, y: c.y, columnId: c.columnId }));
   },
 });
 

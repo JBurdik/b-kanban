@@ -9,6 +9,7 @@ export interface CursorPosition {
   userId: Id<"users">;
   x: number;
   y: number;
+  columnId?: Id<"columns">;
 }
 
 export function useBoardCursors(
@@ -18,12 +19,13 @@ export function useBoardCursors(
   const updateCursor = useMutation(api.presence.updateCursor);
   const rawCursors = useQuery(api.presence.listCursors, { boardId, cardId });
 
-  const lastSentRef = useRef<{ x: number; y: number; t: number }>({
+  const lastSentRef = useRef<{ x: number; y: number; columnId?: Id<"columns">; t: number }>({
     x: -1,
     y: -1,
+    columnId: undefined,
     t: 0,
   });
-  const pendingRef = useRef<{ x: number; y: number } | null>(null);
+  const pendingRef = useRef<{ x: number; y: number; columnId?: Id<"columns"> } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flush = useCallback(() => {
@@ -31,17 +33,17 @@ export function useBoardCursors(
     const p = pendingRef.current;
     if (!p) return;
     pendingRef.current = null;
-    lastSentRef.current = { x: p.x, y: p.y, t: Date.now() };
-    updateCursor({ boardId, x: p.x, y: p.y, cardId });
+    lastSentRef.current = { x: p.x, y: p.y, columnId: p.columnId, t: Date.now() };
+    updateCursor({ boardId, x: p.x, y: p.y, cardId, columnId: p.columnId });
   }, [boardId, cardId, updateCursor]);
 
   const report = useCallback(
-    (x: number, y: number) => {
+    (x: number, y: number, columnId?: Id<"columns">) => {
       const last = lastSentRef.current;
-      // Skip if coords unchanged
-      if (Math.abs(x - last.x) < 1 && Math.abs(y - last.y) < 1) return;
+      // Skip if coords and column unchanged
+      if (Math.abs(x - last.x) < 1 && Math.abs(y - last.y) < 1 && columnId === last.columnId) return;
 
-      pendingRef.current = { x, y };
+      pendingRef.current = { x, y, columnId };
       const elapsed = Date.now() - last.t;
 
       if (elapsed >= CURSOR_THROTTLE_MS) {

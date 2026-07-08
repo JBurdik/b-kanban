@@ -12,11 +12,15 @@ interface Props {
   cursors: CursorPosition[];
   userLookup: Map<string, UserInfo>;
   currentUserId?: Id<"users">;
-  scrollLeft: number;
-  scrollTop: number;
+  // Column scroll containers, keyed by columnId — cursor x/y are relative to
+  // these, not to the board's own scroll offset.
+  columnEls: Map<string, HTMLDivElement>;
+  // Element the overlay itself is positioned against (used to convert
+  // viewport coords into the overlay's local coordinate space).
+  originEl: HTMLDivElement | null;
   containerWidth?: number;
   containerHeight?: number;
-  onScrollTo?: (contentX: number, contentY: number) => void;
+  onScrollTo?: (columnId: string, x: number, y: number) => void;
 }
 
 const EDGE_PAD = 52;
@@ -76,78 +80,66 @@ export function CursorOverlay({
   cursors,
   userLookup,
   currentUserId,
-  scrollLeft,
-  scrollTop,
+  columnEls,
+  originEl,
   containerWidth = 99999,
   containerHeight = 99999,
   onScrollTo,
 }: Props) {
   const others = cursors.filter(
-    (c) => c.userId !== currentUserId && userLookup.has(c.userId),
+    (c) => c.userId !== currentUserId && userLookup.has(c.userId) && c.columnId,
   );
-  if (others.length === 0) return null;
+  if (others.length === 0 || !originEl) return null;
 
-  const visible: typeof others = [];
-  const offScreen: typeof others = [];
+  const originRect = originEl.getBoundingClientRect();
 
+  // Resolve each cursor's column-relative x/y to a position in the overlay's
+  // own coordinate space, using that column's *current* rect + scrollTop —
+  // this is what makes the cursor track the pointed-at card even when the
+  // sender's and viewer's columns are scrolled independently.
+  const resolved: { cursor: CursorPosition; vx: number; vy: number }[] = [];
   for (const c of others) {
-    const vx = c.x - scrollLeft;
-    const vy = c.y - scrollTop;
-    if (
-      vx < -20 ||
-      vx > containerWidth + 20 ||
-      vy < -20 ||
-      vy > containerHeight + 20
-    ) {
-      offScreen.push(c);
-    } else {
-      visible.push(c);
-    }
+    const colEl = columnEls.get(c.columnId!);
+    if (!colEl) continue;
+    const colRect = colEl.getBoundingClientRect();
+    const vx = colRect.left - originRect.left + c.x;
+    const vy = colRect.top - originRect.top - colEl.scrollTop + c.y;
+    resolved.push({ cursor: c, vx, vy });
   }
+
+  const visible = resolved.filter(
+    (r) => !(r.vx < -20 || r.vx > containerWidth + 20 || r.vy < -20 || r.vy > containerHeight + 20),
+  );
+  const offScreen = resolved.filter(
+    (r) => r.vx < -20 || r.vx > containerWidth + 20 || r.vy < -20 || r.vy > containerHeight + 20,
+  );
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-40">
-      {/*
-        Content-space layer.
-        translateX/Y shifts the whole layer so cursor left/top are raw content coords.
-        This means scrollLeft changes affect only the transform (no CSS left/top
-        transition fires during scroll — transitions only animate network updates).
-      */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          transform: `translate(${-scrollLeft}px, ${-scrollTop}px)`,
-        }}
-      >
-        {visible.map((cursor) => {
-          const info = userLookup.get(cursor.userId)!;
-          return (
-            <div
-              key={cursor.userId}
-              className="absolute flex items-end gap-1 pointer-events-auto cursor-pointer"
-              style={{
-                left: cursor.x,
-                top: cursor.y,
-                transition: "left 80ms linear, top 80ms linear",
-              }}
-              onClick={() => onScrollTo?.(cursor.x, cursor.y)}
-              title={`${info.userName} — click to follow`}
-            >
-              {CURSOR_SVG}
-              <AvatarPill info={info} />
-            </div>
-          );
-        })}
-      </div>
+      {visible.map(({ cursor, vx, vy }) => {
+        const info = userLookup.get(cursor.userId)!;
+        return (
+          <div
+            key={cursor.userId}
+            className="absolute flex items-end gap-1 pointer-events-auto cursor-pointer"
+            style={{
+              left: vx,
+              top: vy,
+              transition: "left 80ms linear, top 80ms linear",
+            }}
+            onClick={() => onScrollTo?.(cursor.columnId!, cursor.x, cursor.y)}
+            title={`${info.userName} — click to follow`}
+          >
+            {CURSOR_SVG}
+            <AvatarPill info={info} />
+          </div>
+        );
+      })}
 
       {/* Viewport-space edge indicators for off-screen cursors */}
       {containerWidth > 0 &&
-        offScreen.map((cursor) => {
+        offScreen.map(({ cursor, vx, vy }) => {
           const info = userLookup.get(cursor.userId)!;
-          const vx = cursor.x - scrollLeft;
-          const vy = cursor.y - scrollTop;
           const { ex, ey, angle } = getEdgePosition(
             vx,
             vy,
@@ -159,7 +151,7 @@ export function CursorOverlay({
               key={`edge-${cursor.userId}`}
               className="absolute pointer-events-auto cursor-pointer"
               style={{ left: ex, top: ey, transform: "translate(-50%, -50%)" }}
-              onClick={() => onScrollTo?.(cursor.x, cursor.y)}
+              onClick={() => onScrollTo?.(cursor.columnId!, cursor.x, cursor.y)}
               title={`${info.userName} is off-screen — click to follow`}
             >
               <div className="flex items-center gap-1 bg-dark-surface/90 border border-green-500 rounded-full px-1 py-0.5 shadow-lg backdrop-blur-sm">

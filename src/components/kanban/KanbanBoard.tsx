@@ -51,9 +51,9 @@ interface Props {
   onSelectionToggle?: (cardId: Id<"cards">) => void;
   // Presence / cursors
   cursors?: CursorPosition[];
-  onCursorMove?: (x: number, y: number) => void;
+  onCursorMove?: (x: number, y: number, columnId?: Id<"columns">) => void;
   onlineUsers?: OnlineUser[];
-  scrollToRef?: React.MutableRefObject<((x: number, y: number) => void) | null>;
+  scrollToRef?: React.MutableRefObject<((columnId: string, x: number, y: number) => void) | null>;
 }
 
 // Helper to strip HTML tags from TipTap content
@@ -84,10 +84,30 @@ export function KanbanBoard({
   // Mobile: track which full-width column is in view for the page dots.
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeCol, setActiveCol] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const rafRef = useRef<number | null>(null);
+
+  // Per-column scroll containers, so cursor overlay can track each column's
+  // independent vertical scroll instead of only the board's horizontal scroll.
+  const columnElsRef = useRef(new Map<string, HTMLDivElement>());
+  const [, forceColumnScrollTick] = useState(0);
+  const columnScrollRafRef = useRef<number | null>(null);
+
+  const registerColumnEl = useCallback(
+    (columnId: Id<"columns">, el: HTMLDivElement | null) => {
+      if (el) columnElsRef.current.set(columnId, el);
+      else columnElsRef.current.delete(columnId);
+    },
+    []
+  );
+
+  const handleColumnScroll = useCallback(() => {
+    if (columnScrollRafRef.current != null) return;
+    columnScrollRafRef.current = requestAnimationFrame(() => {
+      columnScrollRafRef.current = null;
+      forceColumnScrollTick((t) => t + 1);
+    });
+  }, []);
 
   const updateActiveCol = useCallback(() => {
     const el = scrollRef.current;
@@ -110,23 +130,30 @@ export function KanbanBoard({
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
       updateActiveCol();
-      const el = scrollRef.current;
-      if (el) {
-        setScrollLeft(el.scrollLeft);
-        setScrollTop(el.scrollTop);
-      }
+      forceColumnScrollTick((t) => t + 1); // board scroll moves every column's rect.left too
     });
   }, [updateActiveCol]);
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!onCursorMove) return;
-      const el = scrollRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const x = e.clientX - rect.left + el.scrollLeft;
-      const y = e.clientY - rect.top + el.scrollTop;
-      onCursorMove(x, y);
+      // Find which column (if any) the pointer is over — cursor coords are
+      // reported relative to that column's own scroll content, since each
+      // column scrolls vertically independently of the board.
+      for (const [columnId, colEl] of columnElsRef.current) {
+        const rect = colEl.getBoundingClientRect();
+        if (
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom
+        ) {
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top + colEl.scrollTop;
+          onCursorMove(x, y, columnId as Id<"columns">);
+          return;
+        }
+      }
     },
     [onCursorMove]
   );
@@ -155,15 +182,19 @@ export function KanbanBoard({
     return () => ro.disconnect();
   }, []);
 
-  const handleScrollTo = useCallback((contentX: number, contentY: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({
-      left: contentX - el.clientWidth / 2,
-      top: contentY - el.clientHeight / 2,
-      behavior: "smooth",
-    });
-  }, []);
+  const handleScrollTo = useCallback(
+    (columnId: string, x: number, y: number) => {
+      const el = scrollRef.current;
+      const colEl = columnElsRef.current.get(columnId);
+      if (!el || !colEl) return;
+      el.scrollTo({
+        left: colEl.offsetLeft - el.clientWidth / 2 + x,
+        behavior: "smooth",
+      });
+      colEl.scrollTo({ top: y - colEl.clientHeight / 2, behavior: "smooth" });
+    },
+    []
+  );
 
   useEffect(() => {
     if (scrollToRef) scrollToRef.current = handleScrollTo;
@@ -291,6 +322,8 @@ export function KanbanBoard({
               isSelected={isSelected}
               onSelectionToggle={onSelectionToggle}
               viewersByCard={viewersByCard}
+              registerScrollEl={registerColumnEl}
+              onCardsScroll={handleColumnScroll}
             />
           ))}
         </SortableContext>
@@ -305,8 +338,8 @@ export function KanbanBoard({
         cursors={cursors}
         userLookup={userLookup}
         currentUserId={currentUserId as unknown as Id<"users"> | undefined}
-        scrollLeft={scrollLeft}
-        scrollTop={scrollTop}
+        columnEls={columnElsRef.current}
+        originEl={scrollRef.current}
         containerWidth={containerSize.w}
         containerHeight={containerSize.h}
         onScrollTo={handleScrollTo}

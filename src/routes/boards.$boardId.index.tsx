@@ -106,7 +106,7 @@ function BoardPage() {
   const { cursors, report: reportCursor } = useBoardCursors(
     boardId as Id<"boards">
   );
-  const boardScrollToRef = useRef<((x: number, y: number) => void) | null>(null);
+  const boardScrollToRef = useRef<((columnId: string, x: number, y: number) => void) | null>(null);
 
   // Mutation for updating board name
   const updateBoard = useMutation(api.boards.update);
@@ -183,7 +183,7 @@ function BoardPage() {
     }
     // Fall back: scroll to their cursor position
     const cursor = cursors.find((c) => c.userId === user.userId);
-    if (cursor) boardScrollToRef.current?.(cursor.x, cursor.y);
+    if (cursor && cursor.columnId) boardScrollToRef.current?.(cursor.columnId, cursor.x, cursor.y);
   }, [board?.columns, cursors]);
 
   // Archive card handler for keyboard shortcut

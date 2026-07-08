@@ -35,6 +35,8 @@ interface Props {
   isSelected?: (cardId: Id<"cards">) => boolean;
   onSelectionToggle?: (cardId: Id<"cards">) => void;
   viewersByCard?: Map<string, CardViewer[]>;
+  registerScrollEl?: (columnId: Id<"columns">, el: HTMLDivElement | null) => void;
+  onCardsScroll?: (columnId: Id<"columns">) => void;
 }
 
 export function KanbanColumn({
@@ -49,6 +51,8 @@ export function KanbanColumn({
   isSelected,
   onSelectionToggle,
   viewersByCard,
+  registerScrollEl,
+  onCardsScroll,
 }: Props) {
   const isMobileDevice =
     typeof window !== "undefined" &&
@@ -209,7 +213,12 @@ export function KanbanColumn({
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto p-2 pb-14 sm:pb-2 space-y-2">
+      <div
+        data-column-id={column._id}
+        ref={(el) => registerScrollEl?.(column._id, el)}
+        onScroll={() => onCardsScroll?.(column._id)}
+        className="flex-1 overflow-y-auto p-2 pb-14 sm:pb-2 space-y-2"
+      >
         <SortableContext
           items={cards.map((c) => c._id)}
           strategy={verticalListSortingStrategy}

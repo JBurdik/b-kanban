@@ -369,10 +369,11 @@ export default defineSchema({
   boardCursors: defineTable({
     boardId: v.id("boards"),
     userId: v.id("users"),
-    x: v.number(), // content-space px (includes scrollLeft)
-    y: v.number(), // content-space px (includes scrollTop)
+    x: v.number(), // content-space px relative to columnId's left edge
+    y: v.number(), // content-space px relative to columnId's scrollable content top (includes column scrollTop)
     lastSeen: v.number(),
     cardId: v.optional(v.id("cards")), // set when cursor is inside a card panel
+    columnId: v.optional(v.id("columns")), // which column x/y are relative to
   })
     .index("by_board", ["boardId"])
     .index("by_user_and_board", ["userId", "boardId"]),

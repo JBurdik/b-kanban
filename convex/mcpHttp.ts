@@ -283,6 +283,93 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "archive_card",
+    description:
+      "Archive (soft-delete) a card by slug. The card is hidden from the board but not permanently deleted.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string" },
+        slug: { type: "string" },
+      },
+      required: ["boardId", "slug"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "bulk_move_cards",
+    description:
+      "Move multiple cards (by slug) into a single target column at once. Useful for bulk status changes, e.g. moving a whole batch to \"Done\".",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string" },
+        slugs: {
+          type: "array",
+          items: { type: "string" },
+          description: "Card slugs to move, e.g. [\"PROJ-1\", \"PROJ-2\"]",
+        },
+        column: { type: "string", description: "Target column name (exact)" },
+      },
+      required: ["boardId", "slugs", "column"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "list_board_members",
+    description: "List the members of a board with their name, email, and role (owner/admin/member).",
+    inputSchema: {
+      type: "object",
+      properties: { boardId: { type: "string" } },
+      required: ["boardId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "list_attachments",
+    description: "List file attachments on a card (by slug), with file name, size, and a download URL.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string" },
+        slug: { type: "string" },
+      },
+      required: ["boardId", "slug"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "log_time",
+    description: "Log a manual time entry, optionally against a card (by slug).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string", description: "Required only if slug is given" },
+        slug: { type: "string", description: "Card slug to attribute the time to, e.g. PROJ-12" },
+        description: { type: "string", description: "What the time was spent on" },
+        hours: { type: "number", description: "Whole hours, e.g. 1" },
+        minutes: { type: "number", description: "Additional minutes, e.g. 30" },
+        date: { type: "number", description: "Unix ms timestamp for the entry's day; defaults to today" },
+      },
+      required: ["description", "hours", "minutes"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "list_time_entries",
+    description: "List the current user's time entries within a date range, optionally scoped to a board.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        startDate: { type: "number", description: "Unix ms timestamp, start of range (inclusive)" },
+        endDate: { type: "number", description: "Unix ms timestamp, end of range (inclusive)" },
+        boardId: { type: "string", description: "Optional — restrict to one board" },
+      },
+      required: ["startDate", "endDate"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 type Ctx = Parameters<Parameters<typeof httpAction>[0]>[0];
@@ -551,6 +638,75 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
         userEmail: email,
       });
       return { created: true, boardId };
+    }
+    case "archive_card": {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
+        slug: args.slug,
+        boardId: args.boardId,
+      });
+      if (!card) throw new Error(`Card ${args.slug} not found`);
+      await ctx.runMutation(internal.cards.archiveByEmail, { cardId: card._id, userEmail: email });
+      return { archived: true, slug: args.slug };
+    }
+    case "bulk_move_cards": {
+      const { column } = await resolveColumn(ctx, args.boardId, email, args.column);
+      const results: { slug: string; moved: boolean; error?: string }[] = [];
+      for (const slug of args.slugs ?? []) {
+        try {
+          const card = await ctx.runQuery(internal.cards.getBySlugForMcp, { slug, boardId: args.boardId });
+          if (!card) throw new Error("not found");
+          const position = (column.cards ?? []).length + results.filter((r) => r.moved).length;
+          await ctx.runMutation(internal.cards.updateByEmail, {
+            cardId: card._id,
+            columnId: column._id,
+            position,
+            currentUserEmail: email,
+          });
+          results.push({ slug, moved: true });
+        } catch (e: any) {
+          results.push({ slug, moved: false, error: e?.message ?? String(e) });
+        }
+      }
+      return { column: column.name, results };
+    }
+    case "list_board_members": {
+      return await ctx.runQuery(internal.members.listByEmail, { boardId: args.boardId, userEmail: email });
+    }
+    case "list_attachments": {
+      const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
+        slug: args.slug,
+        boardId: args.boardId,
+      });
+      if (!card) throw new Error(`Card ${args.slug} not found`);
+      return await ctx.runQuery(internal.attachments.listByEmail, { cardId: card._id, userEmail: email });
+    }
+    case "log_time": {
+      let cardId: string | undefined;
+      if (args.slug) {
+        const card = await ctx.runQuery(internal.cards.getBySlugForMcp, {
+          slug: args.slug,
+          boardId: args.boardId,
+        });
+        if (!card) throw new Error(`Card ${args.slug} not found`);
+        cardId = card._id;
+      }
+      const entryId = await ctx.runMutation(internal.timeTracking.addManualEntryByEmail, {
+        userEmail: email,
+        description: args.description,
+        hours: args.hours,
+        minutes: args.minutes,
+        date: args.date,
+        cardId: cardId as any,
+      });
+      return { logged: true, entryId };
+    }
+    case "list_time_entries": {
+      return await ctx.runQuery(internal.timeTracking.getEntriesByDateRangeByEmail, {
+        userEmail: email,
+        startDate: args.startDate,
+        endDate: args.endDate,
+        boardId: args.boardId,
+      });
     }
     default:
       throw new Error(`Unknown tool: ${name}`);

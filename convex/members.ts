@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAuth, requireBoardAccess, isOwner } from "./lib/rbac";
 
@@ -248,5 +248,43 @@ export const leave = mutation({
     await ctx.db.delete(membership._id);
 
     return { success: true };
+  },
+});
+
+/**
+ * Internal: List board members for a user identified by email (used by MCP after Bearer auth)
+ */
+export const listByEmail = internalQuery({
+  args: { boardId: v.id("boards"), userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    const requesterMembership = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board_and_user", (q) =>
+        q.eq("boardId", args.boardId).eq("userId", user._id)
+      )
+      .first();
+    if (!requesterMembership) throw new Error("Board not found");
+
+    const members = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    return await Promise.all(
+      members.map(async (m) => {
+        const memberUser = await ctx.db.get(m.userId);
+        return {
+          role: m.role,
+          name: memberUser?.name ?? "",
+          email: memberUser?.email ?? "",
+        };
+      })
+    );
   },
 });

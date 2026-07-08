@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { getOptionalAuth, requireAuth } from "./lib/rbac";
 
 // ============================================
@@ -514,5 +514,102 @@ export const deleteEntry = mutation({
     await ctx.db.delete(args.entryId);
 
     return { success: true };
+  },
+});
+
+/**
+ * Internal: Add a manual time entry, for a user identified by email (used by MCP after Bearer auth)
+ */
+export const addManualEntryByEmail = internalMutation({
+  args: {
+    userEmail: v.string(),
+    description: v.string(),
+    hours: v.number(),
+    minutes: v.number(),
+    date: v.optional(v.number()),
+    cardId: v.optional(v.id("cards")),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    const durationMs = (args.hours * 60 + args.minutes) * 60 * 1000;
+    if (durationMs <= 0) throw new Error("Duration must be positive");
+
+    let boardId = undefined;
+    if (args.cardId) {
+      const card = await ctx.db.get(args.cardId);
+      if (card) {
+        const column = await ctx.db.get(card.columnId);
+        if (column) boardId = column.boardId;
+      }
+    }
+
+    const date = getStartOfDay(args.date);
+
+    const entryId = await ctx.db.insert("timeEntries", {
+      userId: user._id,
+      cardId: args.cardId,
+      boardId,
+      description: args.description,
+      durationMs,
+      date,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return entryId;
+  },
+});
+
+/**
+ * Internal: List a user's time entries in a date range, identified by email (used by MCP after Bearer auth)
+ */
+export const getEntriesByDateRangeByEmail = internalQuery({
+  args: {
+    userEmail: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    boardId: v.optional(v.id("boards")),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) return [];
+
+    let entries;
+    if (args.boardId) {
+      entries = await ctx.db
+        .query("timeEntries")
+        .withIndex("by_user_board", (q) =>
+          q.eq("userId", user._id).eq("boardId", args.boardId)
+        )
+        .collect();
+    } else {
+      entries = await ctx.db
+        .query("timeEntries")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+    }
+    entries = entries.filter((e) => e.date >= args.startDate && e.date <= args.endDate);
+
+    return await Promise.all(
+      entries
+        .sort((a, b) => b.date - a.date)
+        .map(async (entry) => {
+          const card = entry.cardId ? await ctx.db.get(entry.cardId) : null;
+          return {
+            description: entry.description,
+            durationMs: entry.durationMs,
+            date: entry.date,
+            cardSlug: card?.slug,
+          };
+        })
+    );
   },
 });

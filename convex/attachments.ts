@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { requireAuth, getBoardIdFromCard, checkBoardAccess } from "./lib/rbac";
 
 /**
@@ -114,5 +114,37 @@ export const getImageUrl = mutation({
     if (!url) throw new Error("Image not found");
 
     return { url };
+  },
+});
+
+/**
+ * Internal: List attachments for a card, for a user identified by email (used by MCP after Bearer auth)
+ */
+export const listByEmail = internalQuery({
+  args: { cardId: v.id("cards"), userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    const boardId = await getBoardIdFromCard(ctx, args.cardId);
+    if (!boardId) throw new Error("Card not found");
+    const access = await checkBoardAccess(ctx, user._id, boardId, "member");
+    if (!access.hasAccess) throw new Error("Card not found");
+
+    const attachments = await ctx.db
+      .query("attachments")
+      .withIndex("by_card", (q) => q.eq("cardId", args.cardId))
+      .collect();
+
+    return await Promise.all(
+      attachments.map(async (att) => ({
+        fileName: att.fileName,
+        fileSize: att.fileSize,
+        url: await ctx.storage.getUrl(att.storageId),
+      })),
+    );
   },
 });

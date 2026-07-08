@@ -4,6 +4,7 @@ import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";
 import { useConvexUser } from "@/hooks/useConvexUser";
+import { CanvasPreview } from "@/components/canvas/CanvasPreview";
 
 interface Props {
   cardId: Id<"cards">;
@@ -64,34 +65,16 @@ export function LinkedCanvases({ cardId, boardId, canEdit }: Props) {
   return (
     <div className="space-y-2">
       {linkedCanvases && linkedCanvases.length > 0 ? (
-        <div className="space-y-1">
+        <div className="space-y-3">
           {linkedCanvases.map((canvas) => (
-            <div key={canvas._id} className="flex items-center gap-2 group">
-              <Link
-                to="/boards/$boardId/canvas/$canvasId"
-                params={{ boardId, canvasId: canvas._id }}
-                className="flex-1 flex items-center gap-2 px-2 py-1.5 text-sm bg-dark-bg rounded hover:bg-dark-hover transition-colors min-w-0"
-              >
-                <CanvasIcon className="w-4 h-4 flex-shrink-0 text-dark-muted" />
-                <span className="truncate">{canvas.name}</span>
-              </Link>
-              {canEdit && (
-                <button
-                  onClick={() => handleUnlink(canvas._id)}
-                  className="p-1 text-dark-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Unlink canvas"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
+            <LinkedCanvasItem
+              key={canvas._id}
+              canvasId={canvas._id}
+              name={canvas.name}
+              boardId={boardId}
+              canEdit={canEdit}
+              onUnlink={() => handleUnlink(canvas._id)}
+            />
           ))}
         </div>
       ) : (
@@ -165,6 +148,61 @@ export function LinkedCanvases({ cardId, boardId, canEdit }: Props) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function LinkedCanvasItem({
+  canvasId,
+  name,
+  boardId,
+  canEdit,
+  onUnlink,
+}: {
+  canvasId: Id<"canvases">;
+  name: string;
+  boardId: Id<"boards">;
+  canEdit: boolean;
+  onUnlink: () => void;
+}) {
+  const { session } = useConvexUser();
+  const canvas = useQuery(api.canvases.get, session ? { canvasId } : "skip");
+
+  return (
+    <div className="space-y-1 group">
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 px-2 py-1.5 text-sm bg-dark-bg rounded min-w-0">
+          <CanvasIcon className="w-4 h-4 flex-shrink-0 text-dark-muted" />
+          <span className="truncate">{name}</span>
+        </div>
+        <Link
+          to="/boards/$boardId/canvas/$canvasId"
+          params={{ boardId, canvasId }}
+          className="p-1 text-dark-muted hover:text-dark-text"
+          title="Open in editor"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
+          </svg>
+        </Link>
+        {canEdit && (
+          <button
+            onClick={onUnlink}
+            className="p-1 text-dark-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Unlink canvas"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+      {canvas && <CanvasPreview canvas={canvas} />}
     </div>
   );
 }

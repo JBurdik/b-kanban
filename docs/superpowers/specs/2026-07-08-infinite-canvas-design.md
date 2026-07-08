@@ -89,8 +89,9 @@ gives it a full-height flex child.
 
 **Load**
 1. `useQuery(api.canvases.get, { canvasId })`
-2. Parse `elements` / `appState`; build `files` map from returned storage URLs
-   (fetch each URL → dataURL, or hand Excalidraw the URL via `BinaryFileData`).
+2. Parse `elements` / `appState`; build the `files` map by fetching each storage
+   URL and converting to a dataURL. Excalidraw's `BinaryFileData.dataURL` is what
+   its renderer reads; passing a bare remote URL is not supported.
 3. Pass as `initialData`. Keep `excalidrawAPI` in a ref.
 
 **Save**

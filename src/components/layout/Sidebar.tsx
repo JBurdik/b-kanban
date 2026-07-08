@@ -145,6 +145,34 @@ export function Sidebar({ isCollapsed, onToggle, userEmail: _userEmail }: Sideba
                         </svg>
                         <span>Documents</span>
                       </Link>
+                      {/* Canvas link */}
+                      <Link
+                        to="/boards/$boardId/canvas"
+                        params={{ boardId: board._id }}
+                        className={clsx(
+                          "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+                          location.pathname.includes(
+                            `/boards/${board._id}/canvas`,
+                          )
+                            ? "bg-accent/10 text-accent"
+                            : "text-dark-muted hover:bg-dark-hover hover:text-dark-text",
+                        )}
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                        <span>Canvas</span>
+                      </Link>
                       {/* HTML Docs link */}
                       <Link
                         to="/boards/$boardId/htmldocs"

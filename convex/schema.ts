@@ -217,6 +217,33 @@ export default defineSchema({
     .index("by_board", ["boardId"])
     .index("by_board_updated", ["boardId", "updatedAt"]),
 
+  // Infinite canvases per board (Excalidraw scenes).
+  // ponytail: whole scene in one doc. Convex caps a doc at 1MB (~a few thousand
+  // elements). If that becomes a real limit, move to one row per element keyed by
+  // (canvasId, elementId) and reconcile on version/versionNonce.
+  canvases: defineTable({
+    boardId: v.id("boards"),
+    name: v.string(),
+    elements: v.string(), // JSON.stringify(ExcalidrawElement[])
+    appState: v.string(), // JSON.stringify(persisted appState subset)
+    createdById: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_board", ["boardId"])
+    .index("by_board_updated", ["boardId", "updatedAt"]),
+
+  // Image bytes referenced by canvas elements. Kept out of the canvas doc so
+  // images never count against its 1MB budget.
+  canvasFiles: defineTable({
+    canvasId: v.id("canvases"),
+    fileId: v.string(), // Excalidraw BinaryFileData.id
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+  })
+    .index("by_canvas", ["canvasId"])
+    .index("by_canvas_file", ["canvasId", "fileId"]),
+
   // Card-Document links (many-to-many)
   documentLinks: defineTable({
     cardId: v.id("cards"),

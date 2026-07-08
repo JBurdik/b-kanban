@@ -95,18 +95,27 @@ gives it a full-height flex child.
 3. Pass as `initialData`. Keep `excalidrawAPI` in a ref.
 
 **Save**
-1. `onChange(elements, appState, files)` fires constantly (including on pure
-   pointer/selection movement).
-2. Skip when nothing structural changed: compare a cheap signature of
-   `elements` (length + last `versionNonce` sum) against the last saved one.
-3. Otherwise debounce 1000ms and call `save`.
-4. Record the `updatedAt` we just wrote in a ref (`lastLocalWrite`).
+1. `onChange(elements, appState, files)` fires continuously — including when
+   nothing changed at all (verified: ~1000 calls with an identical scene hash).
+2. Skip when the scene is unchanged: compare `hashElementsVersion(elements)`
+   (exported by Excalidraw; `getSceneVersion` is deprecated as unsafe) against
+   the last *saved* version.
+3. Also skip re-arming when the scene matches the version the currently-armed
+   timer will write (`pendingVersion`). Without this, every `onChange` clears and
+   re-arms the debounce and the save **never fires**.
+4. Otherwise debounce 1000ms, then persist the *latest* scene and record the
+   hash actually written (recomputed at fire time, since an undo may have moved
+   the scene since the timer was armed).
+5. Record the returned `updatedAt` in a ref so the reactive echo of our own write
+   is not mistaken for a peer's edit.
 
 **Remote updates (last-write-wins)**
 - The reactive `get` query re-fires on any change.
-- If the incoming `updatedAt` equals `lastLocalWrite`, it is the echo of our own
+- If the incoming `updatedAt` is one we wrote, it is the echo of our own
   mutation — ignore it.
-- Otherwise it is another user's write: call `excalidrawAPI.updateScene({ elements })`.
+- Otherwise it is another user's write: call `excalidrawAPI.updateScene({ elements,
+  captureUpdate: CaptureUpdateAction.NEVER })` so a peer's edit never lands in
+  this user's undo stack.
 - Concurrent edits: the later `save` wins wholesale. Accepted for v1.
 
 **Images**
@@ -140,7 +149,13 @@ pure logic:
 `src/components/canvas/diffNewFiles.ts` exports `diffNewFiles(files, uploadedIds)`.
 A sibling `diffNewFiles.check.ts` asserts: empty input → empty output; a known id
 is skipped; an unknown id is returned; re-running after marking uploaded returns
-empty. Run with `npx tsx`. Everything else is verified manually in the app.
+empty. Run with `npx tsx`.
+
+The rest was verified by driving the running app: create canvas → draw a rectangle
+→ reload (shape persists) → drop a PNG (row in `canvasFiles`, blob in storage) →
+reload (image rehydrates from storage) → delete (both tables cascade, redirect).
+
+Not verified: two-browser concurrent editing, and the >1MB save-rejection path.
 
 ## Deferred
 

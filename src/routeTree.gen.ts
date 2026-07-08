@@ -24,15 +24,18 @@ import { Route as BoardsBoardIdWebhooksRouteImport } from './routes/boards.$boar
 import { Route as BoardsBoardIdSecretsRouteImport } from './routes/boards.$boardId.secrets'
 import { Route as BoardsBoardIdHtmldocsRouteImport } from './routes/boards.$boardId.htmldocs'
 import { Route as BoardsBoardIdDocsRouteImport } from './routes/boards.$boardId.docs'
+import { Route as BoardsBoardIdCanvasRouteImport } from './routes/boards.$boardId.canvas'
 import { Route as BoardsBoardIdArchiveRouteImport } from './routes/boards.$boardId.archive'
 import { Route as BoardsBoardIdWebhooksIndexRouteImport } from './routes/boards.$boardId.webhooks.index'
 import { Route as BoardsBoardIdSecretsIndexRouteImport } from './routes/boards.$boardId.secrets.index'
 import { Route as BoardsBoardIdHtmldocsIndexRouteImport } from './routes/boards.$boardId.htmldocs.index'
 import { Route as BoardsBoardIdDocsIndexRouteImport } from './routes/boards.$boardId.docs.index'
+import { Route as BoardsBoardIdCanvasIndexRouteImport } from './routes/boards.$boardId.canvas.index'
 import { Route as BoardsBoardIdArchiveIndexRouteImport } from './routes/boards.$boardId.archive.index'
 import { Route as BoardsBoardIdHtmldocsHtmlDocIdRouteImport } from './routes/boards.$boardId.htmldocs.$htmlDocId'
 import { Route as BoardsBoardIdDocsDocIdRouteImport } from './routes/boards.$boardId.docs.$docId'
 import { Route as BoardsBoardIdCardsCardSlugRouteImport } from './routes/boards.$boardId.cards.$cardSlug'
+import { Route as BoardsBoardIdCanvasCanvasIdRouteImport } from './routes/boards.$boardId.canvas.$canvasId'
 
 const TimeRoute = TimeRouteImport.update({
   id: '/time',
@@ -109,6 +112,11 @@ const BoardsBoardIdDocsRoute = BoardsBoardIdDocsRouteImport.update({
   path: '/docs',
   getParentRoute: () => BoardsBoardIdRoute,
 } as any)
+const BoardsBoardIdCanvasRoute = BoardsBoardIdCanvasRouteImport.update({
+  id: '/canvas',
+  path: '/canvas',
+  getParentRoute: () => BoardsBoardIdRoute,
+} as any)
 const BoardsBoardIdArchiveRoute = BoardsBoardIdArchiveRouteImport.update({
   id: '/archive',
   path: '/archive',
@@ -137,6 +145,12 @@ const BoardsBoardIdDocsIndexRoute = BoardsBoardIdDocsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BoardsBoardIdDocsRoute,
 } as any)
+const BoardsBoardIdCanvasIndexRoute =
+  BoardsBoardIdCanvasIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BoardsBoardIdCanvasRoute,
+  } as any)
 const BoardsBoardIdArchiveIndexRoute =
   BoardsBoardIdArchiveIndexRouteImport.update({
     id: '/',
@@ -160,6 +174,12 @@ const BoardsBoardIdCardsCardSlugRoute =
     path: '/cards/$cardSlug',
     getParentRoute: () => BoardsBoardIdRoute,
   } as any)
+const BoardsBoardIdCanvasCanvasIdRoute =
+  BoardsBoardIdCanvasCanvasIdRouteImport.update({
+    id: '/$canvasId',
+    path: '/$canvasId',
+    getParentRoute: () => BoardsBoardIdCanvasRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -173,15 +193,18 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveRouteWithChildren
+  '/boards/$boardId/canvas': typeof BoardsBoardIdCanvasRouteWithChildren
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
   '/boards/$boardId/htmldocs': typeof BoardsBoardIdHtmldocsRouteWithChildren
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
   '/boards/$boardId/webhooks': typeof BoardsBoardIdWebhooksRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
+  '/boards/$boardId/canvas/$canvasId': typeof BoardsBoardIdCanvasCanvasIdRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
   '/boards/$boardId/htmldocs/$htmlDocId': typeof BoardsBoardIdHtmldocsHtmlDocIdRoute
   '/boards/$boardId/archive/': typeof BoardsBoardIdArchiveIndexRoute
+  '/boards/$boardId/canvas/': typeof BoardsBoardIdCanvasIndexRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/htmldocs/': typeof BoardsBoardIdHtmldocsIndexRoute
   '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
@@ -197,10 +220,12 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/boards': typeof BoardsIndexRoute
   '/boards/$boardId': typeof BoardsBoardIdIndexRoute
+  '/boards/$boardId/canvas/$canvasId': typeof BoardsBoardIdCanvasCanvasIdRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
   '/boards/$boardId/htmldocs/$htmlDocId': typeof BoardsBoardIdHtmldocsHtmlDocIdRoute
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveIndexRoute
+  '/boards/$boardId/canvas': typeof BoardsBoardIdCanvasIndexRoute
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/htmldocs': typeof BoardsBoardIdHtmldocsIndexRoute
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsIndexRoute
@@ -219,15 +244,18 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/boards/': typeof BoardsIndexRoute
   '/boards/$boardId/archive': typeof BoardsBoardIdArchiveRouteWithChildren
+  '/boards/$boardId/canvas': typeof BoardsBoardIdCanvasRouteWithChildren
   '/boards/$boardId/docs': typeof BoardsBoardIdDocsRouteWithChildren
   '/boards/$boardId/htmldocs': typeof BoardsBoardIdHtmldocsRouteWithChildren
   '/boards/$boardId/secrets': typeof BoardsBoardIdSecretsRouteWithChildren
   '/boards/$boardId/webhooks': typeof BoardsBoardIdWebhooksRouteWithChildren
   '/boards/$boardId/': typeof BoardsBoardIdIndexRoute
+  '/boards/$boardId/canvas/$canvasId': typeof BoardsBoardIdCanvasCanvasIdRoute
   '/boards/$boardId/cards/$cardSlug': typeof BoardsBoardIdCardsCardSlugRoute
   '/boards/$boardId/docs/$docId': typeof BoardsBoardIdDocsDocIdRoute
   '/boards/$boardId/htmldocs/$htmlDocId': typeof BoardsBoardIdHtmldocsHtmlDocIdRoute
   '/boards/$boardId/archive/': typeof BoardsBoardIdArchiveIndexRoute
+  '/boards/$boardId/canvas/': typeof BoardsBoardIdCanvasIndexRoute
   '/boards/$boardId/docs/': typeof BoardsBoardIdDocsIndexRoute
   '/boards/$boardId/htmldocs/': typeof BoardsBoardIdHtmldocsIndexRoute
   '/boards/$boardId/secrets/': typeof BoardsBoardIdSecretsIndexRoute
@@ -247,15 +275,18 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/boards/'
     | '/boards/$boardId/archive'
+    | '/boards/$boardId/canvas'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/htmldocs'
     | '/boards/$boardId/secrets'
     | '/boards/$boardId/webhooks'
     | '/boards/$boardId/'
+    | '/boards/$boardId/canvas/$canvasId'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
     | '/boards/$boardId/htmldocs/$htmlDocId'
     | '/boards/$boardId/archive/'
+    | '/boards/$boardId/canvas/'
     | '/boards/$boardId/docs/'
     | '/boards/$boardId/htmldocs/'
     | '/boards/$boardId/secrets/'
@@ -271,10 +302,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/boards'
     | '/boards/$boardId'
+    | '/boards/$boardId/canvas/$canvasId'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
     | '/boards/$boardId/htmldocs/$htmlDocId'
     | '/boards/$boardId/archive'
+    | '/boards/$boardId/canvas'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/htmldocs'
     | '/boards/$boardId/secrets'
@@ -292,15 +325,18 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/boards/'
     | '/boards/$boardId/archive'
+    | '/boards/$boardId/canvas'
     | '/boards/$boardId/docs'
     | '/boards/$boardId/htmldocs'
     | '/boards/$boardId/secrets'
     | '/boards/$boardId/webhooks'
     | '/boards/$boardId/'
+    | '/boards/$boardId/canvas/$canvasId'
     | '/boards/$boardId/cards/$cardSlug'
     | '/boards/$boardId/docs/$docId'
     | '/boards/$boardId/htmldocs/$htmlDocId'
     | '/boards/$boardId/archive/'
+    | '/boards/$boardId/canvas/'
     | '/boards/$boardId/docs/'
     | '/boards/$boardId/htmldocs/'
     | '/boards/$boardId/secrets/'
@@ -425,6 +461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdDocsRouteImport
       parentRoute: typeof BoardsBoardIdRoute
     }
+    '/boards/$boardId/canvas': {
+      id: '/boards/$boardId/canvas'
+      path: '/canvas'
+      fullPath: '/boards/$boardId/canvas'
+      preLoaderRoute: typeof BoardsBoardIdCanvasRouteImport
+      parentRoute: typeof BoardsBoardIdRoute
+    }
     '/boards/$boardId/archive': {
       id: '/boards/$boardId/archive'
       path: '/archive'
@@ -460,6 +503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdDocsIndexRouteImport
       parentRoute: typeof BoardsBoardIdDocsRoute
     }
+    '/boards/$boardId/canvas/': {
+      id: '/boards/$boardId/canvas/'
+      path: '/'
+      fullPath: '/boards/$boardId/canvas/'
+      preLoaderRoute: typeof BoardsBoardIdCanvasIndexRouteImport
+      parentRoute: typeof BoardsBoardIdCanvasRoute
+    }
     '/boards/$boardId/archive/': {
       id: '/boards/$boardId/archive/'
       path: '/'
@@ -488,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardsBoardIdCardsCardSlugRouteImport
       parentRoute: typeof BoardsBoardIdRoute
     }
+    '/boards/$boardId/canvas/$canvasId': {
+      id: '/boards/$boardId/canvas/$canvasId'
+      path: '/$canvasId'
+      fullPath: '/boards/$boardId/canvas/$canvasId'
+      preLoaderRoute: typeof BoardsBoardIdCanvasCanvasIdRouteImport
+      parentRoute: typeof BoardsBoardIdCanvasRoute
+    }
   }
 }
 
@@ -501,6 +558,19 @@ const BoardsBoardIdArchiveRouteChildren: BoardsBoardIdArchiveRouteChildren = {
 
 const BoardsBoardIdArchiveRouteWithChildren =
   BoardsBoardIdArchiveRoute._addFileChildren(BoardsBoardIdArchiveRouteChildren)
+
+interface BoardsBoardIdCanvasRouteChildren {
+  BoardsBoardIdCanvasCanvasIdRoute: typeof BoardsBoardIdCanvasCanvasIdRoute
+  BoardsBoardIdCanvasIndexRoute: typeof BoardsBoardIdCanvasIndexRoute
+}
+
+const BoardsBoardIdCanvasRouteChildren: BoardsBoardIdCanvasRouteChildren = {
+  BoardsBoardIdCanvasCanvasIdRoute: BoardsBoardIdCanvasCanvasIdRoute,
+  BoardsBoardIdCanvasIndexRoute: BoardsBoardIdCanvasIndexRoute,
+}
+
+const BoardsBoardIdCanvasRouteWithChildren =
+  BoardsBoardIdCanvasRoute._addFileChildren(BoardsBoardIdCanvasRouteChildren)
 
 interface BoardsBoardIdDocsRouteChildren {
   BoardsBoardIdDocsDocIdRoute: typeof BoardsBoardIdDocsDocIdRoute
@@ -556,6 +626,7 @@ const BoardsBoardIdWebhooksRouteWithChildren =
 
 interface BoardsBoardIdRouteChildren {
   BoardsBoardIdArchiveRoute: typeof BoardsBoardIdArchiveRouteWithChildren
+  BoardsBoardIdCanvasRoute: typeof BoardsBoardIdCanvasRouteWithChildren
   BoardsBoardIdDocsRoute: typeof BoardsBoardIdDocsRouteWithChildren
   BoardsBoardIdHtmldocsRoute: typeof BoardsBoardIdHtmldocsRouteWithChildren
   BoardsBoardIdSecretsRoute: typeof BoardsBoardIdSecretsRouteWithChildren
@@ -566,6 +637,7 @@ interface BoardsBoardIdRouteChildren {
 
 const BoardsBoardIdRouteChildren: BoardsBoardIdRouteChildren = {
   BoardsBoardIdArchiveRoute: BoardsBoardIdArchiveRouteWithChildren,
+  BoardsBoardIdCanvasRoute: BoardsBoardIdCanvasRouteWithChildren,
   BoardsBoardIdDocsRoute: BoardsBoardIdDocsRouteWithChildren,
   BoardsBoardIdHtmldocsRoute: BoardsBoardIdHtmldocsRouteWithChildren,
   BoardsBoardIdSecretsRoute: BoardsBoardIdSecretsRouteWithChildren,

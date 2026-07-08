@@ -23,10 +23,14 @@ export function BulkActionBar({
   const [showVersionDropdown, setShowVersionDropdown] = useState(false);
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
   const [labelRemoveMode, setLabelRemoveMode] = useState(false);
+  const [showMoveDropdown, setShowMoveDropdown] = useState(false);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
 
   const { session } = useConvexUser();
   const versions = useQuery(api.versions.list, session ? { boardId } : "skip");
   const labels = useQuery(api.labels.list, session ? { boardId } : "skip");
+  const board = useQuery(api.boards.get, session ? { boardId } : "skip");
+  const members = useQuery(api.members.list, session ? { boardId } : "skip");
 
   const bulkUpdatePriority = useMutation(api.cards.bulkUpdatePriority);
   const bulkArchive = useMutation(api.cards.bulkArchive);
@@ -34,6 +38,8 @@ export function BulkActionBar({
   const bulkSetVersion = useMutation(api.cards.bulkSetVersion);
   const bulkAddLabel = useMutation(api.labels.bulkAddToCards);
   const bulkRemoveLabel = useMutation(api.labels.bulkRemoveFromCards);
+  const bulkMove = useMutation(api.cards.bulkMove);
+  const bulkSetAssignee = useMutation(api.cards.bulkSetAssignee);
 
   const cardIds = Array.from(selectedCardIds);
 
@@ -72,6 +78,18 @@ export function BulkActionBar({
       await bulkAddLabel({ cardIds, labelId });
     }
     setShowLabelDropdown(false);
+    onClearSelection();
+  };
+
+  const handleMove = async (columnId: Id<"columns">) => {
+    await bulkMove({ cardIds, columnId });
+    setShowMoveDropdown(false);
+    onClearSelection();
+  };
+
+  const handleAssignee = async (assigneeId: Id<"users"> | undefined) => {
+    await bulkSetAssignee({ cardIds, assigneeId });
+    setShowAssigneeDropdown(false);
     onClearSelection();
   };
 
@@ -211,6 +229,79 @@ export function BulkActionBar({
               {(!labels || labels.length === 0) && (
                 <div className="px-3 py-2 text-sm text-dark-muted">No labels</div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Move to column dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowMoveDropdown(!showMoveDropdown);
+              setShowPriorityDropdown(false);
+              setShowVersionDropdown(false);
+              setShowLabelDropdown(false);
+              setShowAssigneeDropdown(false);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+            Move to
+          </button>
+          {showMoveDropdown && (
+            <div className="absolute bottom-full mb-2 left-0 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-1 min-w-[140px] max-h-48 overflow-y-auto">
+              {board?.columns?.map((column) => (
+                <button
+                  key={column._id}
+                  onClick={() => handleMove(column._id)}
+                  className="w-full px-3 py-1.5 text-sm text-left hover:bg-dark-hover transition-colors"
+                >
+                  {column.name}
+                </button>
+              ))}
+              {(!board?.columns || board.columns.length === 0) && (
+                <div className="px-3 py-2 text-sm text-dark-muted">No columns</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Assignee dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowAssigneeDropdown(!showAssigneeDropdown);
+              setShowPriorityDropdown(false);
+              setShowVersionDropdown(false);
+              setShowLabelDropdown(false);
+              setShowMoveDropdown(false);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-dark-muted hover:text-dark-text hover:bg-dark-hover rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Assignee
+          </button>
+          {showAssigneeDropdown && (
+            <div className="absolute bottom-full mb-2 left-0 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-1 min-w-[160px] max-h-48 overflow-y-auto">
+              <button
+                onClick={() => handleAssignee(undefined)}
+                className="w-full px-3 py-1.5 text-sm text-left hover:bg-dark-hover transition-colors text-dark-muted"
+              >
+                Unassigned
+              </button>
+              {members?.map((member) => (
+                <button
+                  key={member.userId}
+                  onClick={() => handleAssignee(member.userId)}
+                  className="w-full px-3 py-1.5 text-sm text-left hover:bg-dark-hover transition-colors"
+                >
+                  {member.user?.name || member.user?.email || "Unknown"}
+                </button>
+              ))}
             </div>
           )}
         </div>

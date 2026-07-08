@@ -1002,6 +1002,99 @@ export const bulkSetVersion = mutation({
 });
 
 /**
+ * Bulk move multiple cards to a different column (appended to the end)
+ */
+export const bulkMove = mutation({
+  args: {
+    cardIds: v.array(v.id("cards")),
+    columnId: v.id("columns"),
+  },
+  handler: async (ctx, args) => {
+    if (args.cardIds.length === 0) return { success: true };
+
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+    const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, userId, boardId, "member");
+
+    const targetColumn = await ctx.db.get(args.columnId);
+    if (!targetColumn) throw new Error("Column not found");
+
+    const existing = await ctx.db
+      .query("cards")
+      .withIndex("by_column", (q) => q.eq("columnId", args.columnId))
+      .collect();
+    let nextPosition = existing.length;
+
+    const now = Date.now();
+    for (const cardId of args.cardIds) {
+      const card = await ctx.db.get(cardId);
+      if (!card) continue;
+
+      await ctx.db.patch(cardId, {
+        columnId: args.columnId,
+        position: nextPosition++,
+        updatedAt: now,
+      });
+
+      if (card.columnId !== args.columnId) {
+        const oldCol = await ctx.db.get(card.columnId);
+        await recordActivity(ctx, {
+          cardId,
+          userId,
+          action: "moved",
+          field: "column",
+          oldValue: oldCol?.name ?? null,
+          newValue: targetColumn.name,
+        });
+      }
+    }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Bulk set (or clear) assignee for multiple cards
+ */
+export const bulkSetAssignee = mutation({
+  args: {
+    cardIds: v.array(v.id("cards")),
+    assigneeId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    if (args.cardIds.length === 0) return { success: true };
+
+    const authUser = await requireAuth(ctx);
+    const userId = authUser._id as unknown as Id<"users">;
+    const boardId = await getBoardIdFromCard(ctx, args.cardIds[0]);
+    if (!boardId) throw new Error("Card not found");
+    await requireBoardAccess(ctx, userId, boardId, "member");
+
+    const now = Date.now();
+    for (const cardId of args.cardIds) {
+      const card = await ctx.db.get(cardId);
+      if (!card) continue;
+
+      await ctx.db.patch(cardId, { assigneeId: args.assigneeId, updatedAt: now });
+
+      if (args.assigneeId && args.assigneeId !== card.assigneeId) {
+        await ctx.scheduler.runAfter(0, internal.notifications.create, {
+          userId: args.assigneeId,
+          type: "assigned",
+          cardId,
+          fromUserId: userId,
+          message: `You were assigned to "${card.title}"`,
+        });
+      }
+    }
+
+    return { success: true };
+  },
+});
+
+/**
  * Internal: Get a card by slug (and optional boardId) for MCP — no auth check needed,
  * MCP layer has already verified the Bearer token.
  */
@@ -1291,5 +1384,44 @@ export const updateByEmail = internalMutation({
     }
 
     return args.cardId;
+  },
+});
+
+/**
+ * Internal: Archive (soft-delete) a card, attributed to a user by email (used by MCP after Bearer auth)
+ */
+export const archiveByEmail = internalMutation({
+  args: {
+    cardId: v.id("cards"),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    const card = await ctx.db.get(args.cardId);
+    if (!card) throw new Error("Card not found");
+
+    await ctx.db.patch(args.cardId, {
+      isArchived: true,
+      archivedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    await recordActivity(ctx, { cardId: args.cardId, userId: user._id, action: "archived" });
+
+    const column = await ctx.db.get(card.columnId);
+    if (column) {
+      await ctx.scheduler.runAfter(0, internal.webhookActions.dispatch, {
+        boardId: column.boardId,
+        event: "card.archived",
+        data: { cardId: args.cardId, title: card.title },
+      });
+    }
+
+    return { success: true };
   },
 });

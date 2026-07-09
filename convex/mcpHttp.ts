@@ -370,6 +370,43 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "create_canvas",
+    description: "Create a new (empty) Excalidraw canvas on a board. Returns canvasId. Use draw_canvas to add shapes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        boardId: { type: "string" },
+        name: { type: "string" },
+      },
+      required: ["boardId", "name"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "draw_canvas",
+    description:
+      "Overwrite a canvas's scene with Excalidraw elements — use this to draw diagrams (rectangles, ellipses, diamonds, arrows, lines, text, freedraw). Pass `elements` as a JSON array of Excalidraw element objects. This replaces the whole scene, so include every element you want kept. Each element needs at least: id (unique string), type, x, y, width, height (0 for arrow/line/text), angle: 0, strokeColor, backgroundColor, fillStyle: \"solid\", strokeWidth: 2, strokeStyle: \"solid\", roughness: 1, opacity: 100, seed (any number), version: 1, versionNonce (any number), isDeleted: false, groupIds: [], boundElements: null, updated: 1, link: null, locked: false. Arrows/lines additionally need points (array of [x,y] pairs relative to x,y) and startBinding/endBinding: null. Text elements additionally need text, fontSize (e.g. 20), fontFamily: 1, textAlign: \"left\", verticalAlign: \"top\", containerId: null, baseline: 18, lineHeight: 1.25.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        canvasId: { type: "string" },
+        elements: { type: "string", description: "JSON-stringified array of Excalidraw elements" },
+      },
+      required: ["canvasId", "elements"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_canvas",
+    description: "Read a canvas's current Excalidraw elements (JSON string) by canvasId.",
+    inputSchema: {
+      type: "object",
+      properties: { canvasId: { type: "string" } },
+      required: ["canvasId"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 type Ctx = Parameters<Parameters<typeof httpAction>[0]>[0];
@@ -707,6 +744,27 @@ async function callTool(ctx: Ctx, email: string, name: string, args: any): Promi
         endDate: args.endDate,
         boardId: args.boardId,
       });
+    }
+    case "create_canvas": {
+      const canvasId = await ctx.runMutation(internal.canvases.createByEmail, {
+        boardId: args.boardId,
+        name: args.name,
+        userEmail: email,
+      });
+      return { created: true, canvasId };
+    }
+    case "draw_canvas": {
+      // Validate before writing so a malformed payload doesn't clobber the scene.
+      JSON.parse(args.elements);
+      const updatedAt = await ctx.runMutation(internal.canvases.saveByEmail, {
+        canvasId: args.canvasId,
+        elements: args.elements,
+        userEmail: email,
+      });
+      return { drawn: true, canvasId: args.canvasId, updatedAt };
+    }
+    case "get_canvas": {
+      return await ctx.runQuery(internal.canvases.getByEmail, { canvasId: args.canvasId });
     }
     default:
       throw new Error(`Unknown tool: ${name}`);

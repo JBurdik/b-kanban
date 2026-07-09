@@ -1,0 +1,9 @@
+# Burrow project config
+# Uncomment and edit to add scripts:
+
+# [[scripts]]
+# id = "dev"
+# name = "dev"
+# steps = ["pnpm dev"]
+# continueOnError = false
+# color = "#60a5fa"

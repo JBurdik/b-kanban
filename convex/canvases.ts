@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { getOptionalAuth, requireAuth, requireBoardAccess } from "./lib/rbac";
@@ -219,6 +219,80 @@ export const search = query({
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, 10)
       .map((canvas) => ({ _id: canvas._id, name: canvas.name, updatedAt: canvas.updatedAt }));
+  },
+});
+
+/**
+ * Internal: Create a canvas attributed to a user by email (used by MCP after Bearer auth)
+ */
+export const createByEmail = internalMutation({
+  args: { boardId: v.id("boards"), name: v.string(), userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    return await ctx.db.insert("canvases", {
+      boardId: args.boardId,
+      name: args.name,
+      elements: EMPTY_SCENE,
+      appState: EMPTY_APP_STATE,
+      createdById: user._id,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+/**
+ * Internal: Overwrite a canvas scene, attributed to a user by email (used by MCP after Bearer auth)
+ */
+export const saveByEmail = internalMutation({
+  args: {
+    canvasId: v.id("canvases"),
+    elements: v.string(),
+    appState: v.optional(v.string()),
+    userEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    const canvas = await ctx.db.get(args.canvasId);
+    if (!canvas) throw new Error("Canvas not found");
+
+    const updatedAt = Date.now();
+    await ctx.db.patch(args.canvasId, {
+      elements: args.elements,
+      appState: args.appState ?? canvas.appState,
+      updatedAt,
+    });
+
+    return updatedAt;
+  },
+});
+
+/**
+ * Internal: Get a canvas by id (used by MCP after Bearer auth)
+ */
+export const getByEmail = internalQuery({
+  args: { canvasId: v.id("canvases") },
+  handler: async (ctx, args) => {
+    const canvas = await ctx.db.get(args.canvasId);
+    if (!canvas) throw new Error("Canvas not found");
+    return {
+      _id: canvas._id,
+      boardId: canvas.boardId,
+      name: canvas.name,
+      elements: canvas.elements,
+      updatedAt: canvas.updatedAt,
+    };
   },
 });
 

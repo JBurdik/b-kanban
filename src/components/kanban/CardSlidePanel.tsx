@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -416,6 +415,17 @@ export function CardSlidePanel({
                   </svg>
                 )}
               </button>
+              <a
+                href={`/boards/${board._id}/cards/${card.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1 rounded hover:bg-dark-hover text-dark-muted hover:text-dark-text transition-colors"
+                title="Open in new tab"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
             </div>
             {card.labels && card.labels.length > 0 && (
               <div className="flex items-center gap-1">
@@ -479,17 +489,6 @@ export function CardSlidePanel({
                 </span>
               )}
             </button>
-            {/* Open at fullscreen route */}
-            <Link
-              to="/boards/$boardId/cards/$cardSlug"
-              params={{ boardId: board._id, cardSlug: card.slug }}
-              className="p-2 rounded-lg hover:bg-dark-hover text-dark-muted hover:text-dark-text transition-colors"
-              title="Open in full page"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </Link>
             {/* Expand/Collapse button — hidden on mobile (panel is already full-screen) */}
             <button
               onClick={() => setIsExpanded(!isExpanded)}

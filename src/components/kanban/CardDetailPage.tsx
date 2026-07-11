@@ -39,6 +39,7 @@ interface Props {
 
 export function CardDetailPage({ card, board }: Props) {
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const { session } = useConvexUser();
   const updateCard = useMutation(api.cards.update);
@@ -131,6 +132,9 @@ export function CardDetailPage({ card, board }: Props) {
         cardSlug={card.slug}
         priority={card.priority}
         isSaving={isSaving}
+        canEdit={canEdit}
+        isEditing={isEditing}
+        onToggleEdit={() => setIsEditing(true)}
       />
 
       {/* Mobile details section */}
@@ -157,10 +161,11 @@ export function CardDetailPage({ card, board }: Props) {
           boardId={board._id}
           title={values.title}
           content={values.content}
-          canEdit={canEdit}
+          canEdit={canEdit && isEditing}
           onTitleChange={(v) => setField("title", v)}
           onContentChange={(v) => setField("content", v)}
           onMentionSearch={handleMentionSearch}
+          onRequestEdit={canEdit ? () => setIsEditing(true) : undefined}
         />
 
         <CardSidebar

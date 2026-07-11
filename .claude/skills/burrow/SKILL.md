@@ -72,7 +72,8 @@ burrow spawn --cwd /path/to/other/project claude "..."
 Inspect and drive the app itself from the terminal — list workspaces/tabs, switch focus, open tabs.
 ```
 burrow list-workspaces             # print every workspace: <id>\t<name>\t<path>
-burrow list-tabs                   # print this workspace's tabs: <pty-id>\t<title>
+burrow list-tabs                   # print this workspace's tabs: <pty-id>\t<title>\t<status>
+#   status: running/waiting/permission/done/review/error/idle — check it before assuming a tab hasn't finished
 burrow list-tabs --ws 3            # tabs of workspace 3
 burrow focus-workspace 3           # switch Burrow to (and open) workspace 3
 burrow focus-tab 42                # activate the tab with pty id 42 (switches workspace if needed)

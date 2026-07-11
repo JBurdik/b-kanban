@@ -23,6 +23,7 @@ interface Props {
   onContentChange: (content: string) => void;
   onMentionSearch: (query: string) => Promise<MentionUser[]>;
   onBlur?: () => void;
+  onRequestEdit?: () => void;
 }
 
 export function CardContent({
@@ -35,6 +36,7 @@ export function CardContent({
   onContentChange,
   onMentionSearch,
   onBlur,
+  onRequestEdit,
 }: Props) {
   const { onImageUpload } = useEditorImageUpload();
   const [activeTab, setActiveTab] = useState<"comments" | "history">("comments");
@@ -52,7 +54,13 @@ export function CardContent({
             placeholder="Card title"
           />
         ) : (
-          <h1 className="text-2xl font-semibold">{title}</h1>
+          <h1
+            className={onRequestEdit ? "text-2xl font-semibold cursor-pointer" : "text-2xl font-semibold"}
+            onDoubleClick={onRequestEdit}
+            title={onRequestEdit ? "Double-click to edit" : undefined}
+          >
+            {title}
+          </h1>
         )}
       </div>
 
@@ -68,13 +76,23 @@ export function CardContent({
             onBlur={onBlur}
             placeholder="Add a description..."
           />
-        ) : content ? (
-          <div
-            className="rich-content bg-dark-surface border border-dark-border rounded-lg p-4"
-            dangerouslySetInnerHTML={{ __html: content }}
-          />
         ) : (
-          <p className="text-dark-muted text-sm italic">No description added yet</p>
+          <div
+            onDoubleClick={onRequestEdit}
+            title={onRequestEdit ? "Double-click to edit" : undefined}
+            className={onRequestEdit ? "cursor-pointer hover:bg-dark-hover/30 rounded-lg -m-2 p-2 transition-colors" : undefined}
+          >
+            {content ? (
+              <div
+                className="rich-content bg-dark-surface border border-dark-border rounded-lg p-4"
+                dangerouslySetInnerHTML={{ __html: content }}
+              />
+            ) : (
+              <p className="text-dark-muted text-sm italic">
+                {onRequestEdit ? "Double-click to add description" : "No description added yet"}
+              </p>
+            )}
+          </div>
         )}
       </div>
 

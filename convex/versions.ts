@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { requireBoardAccess, checkBoardAccess, requireAuth, getOptionalAuth } from "./lib/rbac";
 
 /**
@@ -9,6 +9,29 @@ export const list = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
     const user = await getOptionalAuth(ctx);
+    if (!user) return [];
+
+    const { hasAccess } = await checkBoardAccess(ctx, user._id, args.boardId, "member");
+    if (!hasAccess) return [];
+
+    return await ctx.db
+      .query("versions")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+  },
+});
+
+/**
+ * Internal: list a board's versions by user email (used by the MCP server
+ * after Bearer auth). Returns name/color/isActive for each version.
+ */
+export const listByEmail = internalQuery({
+  args: { boardId: v.id("boards"), userEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.userEmail))
+      .first();
     if (!user) return [];
 
     const { hasAccess } = await checkBoardAccess(ctx, user._id, args.boardId, "member");
